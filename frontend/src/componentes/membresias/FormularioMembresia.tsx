@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import '../../styles/membresias/FormularioMembresia.css'
+import {
+  obtenerUsuariosAdmin,
+  type Usuario,
+} from '../../services/authService'
 
 export interface MembresiaFormData {
+  userId: string
   clientId: string
   plan: string
   startDate: string
@@ -24,6 +29,9 @@ function FormularioMembresia({
   onSubmit,
   submitLabel = 'Guardar',
 }: FormularioMembresiaProps) {
+  const [usuarios] = useState<Usuario[]>(() => obtenerUsuariosAdmin())
+
+  const [userId, setUserId] = useState(initialData?.userId ?? '')
   const [clientId, setClientId] = useState(initialData?.clientId ?? '')
   const [plan, setPlan] = useState(initialData?.plan ?? PLANES[0])
   const [startDate, setStartDate] = useState(initialData?.startDate ?? '')
@@ -31,25 +39,41 @@ function FormularioMembresia({
   const [price, setPrice] = useState(initialData?.price ?? '')
   const [status, setStatus] = useState(initialData?.status ?? ESTADOS[0])
 
-  // Si initialData llega después (ej. cargando datos desde la API), rellena el formulario
-  useEffect(() => {
-    if (!initialData) return
-
-    setClientId(initialData.clientId ?? '')
-    setPlan(initialData.plan ?? PLANES[0])
-    setStartDate(initialData.startDate ?? '')
-    setEndDate(initialData.endDate ?? '')
-    setPrice(initialData.price ?? '')
-    setStatus(initialData.status ?? ESTADOS[0])
-  }, [initialData])
-
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    onSubmit({ clientId, plan, startDate, endDate, price, status })
+
+    onSubmit({
+      userId,
+      clientId,
+      plan,
+      startDate,
+      endDate,
+      price,
+      status,
+    })
   }
 
   return (
     <form className="formulario-membresia" onSubmit={handleSubmit}>
+      <label>
+        Usuario
+        <select
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          required
+        >
+          <option value="">Selecciona un usuario</option>
+
+          {usuarios
+            .filter((usuario) => usuario.role === 'lite')
+            .map((usuario) => (
+              <option key={usuario.id} value={usuario.id}>
+                {usuario.fullName} - {usuario.email}
+              </option>
+            ))}
+        </select>
+      </label>
+
       <label>
         ID del cliente
         <input

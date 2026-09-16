@@ -48,7 +48,9 @@ function guardarUsuarios(usuarios: Usuario[]) {
   )
 }
 
-export function registrarUsuario(data: RegistroUsuario): Usuario {
+export function registrarUsuario(
+  data: RegistroUsuario,
+): Usuario {
   const usuarios = obtenerUsuarios()
 
   const existe = usuarios.some(
@@ -127,4 +129,26 @@ export function obtenerUsuarioActual(): Usuario | null {
 
 export function cerrarSesion() {
   localStorage.removeItem(CURRENT_USER_KEY)
+}
+
+export function obtenerUsuariosAdmin(): Usuario[] {
+  return obtenerUsuarios()
+}
+
+export function eliminarUsuario(id: number): void {
+  const usuarios = obtenerUsuarios()
+
+  const existe = usuarios.some(
+    (usuario) => usuario.id === id,
+  )
+
+  if (!existe) {
+    throw new Error('Usuario no encontrado')
+  }
+
+  const nuevosUsuarios = usuarios.filter(
+    (usuario) => usuario.id !== id,
+  )
+
+  guardarUsuarios(nuevosUsuarios)
 }

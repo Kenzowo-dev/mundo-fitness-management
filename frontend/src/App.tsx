@@ -1,11 +1,13 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import Register from './componentes/auth/Register'
+import RutaProtegida from './componentes/RutaProtegida'
 import Login from './pages/auth/Login'
 import Membresias from './pages/membresias/Membresias'
 import RegistrarMembresia from './pages/membresias/RegistrarMembresia'
 import EditarMembresia from './pages/membresias/EditarMembresia'
 import DetalleMembresia from './pages/membresias/DetalleMembresia'
 import Usuario from './pages/Usuario'
+import Usuarios from './pages/Usuarios'
 import './App.css'
 
 function LandingPage() {
@@ -13,7 +15,7 @@ function LandingPage() {
     <div className="app">
       <header className="navbar">
         <div className="logo">
-          <img  
+          <img
             src="/src/assets/Logo.png"
             alt="Mundo Fitness"
             className="logo-image"
@@ -73,6 +75,7 @@ function LandingPage() {
         <section id="nosotros" className="about-section">
           <div className="section-title">
             <p>CONÓCENOS</p>
+
             <h2>
               Entrena. Mejora. <span>Supérate.</span>
             </h2>
@@ -81,6 +84,7 @@ function LandingPage() {
           <div className="about-content">
             <div className="about-card">
               <h3>Entrenamiento</h3>
+
               <p>
                 Espacios y equipos pensados para ayudarte a alcanzar tus
                 objetivos.
@@ -89,6 +93,7 @@ function LandingPage() {
 
             <div className="about-card">
               <h3>Comunidad</h3>
+
               <p>
                 Forma parte de una comunidad que comparte tu motivación y tus
                 ganas de mejorar.
@@ -97,6 +102,7 @@ function LandingPage() {
 
             <div className="about-card">
               <h3>Resultados</h3>
+
               <p>
                 Trabaja constantemente y convierte tus metas en resultados
                 reales.
@@ -108,6 +114,7 @@ function LandingPage() {
         <section id="ubicacion" className="location-section">
           <div className="section-title">
             <p>VISÍTANOS</p>
+
             <h2>
               Encuentra <span>nuestro gimnasio.</span>
             </h2>
@@ -123,7 +130,10 @@ function LandingPage() {
 
               <div className="address">
                 <strong>Mundo Fitness Palermo</strong>
-                <span>Av. César Vallejo 690, Trujillo 13006</span>
+
+                <span>
+                  Av. César Vallejo 690, Trujillo 13006
+                </span>
               </div>
 
               <a
@@ -139,6 +149,7 @@ function LandingPage() {
             <div className="map-container">
               <div className="map-placeholder">
                 <span>GOOGLE MAPS</span>
+
                 <small>
                   Aquí colocaremos la ubicación del gimnasio
                 </small>
@@ -149,7 +160,9 @@ function LandingPage() {
       </main>
 
       <footer className="footer">
-        <p>© 2026 Mundo Fitness. Todos los derechos reservados.</p>
+        <p>
+          © 2026 Mundo Fitness. Todos los derechos reservados.
+        </p>
       </footer>
     </div>
   )
@@ -158,16 +171,68 @@ function LandingPage() {
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/registro" element={<Register />} />
-      <Route path="/membresias" element={<Membresias />} />
-      <Route path="/membresias/nueva" element={<RegistrarMembresia />} />
-      <Route path="/membresias/:id" element={<DetalleMembresia />} />
-      <Route path="/membresias/:id/editar" element={<EditarMembresia />} />
-      <Route path="/usuario" element={<Usuario />} />
+      {/* Rutas públicas */}
+      <Route
+        path="/"
+        element={<LandingPage />}
+      />
+
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      <Route
+        path="/registro"
+        element={<Register />}
+      />
+
+      {/* Rutas exclusivas para usuarios Lite */}
+      <Route
+        element={
+          <RutaProtegida roles={['lite']} />
+        }
+      >
+        <Route
+          path="/usuario"
+          element={<Usuario />}
+        />
+      </Route>
+
+      {/* Rutas exclusivas para administradores */}
+      <Route
+        element={
+          <RutaProtegida roles={['admin']} />
+        }
+      >
+        <Route
+          path="/membresias"
+          element={<Membresias />}
+        />
+
+        <Route
+          path="/membresias/nueva"
+          element={<RegistrarMembresia />}
+        />
+
+        <Route
+          path="/membresias/:id"
+          element={<DetalleMembresia />}
+        />
+
+        <Route
+          path="/membresias/:id/editar"
+          element={<EditarMembresia />}
+        />
+
+        <Route
+          path="/usuarios"
+          element={<Usuarios />}
+        />
+      </Route>
     </Routes>
   )
 }
 
 export default App
+
