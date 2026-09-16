@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "fullName": "Administrador",
+    "email": "admin@mundofitness.com",
+    "password": "admin123",
+    "role": "admin",
+    "phone": "999999999",
+    "birthDate": "1990-01-01",
+    "gender": "otro"
+  },
+  {
+    "id": 2,
+    "fullName": "Usuario Demo",
+    "email": "usuario@mundofitness.com",
+    "password": "usuario123",
+    "role": "lite",
+    "phone": "988888888",
+    "birthDate": "2000-01-01",
+    "gender": "otro"
+  }
+]

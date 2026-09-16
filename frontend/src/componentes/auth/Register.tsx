@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { registrarUsuario } from '../../services/authService'
 
 function Register() {
   const navigate = useNavigate()
@@ -33,35 +34,53 @@ function Register() {
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  event.preventDefault()
 
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword ||
-      !formData.phone ||
-      !formData.birthDate ||
-      !formData.gender
-    ) {
-      setError('Por favor, completa todos los campos.')
-      return
-    }
+  if (
+    !formData.firstName ||
+    !formData.lastName ||
+    !formData.email ||
+    !formData.password ||
+    !formData.confirmPassword ||
+    !formData.phone ||
+    !formData.birthDate ||
+    !formData.gender
+  ) {
+    setError('Por favor, completa todos los campos.')
+    return
+  }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden.')
-      return
-    }
+  if (formData.password !== formData.confirmPassword) {
+    setError('Las contraseñas no coinciden.')
+    return
+  }
 
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.')
-      return
-    }
+  if (formData.password.length < 6) {
+    setError('La contraseña debe tener al menos 6 caracteres.')
+    return
+  }
+
+  try {
+    registrarUsuario({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      phone: formData.phone,
+      birthDate: formData.birthDate,
+      gender: formData.gender,
+    })
 
     setError('')
     setSuccess(true)
+  } catch (error) {
+    if (error instanceof Error) {
+      setError(error.message)
+    } else {
+      setError('No se pudo crear la cuenta.')
+    }
   }
+}
 
   if (success) {
     return (
