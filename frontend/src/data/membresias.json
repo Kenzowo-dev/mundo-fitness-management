@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "client_id": 101,
+    "plan": "Mensual",
+    "start_date": "2026-09-01",
+    "end_date": "2026-10-01",
+    "price": 50,
+    "status": "activa"
+  },
+  {
+    "id": 2,
+    "client_id": 102,
+    "plan": "Semestral",
+    "start_date": "2026-01-10",
+    "end_date": "2027-01-10",
+    "price": 75,
+    "status": "activa"
+  },
+  {
+    "id": 3,
+    "client_id": 103,
+    "plan": "Trimestral",
+    "start_date": "2026-08-15",
+    "end_date": "2026-11-15",
+    "price": 135,
+    "status": "activa"
+  },
+  {
+    "id": 4,
+    "client_id": 104,
+    "plan": "Anual",
+    "start_date": "2026-01-10",
+    "end_date": "2027-01-10",
+    "price": 500,
+    "status": "activa"
+  }
+]
