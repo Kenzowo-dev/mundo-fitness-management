@@ -1,6 +1,10 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import Register from './components/Register'
 import Login from './pages/auth/Login'
+import Membresias from './pages/membresias/Membresias'
+import RegistrarMembresia from './pages/membresias/RegistrarMembresia'
+import EditarMembresia from './pages/membresias/EditarMembresia'
+import DetalleMembresia from './pages/membresias/DetalleMembresia'
 import './App.css'
 
 function LandingPage() {
@@ -156,6 +160,10 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Register />} />
+      <Route path="/membresias" element={<Membresias />} />
+      <Route path="/membresias/nueva" element={<RegistrarMembresia />} />
+      <Route path="/membresias/:id" element={<DetalleMembresia />} />
+      <Route path="/membresias/:id/editar" element={<EditarMembresia />} />
     </Routes>
   )
 }

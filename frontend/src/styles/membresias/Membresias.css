@@ -1,0 +1,75 @@
+.pagina-membresias {
+  padding: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.pagina-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.btn-nueva-membresia {
+  background-color: #1e2327;
+  color: #fff;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.lista-membresias {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.error-message {
+  color: #b3261e;
+  font-weight: 600;
+}
+
+.tabla-membresias {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.tabla-membresias th,
+.tabla-membresias td {
+  border: 1px solid #ddd;
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+}
+
+.tabla-membresias th {
+  background-color: #f4f4f4;
+}
+
+.pagina-detalle-membresia,
+.pagina-registrar-membresia,
+.pagina-editar-membresia {
+  padding: 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.detalle-lista {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.detalle-lista li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.detalle-acciones {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+}
