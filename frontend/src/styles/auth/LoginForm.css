@@ -1,69 +1,90 @@
+/* Formulario general */
 .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
 }
 
-.input-label {
-    display: block;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 6px;
+/* Contenedor de cada campo y su label */
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: left;
+  width: 100%;
 }
 
-.input-wrapper {
-    position: relative;
+.login-field label {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
-.login-input {
-    width: 100%;
-    padding: 12px 14px;
-    background-color: #262626;
-    border: 1px solid #404040;
-    border-radius: 8px;
-    color: #ffffff;
-    font-size: 14px;
-    box-sizing: border-box;
-    outline: none;
+/* Contenedor relativo del input */
+.login-input-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
-.login-input::placeholder {
-    color: #737373;
+/* Campo de entrada de texto/contraseña */
+.login-input-container input {
+  width: 100%;
+  background-color: #262626;
+  color: #ffffff;
+  font-size: 0.95rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #333333;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
 }
 
-.login-input:focus {
-    border-color: #facc15;
+.login-input-container input:focus {
+  border-color: #facc15;
 }
 
-.toggle-password-btn {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #facc15;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
+.login-input-container input::placeholder {
+  color: #737373;
 }
 
-.btn-ingresar {
-    width: 100%;
-    padding: 12px;
-    background-color: #facc15;
-    color: #000000;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: background-color 0.2s ease;
+/* Botón Mostrar/Ocultar dentro del input */
+.password-toggle {
+  position: absolute;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  color: #facc15;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: color 0.2s ease;
 }
 
-.btn-ingresar:hover {
-    background-color: #eab308;
+.password-toggle:hover {
+  color: #eab308;
+}
+
+/* Botón Ingresar */
+.login-button {
+  width: 100%;
+  background-color: #facc15;
+  color: #000000;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.login-button:hover {
+  background-color: #eab308;
 }
