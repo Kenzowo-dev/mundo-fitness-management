@@ -1,32 +1,70 @@
 .formulario-membresia {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.1rem;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid #e2e5e8;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .formulario-membresia label {
   display: flex;
   flex-direction: column;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.9rem;
-  gap: 0.3rem;
+  color: #343a40;
+  gap: 0.4rem;
 }
 
 .formulario-membresia input,
 .formulario-membresia select {
-  padding: 0.5rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.85rem;
+  border-radius: 7px;
+  border: 1px solid #cfd4d9;
+  background: #fff;
+  color: #1e2327;
   font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.formulario-membresia input:focus,
+.formulario-membresia select:focus {
+  border-color: #1e2327;
+  box-shadow: 0 0 0 3px rgba(30, 35, 39, 0.1);
+}
+
+.formulario-membresia input::placeholder {
+  color: #92989d;
 }
 
 .formulario-membresia button {
   margin-top: 0.5rem;
-  padding: 0.7rem;
+  padding: 0.8rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 7px;
   background-color: #1e2327;
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1rem;
   cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.formulario-membresia button:hover {
+  background-color: #343a40;
+  transform: translateY(-1px);
+}
+
+.formulario-membresia button:active {
+  transform: translateY(0);
+}
+
+.formulario-membresia button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
