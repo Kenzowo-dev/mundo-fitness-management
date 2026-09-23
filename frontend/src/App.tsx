@@ -8,6 +8,7 @@ import EditarMembresia from './pages/membresias/EditarMembresia'
 import DetalleMembresia from './pages/membresias/DetalleMembresia'
 import Usuario from './pages/Usuario'
 import Usuarios from './pages/Usuarios'
+import Dashboard from './pages/Dashboard'
 import './App.css'
 
 function LandingPage() {
@@ -201,34 +202,38 @@ function App() {
 
       {/* Rutas exclusivas para administradores */}
       <Route
-        element={
-          <RutaProtegida roles={['admin']} />
-        }
-      >
-        <Route
-          path="/membresias"
-          element={<Membresias />}
-        />
+  element={
+    <RutaProtegida roles={['admin']} />
+  }>
+      <Route
+        path="/dashboard"
+        element={<Dashboard />}
+      />
 
-        <Route
-          path="/membresias/nueva"
-          element={<RegistrarMembresia />}
-        />
+      <Route
+        path="/membresias"
+        element={<Membresias />}
+      />
 
-        <Route
-          path="/membresias/:id"
-          element={<DetalleMembresia />}
-        />
+      <Route
+        path="/membresias/nueva"
+        element={<RegistrarMembresia />}
+      />
 
-        <Route
-          path="/membresias/:id/editar"
-          element={<EditarMembresia />}
-        />
+      <Route
+        path="/membresias/:id"
+        element={<DetalleMembresia />}
+      />
 
-        <Route
-          path="/usuarios"
-          element={<Usuarios />}
-        />
+     <Route
+        path="/membresias/:id/editar"
+        element={<EditarMembresia />}
+      />
+
+     <Route
+        path="/usuarios"
+        element={<Usuarios />}
+      />
       </Route>
     </Routes>
   )

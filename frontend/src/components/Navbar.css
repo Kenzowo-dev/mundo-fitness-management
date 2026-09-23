@@ -1,0 +1,35 @@
+.admin-navbar {
+  height: 80px;
+  background: white;
+  border-bottom: 1px solid #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  box-sizing: border-box;
+}
+
+.admin-navbar h1 {
+  margin: 0;
+  font-size: 22px;
+  color: #222;
+}
+
+.admin-navbar p {
+  margin: 5px 0 0;
+  color: #777;
+  font-size: 13px;
+}
+
+.logout-button {
+  border: none;
+  background: #222;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #000;
+}   
