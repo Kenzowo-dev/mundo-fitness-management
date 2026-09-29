@@ -1,69 +1,13 @@
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    text-align: left;
-}
+/* LoginForm.css — Estilos específicos del formulario de Login
+   Importa auth-base.css para estilos compartidos
+*/
 
-.input-label {
-    display: block;
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
+@import './auth-base.css';
 
-.input-wrapper {
-    position: relative;
-}
+/* LoginForm uses all base classes from auth-base.css:
+   .auth-form, .auth-form-group, .auth-label, .auth-input-wrapper,
+   .auth-input, .auth-password-toggle, .auth-field-error,
+   .auth-error, .auth-submit
 
-.login-input {
-    width: 100%;
-    padding: 12px 14px;
-    background-color: #262626;
-    border: 1px solid #404040;
-    border-radius: 8px;
-    color: #ffffff;
-    font-size: 14px;
-    box-sizing: border-box;
-    outline: none;
-}
-
-.login-input::placeholder {
-    color: #737373;
-}
-
-.login-input:focus {
-    border-color: #facc15;
-}
-
-.toggle-password-btn {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: #facc15;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.btn-ingresar {
-    width: 100%;
-    padding: 12px;
-    background-color: #facc15;
-    color: #000000;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: background-color 0.2s ease;
-}
-
-.btn-ingresar:hover {
-    background-color: #eab308;
-}
+No additional styles needed - all handled by auth-base.css
+*/

@@ -1,8 +1,26 @@
 {
-  "name": "GYM-Proyect",
+  "name": "gym-project",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter=@gym/shared build && concurrently \"pnpm --filter=@gym/shared dev\" \"PORT=3001 pnpm --filter=auth-service dev\" \"PORT=3002 pnpm --filter=client-service dev\" \"PORT=3003 pnpm --filter=membership-service dev\" \"PORT=3004 pnpm --filter=payment-service dev\" \"PORT=3005 pnpm --filter=plan-service dev\" \"PORT=3006 pnpm --filter=report-service dev\" \"PORT=3000 pnpm --filter=api-gateway dev\" \"pnpm --filter=frontend dev\"",
+    "build": "pnpm --filter=@gym/shared build && pnpm --filter='./services/*' build && pnpm --filter=frontend build",
+    "lint": "pnpm --filter=@gym/shared lint && pnpm --filter='./services/*' lint && pnpm --filter=frontend lint",
+    "test": "pnpm --filter=@gym/shared test && pnpm --filter='./services/*' test && pnpm --filter=frontend test",
+    "db:init": "pnpm --filter=@gym/shared db:init",
+    "db:migrate": "pnpm --filter=@gym/shared db:migrate",
+    "db:push": "pnpm --filter=@gym/shared db:push",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "clean": "pnpm --filter=@gym/shared exec rm -rf dist && pnpm --filter='./services/*' exec rm -rf dist && pnpm --filter=frontend exec rm -rf dist"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@testcontainers/postgresql": "^12.1.0",
+    "@testcontainers/redis": "^12.1.0",
+    "concurrently": "^9.0.0",
+    "testcontainers": "^12.1.0"
+  },
   "packageManager": "pnpm@11.24.0"
 }
-

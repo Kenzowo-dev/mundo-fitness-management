@@ -1,0 +1,88 @@
+/* status-badge.css — Badges de estado reutilizables con contraste WCAG AA */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  line-height: 1.4;
+}
+
+/* Estados de clientes */
+
+.status-badge.status-active {
+  background: rgba(0, 230, 118, 0.2);
+  color: var(--state-success);
+}
+
+.status-badge.status-inactive {
+  background: rgba(130, 130, 130, 0.2);
+  color: var(--text-muted);
+}
+
+.status-badge.status-suspended {
+  background: rgba(255, 82, 82, 0.2);
+  color: var(--state-error);
+}
+
+/* Estados de pagos/facturas */
+
+.status-badge.status-completed {
+  background: rgba(0, 230, 118, 0.2);
+  color: var(--state-success);
+}
+
+.status-badge.status-paid {
+  background: rgba(0, 230, 118, 0.2);
+  color: var(--state-success);
+}
+
+.status-badge.status-pending {
+  background: rgba(255, 171, 0, 0.2);
+  color: var(--state-warning);
+}
+
+.status-badge.status-failed {
+  background: rgba(255, 82, 82, 0.2);
+  color: var(--state-error);
+}
+
+.status-badge.status-cancelled {
+  background: rgba(255, 82, 82, 0.2);
+  color: var(--state-error);
+}
+
+.status-badge.status-refunded {
+  background: rgba(130, 130, 130, 0.2);
+  color: var(--text-muted);
+}
+
+/* Dificultad de planes */
+
+.status-badge.status-beginner {
+  background: rgba(0, 230, 118, 0.2);
+  color: var(--state-success);
+}
+
+.status-badge.status-intermediate {
+  background: rgba(255, 171, 0, 0.2);
+  color: var(--state-warning);
+}
+
+.status-badge.status-advanced {
+  background: rgba(255, 82, 82, 0.2);
+  color: var(--state-error);
+}
+
+/* Estado deshabilitado */
+
+.status-badge.status-disabled,
+.status-badge.disabled {
+  background: rgba(130, 130, 130, 0.2);
+  color: var(--text-muted);
+  opacity: 0.6;
+}

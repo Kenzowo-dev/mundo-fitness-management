@@ -1,19 +1,309 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: ironflex-postgres
+    container_name: gym-postgres
     restart: unless-stopped
-
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
     ports:
       - "5432:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./shared/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./shared/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gym_user} -d ${POSTGRES_DB:-gym_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: gym-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: gym-auth-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3001
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      SERVICE_NAME: auth-service
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  client-service:
+    build:
+      context: .
+      dockerfile: services/client-service/Dockerfile
+    container_name: gym-client-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3002
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      SERVICE_NAME: client-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  membership-service:
+    build:
+      context: .
+      dockerfile: services/membership-service/Dockerfile
+    container_name: gym-membership-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3003
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      SERVICE_NAME: membership-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    container_name: gym-payment-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3004
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      SERVICE_NAME: payment-service
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  plan-service:
+    build:
+      context: .
+      dockerfile: services/plan-service/Dockerfile
+    container_name: gym-plan-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3005
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      SERVICE_NAME: plan-service
+    ports:
+      - "3005:3005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  report-service:
+    build:
+      context: .
+      dockerfile: services/report-service/Dockerfile
+    container_name: gym-report-service
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3006
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 100
+      SERVICE_NAME: report-service
+    ports:
+      - "3006:3006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: gym-api-gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
+      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX_REQUESTS: 200
+      SERVICE_NAME: api-gateway
+      AUTH_SERVICE_URL: http://auth-service:3001
+      CLIENT_SERVICE_URL: http://client-service:3002
+      MEMBERSHIP_SERVICE_URL: http://membership-service:3003
+      PAYMENT_SERVICE_URL: http://payment-service:3004
+      PLAN_SERVICE_URL: http://plan-service:3005
+      REPORT_SERVICE_URL: http://report-service:3006
+    ports:
+      - "3000:3000"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      client-service:
+        condition: service_healthy
+      membership-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      plan-service:
+        condition: service_healthy
+      report-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: gym-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api-gateway
 
 volumes:
   postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: gym-network

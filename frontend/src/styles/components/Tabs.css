@@ -1,0 +1,101 @@
+/* Tabs.css — Pestañas accesibles con ARIA */
+
+.tabs {
+  display: flex;
+  gap: var(--space-2);
+  background: var(--bg-elevated-2);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  flex-wrap: wrap;
+}
+
+.tab {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.tab:hover:not(.tab-disabled) {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.tab-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-active {
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+}
+
+.tab-count {
+  background: rgba(255, 230, 0, 0.2);
+  color: var(--text-on-accent);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 24px;
+}
+
+.tab-active .tab-count {
+  background: rgba(255, 230, 0, 0.3);
+}
+
+/* Tab Panel */
+
+.tab-panel {
+  animation: fadeIn var(--transition-fast);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel {
+    animation: none;
+  }
+}
+
+/* Responsive */
+
+@media (max-width: 640px) {
+  .tabs {
+    flex-direction: column;
+  }
+
+  .tab {
+    flex: none;
+    width: 100%;
+  }
+}

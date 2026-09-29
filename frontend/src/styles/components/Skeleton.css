@@ -1,0 +1,20 @@
+/* skeleton.css — Animación de carga pulsante (WCAG 1.4.13) */
+
+.skeleton {
+  background: var(--border-default);
+  border-radius: 6px;
+  animation: pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}

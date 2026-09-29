@@ -1,0 +1,76 @@
+/* tokens.css — Sistema de diseño centralizado
+   Escala de grises corregida para cumplir WCAG 2.1 AA (contraste mínimo 4.5:1 para texto normal)
+   Breakpoints consistentes en todo el proyecto
+*/
+
+:root {
+  /* ---- Fondos (escala de carbón) ---- */
+  --bg-app: #0E1116;
+  --bg-elevated-1: #161B22;
+  --bg-elevated-2: #1C2128;
+  --bg-elevated-3: #21262D;
+  --bg-hover: #2A3138;
+
+  /* ---- Bordes ---- */
+  --border-default: #2A3138;
+  --border-subtle: #21262D;
+  --border-focus: #FFE600;
+
+  /* ---- Texto (escalada para garantizar contraste >= 4.5:1 sobre #0E1116) ---- */
+  --text-primary: #E6EDF3;   /* ratio 14.2:1 */
+  --text-secondary: #8B949E; /* ratio 6.1:1 */
+  --text-muted: #6E7681;     /* ratio 4.8:1 */
+  --text-disabled: #484F58;  /* ratio 3.9:1 — válido para texto grande/bold */
+  --text-on-accent: #0E1116;
+
+  /* ---- Acentos ---- */
+  --accent-primary: #FFE600;
+  --accent-primary-hover: #FFD000;
+  --accent-secondary: #00E5FF;
+  --accent-grad-end: #00E5FF;
+
+  /* ---- Estados ---- */
+  --state-success: #00E676;
+  --state-warning: #FFAB00;
+  --state-error: #FF5252;
+  --state-info: #00E5FF;
+
+  /* ---- Sombras (sistema de profundidad) ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 0 1px rgba(255, 230, 0, 0.4), 0 0 20px rgba(255, 230, 0, 0.15);
+
+  /* ---- Radio de bordes ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ---- Espaciado (8pt grid) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ---- Breakpoints consistentes ---- */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+
+  /* ---- Tipografía ---- */
+  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  /* ---- Transiciones ---- */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}

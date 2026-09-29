@@ -1,0 +1,21 @@
+/* memberships-page.css — Layout específico de página de membresías */
+
+.memberships-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Modal body padding para formularios internos */
+.modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .memberships-page {
+    gap: 16px;
+  }
+}

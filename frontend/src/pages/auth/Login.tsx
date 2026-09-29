@@ -1,22 +1,36 @@
 import { Link } from 'react-router-dom'
 import LoginForm from '../../componentes/auth/LoginForm'
-import '../../styles/auth/Login.css'
+import '@/styles/auth/Login.css'
 
 export default function Login() {
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <h1 className="login-title">Mundo Fitness</h1>
-        <h2 className="login-subtitle">Iniciar sesión</h2>
+    <main className="auth-container" role="main">
+      <div className="auth-card">
+        <header className="auth-header">
+          <img
+            src="/src/assets/Logo.png"
+            alt=""
+            className="auth-logo"
+            aria-hidden="true"
+          />
+          <h1 className="auth-title">Mundo Fitness</h1>
+          <p className="auth-description">
+            Ingresa a tu cuenta para acceder al panel de control.
+          </p>
+        </header>
 
         <LoginForm />
 
-        <div className="login-footer">
-          <Link to="/" className="back-link">
+        <footer className="auth-footer">
+          <Link to="/forgot-password" className="forgot-password-link">
+            ¿Olvidaste tu contraseña?
+          </Link>
+          <div className="login-footer-divider" />
+          <Link to="/" className="auth-back-link">
             ← Volver al inicio
           </Link>
-        </div>
+        </footer>
       </div>
-    </div>
+    </main>
   )
 }

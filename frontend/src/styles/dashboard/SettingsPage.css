@@ -1,0 +1,149 @@
+/* settings-page.css — Layout específico de página de configuración */
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Layout principal: sidebar + contenido */
+.settings-layout {
+  display: flex;
+  gap: 32px;
+}
+
+/* Sidebar de navegación */
+.settings-nav {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: fit-content;
+  position: sticky;
+  top: 90px;
+}
+
+.settings-nav[role="tab"] {
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.settings-nav[role="tab"]:hover {
+  background: var(--bg-elevated-2);
+  color: var(--text-primary);
+}
+
+.settings-nav[role="tab"][aria-selected="true"],
+.settings-nav[role="tab"].active {
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+}
+
+/* Área de contenido */
+.settings-content {
+  flex: 1;
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 32px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-section {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.form-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.form-section h3 {
+  margin: 0 0 20px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Grid de formularios */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Items de preferencias (checkboxes) */
+.preference-item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.preference-item:last-child {
+  border-bottom: none;
+}
+
+.preference-item label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.preference-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .settings-page {
+    gap: 16px;
+  }
+
+  .settings-layout {
+    flex-direction: column;
+  }
+
+  .settings-nav {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    position: static;
+  }
+
+  .settings-nav[role="tab"] {
+    flex: 1;
+    text-align: center;
+    min-width: 100px;
+  }
+
+  .settings-content {
+    padding: 24px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
