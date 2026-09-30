@@ -94,8 +94,8 @@ function parseNumeric(val: string | number | null | undefined): number | undefin
 
 export function mapRowToClient(row: ClientRow): Client {
   return {
-    id: row.id,
-    userId: row.user_id ?? undefined,
+    id: Number(row.id),
+    userId: row.user_id == null ? undefined : Number(row.user_id),
     dni: row.dni,
     firstName: row.first_name,
     lastName: row.last_name,
@@ -343,6 +343,43 @@ export async function listClients(
   return {
     clients: clientsResult.rows.map(mapRowToClient),
     total: parseInt(countResult.rows[0].count, 10),
+  };
+}
+
+export async function getClientStats(): Promise<{ totalClients: number; activeClients: number }> {
+  const result = await query<{ total_clients: string; active_clients: string }>(
+    `SELECT COUNT(*) AS total_clients,
+            COUNT(*) FILTER (WHERE status = 'active') AS active_clients
+     FROM clients`
+  );
+  return {
+    totalClients: Number(result.rows[0]?.total_clients ?? 0),
+    activeClients: Number(result.rows[0]?.active_clients ?? 0),
+  };
+}
+
+export async function getClientReports(): Promise<{
+  clientsByMonth: Array<{ month: string; count: number }>;
+  clientsByStatus: Array<{ status: string; count: number }>;
+}> {
+  const [monthly, status] = await Promise.all([
+    query<{ month: string; count: string }>(
+      `WITH months AS (
+         SELECT generate_series(date_trunc('month', CURRENT_DATE) - INTERVAL '5 months',
+                                date_trunc('month', CURRENT_DATE), INTERVAL '1 month') AS month
+       )
+       SELECT to_char(months.month, 'YYYY-MM') AS month, COUNT(clients.id)::text AS count
+       FROM months
+       LEFT JOIN clients ON date_trunc('month', clients.joined_at::timestamp) = months.month
+       GROUP BY months.month ORDER BY months.month`
+    ),
+    query<{ status: string; count: string }>(
+      `SELECT status, COUNT(*)::text AS count FROM clients GROUP BY status ORDER BY status`
+    ),
+  ]);
+  return {
+    clientsByMonth: monthly.rows.map((row) => ({ month: row.month, count: Number(row.count) })),
+    clientsByStatus: status.rows.map((row) => ({ status: row.status, count: Number(row.count) })),
   };
 }
 

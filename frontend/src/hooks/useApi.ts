@@ -5,16 +5,19 @@ import type {
   Client,
   CreateClientData,
   RegisterData,
-  Payment,
-  WorkoutPlan,
-  PlanDay,
-  LoggedExercise,
-  DashboardWidget,
   ClientMembership,
   MembershipPlan,
+  MembershipRenewalRequest,
+  CreatePaymentInput,
+  CreateMembershipPlanInput,
+  UpdateMembershipPlanInput,
   PaginatedResponse,
-  WidgetData,
-  Exercise,
+  ClientDashboardStats,
+  MembershipDashboardStats,
+  PaymentDashboardStats,
+  ClientReports,
+  MembershipReports,
+  PaymentReports,
 } from '../types/api';
 
 const QUERY_KEYS = {
@@ -25,6 +28,8 @@ const QUERY_KEYS = {
   clientByDni: (dni: string) => ['client', 'dni', dni] as const,
   membershipPlans: (activeOnly: boolean) => ['membershipPlans', activeOnly] as const,
   membership: (id: number) => ['membership', id] as const,
+  renewalRequests: ['membershipRenewalRequests'] as const,
+  myRenewalRequests: ['myMembershipRenewalRequests'] as const,
   clientMemberships: (clientId: number) => ['clientMemberships', clientId] as const,
   payments: (page: number, limit: number, filters?: { clientId?: number; status?: string }) =>
     ['payments', page, limit, filters] as const,
@@ -33,15 +38,6 @@ const QUERY_KEYS = {
     ['invoices', page, limit, filters] as const,
   paymentMethods: (clientId: number) => ['paymentMethods', clientId] as const,
   paymentsSummary: (clientId: number) => ['paymentsSummary', clientId] as const,
-  exercises: (muscleGroup?: string, difficulty?: string) => ['exercises', muscleGroup, difficulty] as const,
-  workoutPlans: (publicOnly: boolean) => ['workoutPlans', publicOnly] as const,
-  workoutPlan: (id: number, includeDays: boolean) => ['workoutPlan', id, includeDays] as const,
-  clientPlans: (clientId: number) => ['clientPlans', clientId] as const,
-  activeClientPlan: (clientId: number) => ['activeClientPlan', clientId] as const,
-  workoutLogs: (clientPlanId: number) => ['workoutLogs', clientPlanId] as const,
-  widgets: ['widgets'] as const,
-  widget: (widgetId: number, params: Record<string, unknown>) => ['widget', widgetId, params] as const,
-  userDashboards: (userId: number) => ['userDashboards', userId] as const,
 } as const;
 
 export function useCurrentUser(options?: { enabled?: boolean }) {
@@ -95,9 +91,14 @@ export function useUpdateCurrentUser() {
 }
 
 export function useChangePassword() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
       api.changePassword(currentPassword, newPassword),
+    onSuccess: () => {
+      // Password changes revoke server refresh tokens, so require a fresh login.
+      queryClient.clear();
+    },
   });
 }
 
@@ -119,6 +120,48 @@ export function useClients(page = 1, limit = 20, filters?: { status?: string; se
     queryKey: QUERY_KEYS.clients(page, limit, filters),
     queryFn: () => api.getClients(page, limit, filters) as Promise<PaginatedResponse<Client>>,
     placeholderData: (prev) => prev,
+  });
+}
+
+export function useClientDashboardStats() {
+  return useQuery<ClientDashboardStats, Error>({
+    queryKey: ['dashboardStats', 'clients'],
+    queryFn: () => api.getClientDashboardStats(),
+  });
+}
+
+export function useMembershipDashboardStats() {
+  return useQuery<MembershipDashboardStats, Error>({
+    queryKey: ['dashboardStats', 'memberships'],
+    queryFn: () => api.getMembershipDashboardStats(),
+  });
+}
+
+export function usePaymentDashboardStats() {
+  return useQuery<PaymentDashboardStats, Error>({
+    queryKey: ['dashboardStats', 'payments'],
+    queryFn: () => api.getPaymentDashboardStats(),
+  });
+}
+
+export function useClientReports() {
+  return useQuery<ClientReports, Error>({
+    queryKey: ['reports', 'clients'],
+    queryFn: () => api.getClientReports(),
+  });
+}
+
+export function useMembershipReports() {
+  return useQuery<MembershipReports, Error>({
+    queryKey: ['reports', 'memberships'],
+    queryFn: () => api.getMembershipReports(),
+  });
+}
+
+export function usePaymentReports() {
+  return useQuery<PaymentReports, Error>({
+    queryKey: ['reports', 'payments'],
+    queryFn: () => api.getPaymentReports(),
   });
 }
 
@@ -144,6 +187,7 @@ export function useCreateClient() {
     mutationFn: (data: CreateClientData) => api.createClient(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'clients'] });
     },
   });
 }
@@ -155,6 +199,18 @@ export function useUpdateClient() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.client(id) });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'clients'] });
+    },
+  });
+}
+
+export function useUpdateOwnClientProfile(userId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>>) =>
+      api.updateOwnClientProfile(userId, data),
+    onSuccess: (client) => {
+      queryClient.setQueryData(['member-portal', 'client', userId], client);
     },
   });
 }
@@ -165,6 +221,7 @@ export function useDeleteClient() {
     mutationFn: (id: number) => api.deleteClient(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'clients'] });
     },
   });
 }
@@ -173,6 +230,22 @@ export function useMembershipPlans(activeOnly = true) {
   return useQuery<MembershipPlan[], Error, MembershipPlan[]>({
     queryKey: QUERY_KEYS.membershipPlans(activeOnly),
     queryFn: () => api.getMembershipPlans(activeOnly) as Promise<MembershipPlan[]>,
+  });
+}
+
+export function useCreateMembershipPlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateMembershipPlanInput) => api.createMembershipPlan(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['membershipPlans'] }),
+  });
+}
+
+export function useUpdateMembershipPlan() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateMembershipPlanInput }) => api.updateMembershipPlan(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['membershipPlans'] }),
   });
 }
 
@@ -199,6 +272,43 @@ export function useCreateMembership() {
       api.createMembership(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clientMemberships(variables.clientId) });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'memberships'] });
+    },
+  });
+}
+
+export function useMyMembershipRenewalRequests() {
+  return useQuery<MembershipRenewalRequest[], Error>({
+    queryKey: QUERY_KEYS.myRenewalRequests,
+    queryFn: () => api.getMyMembershipRenewalRequests() as Promise<MembershipRenewalRequest[]>,
+  });
+}
+
+export function useMembershipRenewalRequests() {
+  return useQuery<MembershipRenewalRequest[], Error>({
+    queryKey: QUERY_KEYS.renewalRequests,
+    queryFn: () => api.getMembershipRenewalRequests() as Promise<MembershipRenewalRequest[]>,
+  });
+}
+
+export function useCreateMembershipRenewalRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { planId: number; memberNote?: string }) => api.createMembershipRenewalRequest(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.myRenewalRequests });
+    },
+  });
+}
+
+export function useUpdateMembershipRenewalRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { status: 'contacted' | 'closed'; staffNote?: string } }) =>
+      api.updateMembershipRenewalRequest(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.renewalRequests });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.myRenewalRequests });
     },
   });
 }
@@ -226,9 +336,10 @@ export function useCancelMembership() {
 export function useCheckIn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { clientId: number; membershipId: number }) => api.checkIn(data),
+    mutationFn: (data: { clientId: number; clientMembershipId: number }) => api.checkIn(data),
     onSuccess: (_, { clientId }) => {
       queryClient.invalidateQueries({ queryKey: ['clientVisits', clientId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'memberships'] });
     },
   });
 }
@@ -266,9 +377,10 @@ export function usePayment(id: number, enabled = true) {
 export function useCreatePayment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Omit<Payment, 'id' | 'createdAt' | 'paidAt'>) => api.createPayment(data),
+    mutationFn: (data: CreatePaymentInput) => api.createPayment(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'payments'] });
     },
   });
 }
@@ -304,121 +416,6 @@ export function usePaymentsSummary(clientId: number, enabled = true) {
   });
 }
 
-export function useExercises(muscleGroup?: string, difficulty?: string) {
-  return useQuery<Exercise[], Error, Exercise[]>({
-    queryKey: QUERY_KEYS.exercises(muscleGroup, difficulty),
-    queryFn: () => api.getExercises(muscleGroup, difficulty) as Promise<Exercise[]>,
-  });
-}
-
-export function useWorkoutPlans(publicOnly = false) {
-  return useQuery<WorkoutPlan[], Error, WorkoutPlan[]>({
-    queryKey: QUERY_KEYS.workoutPlans(publicOnly),
-    queryFn: () => api.getWorkoutPlans(publicOnly) as Promise<WorkoutPlan[]>,
-  });
-}
-
-export function useWorkoutPlan(id: number, includeDays = true, enabled = true) {
-  return useQuery<WorkoutPlan, Error, WorkoutPlan>({
-    queryKey: QUERY_KEYS.workoutPlan(id, includeDays),
-    queryFn: () => api.getPlan(id, includeDays) as Promise<WorkoutPlan>,
-    enabled: enabled && id > 0,
-  });
-}
-
-export function useCreatePlan() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: Omit<WorkoutPlan, 'id' | 'createdAt' | 'updatedAt' | 'days'> & {
-      days?: Omit<PlanDay, 'id' | 'planId' | 'exercises'>[];
-    }) => api.createPlan(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workoutPlans'] });
-    },
-  });
-}
-
-export function useClientPlans(clientId: number, enabled = true) {
-  return useQuery({
-    queryKey: QUERY_KEYS.clientPlans(clientId),
-    queryFn: () => api.getClientPlans(clientId),
-    enabled: enabled && clientId > 0,
-  });
-}
-
-export function useActiveClientPlan(clientId: number, enabled = true) {
-  return useQuery({
-    queryKey: QUERY_KEYS.activeClientPlan(clientId),
-    queryFn: () => api.getActiveClientPlan(clientId),
-    enabled: enabled && clientId > 0,
-  });
-}
-
-export function useAssignPlan() {
-  return useMutation({
-    mutationFn: (data: {
-      clientId: number;
-      planId: number;
-      assignedBy: number;
-      startDate: string;
-      endDate?: string;
-      notes?: string;
-    }) => api.assignPlan(data),
-  });
-}
-
-export function useLogWorkout() {
-  return useMutation({
-    mutationFn: (data: {
-      clientPlanId: number;
-      clientId: number;
-      planDayId: number;
-      durationMinutes?: number;
-      notes?: string;
-      rating?: number;
-      exercises?: Omit<LoggedExercise, 'id' | 'workoutLogId'>[];
-    }) => api.logWorkout(data),
-  });
-}
-
-export function useWorkoutLogs(clientPlanId: number, enabled = true) {
-  return useQuery({
-    queryKey: QUERY_KEYS.workoutLogs(clientPlanId),
-    queryFn: () => api.getWorkoutLogs(clientPlanId),
-    enabled: enabled && clientPlanId > 0,
-  });
-}
-
-export function useWidgets() {
-  return useQuery<DashboardWidget[], Error, DashboardWidget[]>({
-    queryKey: QUERY_KEYS.widgets,
-    queryFn: () => api.getWidgets() as Promise<DashboardWidget[]>,
-  });
-}
-
-export function useWidget(widgetId: number, params: Record<string, unknown> = {}, enabled = true) {
-  return useQuery<WidgetData, Error, WidgetData>({
-    queryKey: QUERY_KEYS.widget(widgetId, params),
-    queryFn: () => api.executeWidget(widgetId, params) as Promise<WidgetData>,
-    enabled: enabled && widgetId > 0,
-  });
-}
-
-export function useUserDashboards(userId: number, enabled = true) {
-  return useQuery({
-    queryKey: QUERY_KEYS.userDashboards(userId),
-    queryFn: () => api.getUserDashboards(userId),
-    enabled: enabled && userId > 0,
-  });
-}
-
-export function useTrackEvent() {
-  return useMutation({
-    mutationFn: ({ eventName, properties }: { eventName: string; properties: Record<string, unknown> }) =>
-      api.trackEvent(eventName, properties),
-  });
-}
-
 export function useAllClientMemberships(clientIds: number[], enabled = true) {
   return useQueries({
     queries: clientIds.map((clientId) => ({
@@ -426,16 +423,5 @@ export function useAllClientMemberships(clientIds: number[], enabled = true) {
       queryFn: () => api.getClientMemberships(clientId) as Promise<ClientMembership[]>,
       enabled: enabled && clientId > 0,
     })),
-  });
-}
-
-export function useAllWidgets(widgets: DashboardWidget[], enabled = true) {
-  return useQueries({
-    queries: widgets
-      .map((widget) => ({
-        queryKey: QUERY_KEYS.widget(widget.id, {}),
-        queryFn: () => api.executeWidget(widget.id, {}) as Promise<WidgetData>,
-        enabled: enabled && widget.id > 0,
-      })),
   });
 }

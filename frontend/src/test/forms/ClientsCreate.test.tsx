@@ -238,12 +238,8 @@ describe('ClientsPage - Create Client', () => {
           lastName: 'López',
           email: 'carlos@test.com',
           phone: '987654323',
-          birthDate: '',
           gender: 'masculino',
           address: 'Av. Nueva 789',
-          emergencyContactName: '',
-          emergencyContactPhone: '',
-          notes: '',
         })
       })
     })

@@ -4,6 +4,7 @@ import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import PaymentsPage from '@/pages/payments/PaymentsPage'
+import { api } from '@/api/client'
 import * as useApiModule from '@/hooks/useApi'
 import * as authModule from '@/context/useAuth'
 
@@ -22,6 +23,10 @@ const mockUser = {
 const mockClients = [
   { id: 1, dni: '71234567', firstName: 'Juan', lastName: 'Pérez', email: 'juan@test.com', phone: '987654321', birthDate: '1990-01-01', gender: 'masculino', address: 'Av. Las Camelias 450', status: 'active', createdAt: '2024-01-15T10:00:00Z', joinedAt: '2024-01-15', emergencyContactName: '', emergencyContactPhone: '', notes: '' },
   { id: 2, dni: '72345678', firstName: 'María', lastName: 'García', email: 'maria@test.com', phone: '987654322', birthDate: '1992-05-20', gender: 'femenino', address: 'Calle Falsa 123', status: 'active', createdAt: '2024-02-20T10:00:00Z', joinedAt: '2024-02-20', emergencyContactName: '', emergencyContactPhone: '', notes: '' },
+]
+
+const mockClientMemberships = [
+  { id: 11, clientId: 1, planId: 1, plan: { name: 'Plan Básico' }, startDate: '2026-09-01', endDate: '2026-09-30', status: 'active', autoRenew: false, createdAt: '2026-09-01', updatedAt: '2026-09-01' },
 ]
 
 const mockPayments = [
@@ -108,6 +113,7 @@ describe('PaymentsPage - Integration Tests', () => {
       refreshUser: vi.fn(),
       updateUser: vi.fn(),
     } as ReturnType<typeof authModule.useAuth>)
+    vi.spyOn(api, 'getClientMemberships').mockResolvedValue(mockClientMemberships)
   })
 
   afterEach(() => {
@@ -165,17 +171,17 @@ describe('PaymentsPage - Integration Tests', () => {
 
   const switchToInvoicesTab = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByRole('tab', { name: 'Facturas Electrónicas' }))
+      fireEvent.click(screen.getByRole('tab', { name: 'Facturas registradas' }))
     })
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Facturas Electrónicas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
     }, { timeout: 3000 })
   }
 
   describe('Render inicial / Listado', () => {
     it('renders page title', () => {
       renderPaymentsPage()
-      expect(screen.getByText('Caja, Cobros y Facturación')).toBeInTheDocument()
+      expect(screen.getByText('Pagos y comprobantes')).toBeInTheDocument()
     })
 
     it('renders action button in header', () => {
@@ -186,7 +192,7 @@ describe('PaymentsPage - Integration Tests', () => {
     it('renders tabs for payments and invoices', () => {
       renderPaymentsPage()
       expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Facturas Electrónicas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
     })
 
     it('shows payments tab with columns', () => {
@@ -211,6 +217,37 @@ describe('PaymentsPage - Integration Tests', () => {
   })
 
   describe('Loading State', () => {
+    it('shows the empty payments state after a successful empty response', () => {
+      renderPaymentsPage({
+        payments: createMockQuery({
+          data: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
+          isLoading: false,
+          isFetching: false,
+          isSuccess: true,
+          status: 'success',
+        }),
+      })
+
+      expect(screen.queryByLabelText('Cargando fila')).not.toBeInTheDocument()
+      expect(screen.getByText('No hay pagos registrados aún en el sistema.')).toBeInTheDocument()
+    })
+
+    it('shows the empty invoices state after a successful empty response', async () => {
+      renderPaymentsPage({
+        invoices: createMockQuery({
+          data: [],
+          isLoading: false,
+          isFetching: false,
+          isSuccess: true,
+          status: 'success',
+        }),
+      })
+      await switchToInvoicesTab()
+
+      expect(screen.queryByLabelText('Cargando fila')).not.toBeInTheDocument()
+      expect(screen.getByText('No hay facturas emitidas en el periodo seleccionado.')).toBeInTheDocument()
+    })
+
     it('shows loading state for payments tab', () => {
       renderPaymentsPage({
         payments: createMockQuery({ data: { data: mockPayments, pagination: { page: 1, limit: 20, total: 3, totalPages: 1 } } }),
@@ -230,8 +267,19 @@ describe('PaymentsPage - Integration Tests', () => {
   })
 
   describe('Empty State', () => {
-    // EmptyState in TableContainer not rendering in test environment
-    // Core integration tests (tabs, loading, error, modal) are passing
+    it('shows a clear empty state when there are no payments', () => {
+      renderPaymentsPage({
+        payments: createMockQuery({
+          data: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } },
+          isLoading: false,
+          isFetching: false,
+          isSuccess: true,
+          status: 'success',
+        }),
+      })
+
+      expect(screen.getByRole('status', { name: 'No hay pagos registrados aún en el sistema.' })).toBeInTheDocument()
+    })
   })
 
   describe('Error State', () => {
@@ -257,10 +305,10 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({
         payments: createMockErrorQuery('Network error'),
       })
-      expect(screen.getByText('Caja, Cobros y Facturación')).toBeInTheDocument()
+      expect(screen.getByText('Pagos y comprobantes')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Registrar nuevo cobro' })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Facturas Electrónicas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
     })
   })
 
@@ -278,6 +326,7 @@ describe('PaymentsPage - Integration Tests', () => {
       expect(screen.getByLabelText(/Socio \/ Cliente/)).toBeInTheDocument()
       expect(screen.getByLabelText(/Monto/)).toBeInTheDocument()
       expect(screen.getByLabelText(/Método de Pago/)).toBeInTheDocument()
+      expect(screen.getByText(/Esta acción no realiza cargos electrónicos/)).toBeInTheDocument()
       expect(screen.getByLabelText(/Descripción/)).toBeInTheDocument()
       // Verify select has options
       const clientSelect = screen.getByLabelText(/Socio \/ Cliente/)
@@ -290,6 +339,9 @@ describe('PaymentsPage - Integration Tests', () => {
       await openPaymentModal()
 
       fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      await waitFor(() => expect(api.getClientMemberships).toHaveBeenCalledWith(1))
+      await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
+      fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
       fireEvent.change(screen.getByLabelText(/Método de Pago/), { target: { value: 'credit_card' } })
       fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: 'Pago mensualidad' } })
@@ -301,10 +353,10 @@ describe('PaymentsPage - Integration Tests', () => {
       await waitFor(() => {
         expect(mockCreate.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
           clientId: 1,
+          membershipId: 11,
           amount: 50,
-          currency: 'USD',
+          currency: 'PEN',
           paymentMethod: 'credit_card',
-          status: 'completed',
         }))
       })
     })
@@ -315,6 +367,8 @@ describe('PaymentsPage - Integration Tests', () => {
       await openPaymentModal()
 
       fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
+      fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
       fireEvent.change(screen.getByLabelText(/Método de Pago/), { target: { value: 'credit_card' } })
 
@@ -323,7 +377,7 @@ describe('PaymentsPage - Integration Tests', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText('¡Pago registrado y procesado exitosamente!')).toBeInTheDocument()
+        expect(screen.getByText('Pago registrado como recibido. No se procesó ningún cobro electrónico.')).toBeInTheDocument()
       })
     })
 
@@ -333,6 +387,8 @@ describe('PaymentsPage - Integration Tests', () => {
       await openPaymentModal()
 
       fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
+      fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
 
       await act(async () => {
@@ -343,6 +399,23 @@ describe('PaymentsPage - Integration Tests', () => {
         // Error appears in modal's local Alert
         expect(screen.getAllByText('Error al procesar el pago').length).toBeGreaterThan(0)
       })
+    })
+
+    it('rejects amounts with more than two decimal places before sending', async () => {
+      const mockCreate = createMockMutation()
+      renderPaymentsPage({ createPaymentMutation: mockCreate })
+      await openPaymentModal()
+      fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
+      fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
+      fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '1.005' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Confirmar Cobro', hidden: true }))
+      })
+
+      expect(screen.getByText(/hasta dos decimales/i)).toBeInTheDocument()
+      expect(mockCreate.mutateAsync).not.toHaveBeenCalled()
     })
 
     it('closes modal on cancel', async () => {
@@ -365,7 +438,7 @@ describe('PaymentsPage - Integration Tests', () => {
       expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
 
       await switchToInvoicesTab()
-      expect(screen.getByRole('tab', { name: 'Facturas Electrónicas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
 
       await act(async () => {
         fireEvent.click(screen.getByRole('tab', { name: 'Historial de Pagos' }))
@@ -382,7 +455,7 @@ describe('PaymentsPage - Integration Tests', () => {
       expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
 
       await switchToInvoicesTab()
-      expect(screen.getByRole('tab', { name: 'Facturas Electrónicas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
 
       // Switching back should reset to page 1
       await act(async () => {

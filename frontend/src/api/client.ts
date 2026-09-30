@@ -10,9 +10,15 @@ import type {
   ClientMembership,
   Payment,
   Invoice,
-  WorkoutPlan,
-  PlanDay,
-  LoggedExercise,
+  CreatePaymentInput,
+  CreateMembershipPlanInput,
+  ClientDashboardStats,
+  MembershipDashboardStats,
+  PaymentDashboardStats,
+  ClientReports,
+  MembershipReports,
+  PaymentReports,
+  UpdateMembershipPlanInput,
 } from '../types/api.js';
 
 // URL base de la API obtenida de las variables de entorno de Vite
@@ -26,6 +32,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 class ApiClient {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
+  private refreshPromise: Promise<boolean> | null = null;
+  private sessionVersion = 0;
 
   /**
    * Inicializa el cliente cargando los tokens almacenados en localStorage.
@@ -48,6 +56,7 @@ class ApiClient {
    * @param tokens - Pares de tokens JWT (acceso y refresco)
    */
   private saveTokens(tokens: TokenPair): void {
+    this.sessionVersion += 1;
     this.accessToken = tokens.accessToken;
     this.refreshToken = tokens.refreshToken;
     localStorage.setItem('accessToken', tokens.accessToken);
@@ -59,6 +68,7 @@ class ApiClient {
    * Se utiliza durante el cierre de sesión o cuando el token de refresco falla.
    */
   private clearTokens(): void {
+    this.sessionVersion += 1;
     this.accessToken = null;
     this.refreshToken = null;
     localStorage.removeItem('accessToken');
@@ -116,26 +126,38 @@ class ApiClient {
    * Si el refresco falla, limpia los tokens y retorna false.
    * @returns Promesa que resuelve con true si el token se renovó, false en caso contrario
    */
-  private async refreshAccessToken(): Promise<boolean> {
-    if (!this.refreshToken) return false;
+  private refreshAccessToken(): Promise<boolean> {
+    if (!this.refreshToken) return Promise.resolve(false);
+    if (this.refreshPromise) return this.refreshPromise;
 
+    this.refreshPromise = this.performTokenRefresh().finally(() => {
+      this.refreshPromise = null;
+    });
+    return this.refreshPromise;
+  }
+
+  private async performTokenRefresh(): Promise<boolean> {
+    const refreshToken = this.refreshToken;
+    const sessionVersion = this.sessionVersion;
+    if (!refreshToken) return false;
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: this.refreshToken }),
+        body: JSON.stringify({ refreshToken }),
       });
 
       if (!response.ok) {
-        this.clearTokens();
+        if (sessionVersion === this.sessionVersion) this.clearTokens();
         return false;
       }
 
       const tokens: TokenPair = await response.json();
+      if (sessionVersion !== this.sessionVersion) return false;
       this.saveTokens(tokens);
       return true;
     } catch {
-      this.clearTokens();
+      if (sessionVersion === this.sessionVersion) this.clearTokens();
       return false;
     }
   }
@@ -193,19 +215,22 @@ class ApiClient {
    * y notificando al backend para revocar el token de refresco.
    */
   async logout(): Promise<void> {
+    const accessToken = this.accessToken;
     const refreshToken = this.refreshToken;
     this.clearTokens();
-    
-    if (refreshToken) {
-      try {
+    try {
+      if (refreshToken && accessToken) {
         await fetch(`${API_BASE_URL}/api/auth/logout`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({ refreshToken }),
         });
-      } catch {
-        // Ignore errors - tokens are already cleared locally
       }
+    } catch {
+      // Local sign-out must still complete when the API is unavailable.
     }
   }
 
@@ -251,10 +276,13 @@ class ApiClient {
    * @returns Promesa con el resultado de la operación
    */
   async changePassword(currentPassword: string, newPassword: string) {
-    return this.request('/api/auth/change-password', {
+    const result = await this.request('/api/auth/change-password', {
       method: 'POST',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
+    // The backend revokes every refresh token after a password change.
+    this.clearTokens();
+    return result;
   }
 
   /**
@@ -263,9 +291,8 @@ class ApiClient {
    * @returns Promesa con la respuesta del servidor
    */
   async forgotPassword(email: string) {
-    return fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+    return this.request('/api/auth/forgot-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
   }
@@ -277,9 +304,8 @@ class ApiClient {
    * @returns Promesa con la respuesta del servidor
    */
   async resetPassword(token: string, newPassword: string) {
-    return fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+    return this.request('/api/auth/reset-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, newPassword }),
     });
   }
@@ -304,6 +330,14 @@ class ApiClient {
     return this.request<PaginatedResponse<Client>>(`/api/clients?${params}`);
   }
 
+  async getClientDashboardStats() {
+    return this.request<ClientDashboardStats>('/api/clients/stats');
+  }
+
+  async getClientReports() {
+    return this.request<ClientReports>('/api/clients/reports');
+  }
+
   /**
    * Obtiene los datos de un cliente por su ID.
    * @param id - ID del cliente
@@ -311,6 +345,17 @@ class ApiClient {
    */
   async getClient(id: number) {
     return this.request(`/api/clients/${id}`);
+  }
+
+  async getClientByUserId(userId: number) {
+    return this.request<Client>(`/api/clients/user/${userId}`);
+  }
+
+  async updateOwnClientProfile(
+    userId: number,
+    data: Partial<Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>>,
+  ) {
+    return this.request<Client>(`/api/clients/user/${userId}`, { method: 'PATCH', body: JSON.stringify(data) });
   }
 
   /**
@@ -361,6 +406,22 @@ class ApiClient {
     return this.request(`/api/memberships/plans?activeOnly=${activeOnly}`);
   }
 
+  async getMembershipDashboardStats() {
+    return this.request<MembershipDashboardStats>('/api/memberships/stats');
+  }
+
+  async getMembershipReports() {
+    return this.request<MembershipReports>('/api/memberships/reports');
+  }
+
+  async createMembershipPlan(data: CreateMembershipPlanInput) {
+    return this.request('/api/memberships/plans', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateMembershipPlan(id: number, data: UpdateMembershipPlanInput) {
+    return this.request(`/api/memberships/plans/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
   /**
    * Obtiene los detalles de una membresía por su ID.
    * @param id - ID de la membresía
@@ -377,6 +438,22 @@ class ApiClient {
    */
   async getClientMemberships(clientId: number) {
     return this.request(`/api/memberships/client/${clientId}`);
+  }
+
+  async createMembershipRenewalRequest(data: { planId: number; memberNote?: string }) {
+    return this.request('/api/memberships/requests', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async getMyMembershipRenewalRequests() {
+    return this.request('/api/memberships/requests/mine');
+  }
+
+  async getMembershipRenewalRequests() {
+    return this.request('/api/memberships/requests');
+  }
+
+  async updateMembershipRenewalRequest(id: number, data: { status: 'contacted' | 'closed'; staffNote?: string }) {
+    return this.request(`/api/memberships/requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
   }
 
   /**
@@ -421,7 +498,7 @@ class ApiClient {
    * @param data - Información del cliente y membresía para el ingreso
    * @returns Promesa con el resultado del check-in
    */
-  async checkIn(data: { clientId: number; membershipId: number }) {
+  async checkIn(data: { clientId: number; clientMembershipId: number }) {
     return this.request('/api/memberships/visits/check-in', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -467,6 +544,14 @@ class ApiClient {
     return this.request<PaginatedResponse<Payment>>(`/api/payments?${params}`);
   }
 
+  async getPaymentDashboardStats() {
+    return this.request<PaymentDashboardStats>('/api/payments/stats');
+  }
+
+  async getPaymentReports() {
+    return this.request<PaymentReports>('/api/payments/reports');
+  }
+
   /**
    * Obtiene los detalles de un pago por su ID.
    * @param id - ID del pago
@@ -481,7 +566,7 @@ class ApiClient {
    * @param data - Datos del pago (sin campos generados)
    * @returns Promesa con los datos del pago creado
    */
-  async createPayment(data: Omit<Payment, 'id' | 'createdAt' | 'paidAt'>) {
+  async createPayment(data: CreatePaymentInput) {
     return this.request('/api/payments', { method: 'POST', body: JSON.stringify(data) });
   }
 
@@ -535,160 +620,10 @@ class ApiClient {
     return this.request(`/api/payments/summary/${clientId}`);
   }
 
-  // ==================== Endpoints de Planes de Entrenamiento ====================
-
-  /**
-   * Obtiene ejercicios disponibles con filtros opcionales.
-   * @param muscleGroup - Grupo muscular para filtrar
-   * @param difficulty - Nivel de dificultad para filtrar
-   * @returns Promesa con la lista de ejercicios
-   */
-  async getExercises(muscleGroup?: string, difficulty?: string) {
-    const params = new URLSearchParams();
-    if (muscleGroup) params.append('muscleGroup', muscleGroup);
-    if (difficulty) params.append('difficulty', difficulty);
-    return this.request(`/api/plans/exercises?${params}`);
+  async getClientPayments(clientId: number) {
+    return this.request<{ data: Payment[]; pagination: PaginatedResponse<Payment>['pagination'] }>(`/api/payments/client/${clientId}`);
   }
 
-  /**
-   * Obtiene los planes de entrenamiento disponibles.
-   * @param publicOnly - Si es true, solo retorna planes públicos
-   * @returns Promesa con la lista de planes de entrenamiento
-   */
-  async getWorkoutPlans(publicOnly = false) {
-    return this.request(`/api/plans/plans?publicOnly=${publicOnly}`);
-  }
-
-  /**
-   * Obtiene los detalles de un plan de entrenamiento por su ID.
-   * @param id - ID del plan
-   * @param includeDays - Si es true, incluye los días y ejercicios del plan
-   * @returns Promesa con los datos del plan
-   */
-  async getPlan(id: number, includeDays = true) {
-    return this.request(`/api/plans/plans/${id}?includeDays=${includeDays}`);
-  }
-
-  /**
-   * Crea un nuevo plan de entrenamiento.
-   * @param data - Datos del plan (sin campos generados)
-   * @returns Promesa con los datos del plan creado
-   */
-  async createPlan(
-    data: Omit<WorkoutPlan, 'id' | 'createdAt' | 'updatedAt' | 'days'> & {
-      days?: Omit<PlanDay, 'id' | 'planId' | 'exercises'>[];
-    },
-  ) {
-    return this.request('/api/plans/plans', { method: 'POST', body: JSON.stringify(data) });
-  }
-
-  /**
-   * Obtiene los planes de entrenamiento asignados a un cliente.
-   * @param clientId - ID del cliente
-   * @returns Promesa con la lista de planes del cliente
-   */
-  async getClientPlans(clientId: number) {
-    return this.request(`/api/plans/client/${clientId}`);
-  }
-
-  /**
-   * Obtiene el plan de entrenamiento activo actualmente asignado a un cliente.
-   * @param clientId - ID del cliente
-   * @returns Promesa con el plan activo del cliente
-   */
-  async getActiveClientPlan(clientId: number) {
-    return this.request(`/api/plans/client/${clientId}/active`);
-  }
-
-  /**
-   * Asigna un plan de entrenamiento a un cliente.
-   * @param data - Información de la asignación (cliente, plan, fechas, notas)
-   * @returns Promesa con el resultado de la asignación
-   */
-  async assignPlan(data: {
-    clientId: number;
-    planId: number;
-    assignedBy: number;
-    startDate: string;
-    endDate?: string;
-    notes?: string;
-  }) {
-    return this.request('/api/plans/assign', { method: 'POST', body: JSON.stringify(data) });
-  }
-
-  /**
-   * Registra una sesión de entrenamiento completada por un cliente.
-   * @param data - Datos del entrenamiento (plan, ejercicios realizados, notas)
-   * @returns Promesa con el resultado del registro
-   */
-  async logWorkout(data: {
-    clientPlanId: number;
-    clientId: number;
-    planDayId: number;
-    durationMinutes?: number;
-    notes?: string;
-    rating?: number;
-    exercises?: Omit<LoggedExercise, 'id' | 'workoutLogId'>[];
-  }) {
-    return this.request('/api/plans/logs', { method: 'POST', body: JSON.stringify(data) });
-  }
-
-  /**
-   * Obtiene el historial de entrenamientos registrados para un plan de cliente.
-   * @param clientPlanId - ID del plan de cliente
-   * @returns Promesa con la lista de registros de entrenamiento
-   */
-  async getWorkoutLogs(clientPlanId: number) {
-    return this.request(`/api/plans/logs/client-plan/${clientPlanId}`);
-  }
-
-  // ==================== Endpoints de Reportes ====================
-
-  /**
-   * Obtiene los widgets de dashboard disponibles.
-   * @returns Promesa con la lista de widgets
-   */
-  async getWidgets() {
-    return this.request('/api/reports/widgets');
-  }
-
-  /**
-   * Ejecuta un widget de reporte con los parámetros especificados.
-   * @param widgetId - ID del widget a ejecutar
-   * @param params - Parámetros opcionales para el widget
-   * @returns Promesa con el resultado del widget
-   */
-  async executeWidget(widgetId: number, params: Record<string, unknown> = {}) {
-    const queryParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => queryParams.append(key, String(value)));
-    return this.request(`/api/reports/widgets/${widgetId}/execute?${queryParams}`);
-  }
-
-  /**
-   * Obtiene los dashboards personalizados de un usuario.
-   * @param userId - ID del usuario
-   * @returns Promesa con la lista de dashboards del usuario
-   */
-  async getUserDashboards(userId: number) {
-    return this.request(`/api/reports/dashboards/user/${userId}`);
-  }
-
-  /**
-   * Registra un evento analítico en el servicio de reportes.
-   * @param eventName - Nombre del evento a registrar
-   * @param properties - Propiedades adicionales del evento
-   * @returns Promesa con la respuesta del servidor
-   */
-  async trackEvent(eventName: string, properties: Record<string, unknown> = {}) {
-    return fetch(`${API_BASE_URL}/api/reports/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}),
-      },
-      body: JSON.stringify({ eventName, properties }),
-    });
-  }
 }
 
 // Instancia singleton del cliente API para uso en toda la aplicación

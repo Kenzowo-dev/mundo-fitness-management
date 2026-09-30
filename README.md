@@ -4,43 +4,26 @@ Una plataforma integral de gestión de gimnasios construida con una arquitectura
 
 ## Descripción general de la arquitectura
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│              Puerta de enlace de API (puerto 3000)                 │
-│       Enrutamiento, autenticación y límite de solicitudes          │
-└─────────────────────────────────────────────────────────────────────┘
-          │           │           │           │           │
-    ┌─────┴───┐ ┌─────┴───┐ ┌─────┴───┐ ┌─────┴───┐ ┌─────┴───┐ ┌─────┴───┐
-    │ Auth    │ │ Client  │ │Membresía│ │ Pagos   │ │ Plan    │ │Reportes │
-    │Service  │ │Service  │ │ Service │ │Service  │ │Service  │ │Service  │
-    │  :3001  │ │  :3002  │ │  :3003  │ │  :3004  │ │  :3005  │ │  :3006  │
-    └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘
-          │           │           │           │           │           │
-          └───────────┴───────────┴───────────┴───────────┴───────────┘
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    │       Infraestructura compartida   │
-                    │ Configuración | Registro | Base de datos │
-                    │ Mensajería | Errores | Validación │
-                    │ Utilidades JWT                    │
-                    └─────────────────┬─────────────────┘
-                                      │
-                    ┌─────────────────┴─────────────────┐
-                    │      PostgreSQL  │      Redis      │
-                    └───────────────────────────────────┘
+El sistema local se compone de una aplicación web, una puerta de enlace y cuatro servicios: autenticación, clientes, membresías y pagos. PostgreSQL conserva la información y Redis presta soporte de infraestructura.
+
+```text
+Navegador → Frontend (:5173) → API Gateway (:3000)
+                                  ├── Auth Service (:3001)
+                                  ├── Client Service (:3002)
+                                  ├── Membership Service (:3003)
+                                  └── Payment Service (:3004)
+                                      PostgreSQL + Redis
 ```
 
 ### Servicios
 
 | Servicio | Puerto | Descripción |
 |---------|------|-------------|
-| **Puerta de enlace de API** | 3000 | Punto de entrada, enrutamiento de solicitudes, validación de autenticación, limitación de velocidad, comprobaciones de estado de los servicios |
-| **Servicio de autenticación** | 3001 | Registro de usuarios, inicio de sesión, gestión de tokens JWT (acceso/actualización), restablecimiento de contraseña, control de acceso basado en roles |
-| **Servicio de clientes** | 3002 | CRUD de clientes, mediciones corporales, objetivos de acondicionamiento físico, gestión de documentos |
-| **Servicio de membresías** | 3003 | Planes de membresía, suscripciones, registro de entrada/salida, congelamientos, notificaciones de vencimiento |
-| **Servicio de pagos** | 3004 | Procesamiento de pagos, facturas, métodos de pago, reembolsos, resúmenes de pagos de clientes |
-| **Servicio de planes** | 3005 | Biblioteca de ejercicios, creación de planes de entrenamiento, asignación de planes a clientes, registro de entrenamientos |
-| **Servicio de informes** | 3006 | Plantillas de informes, informes generados, widgets del panel, paneles de usuario, analítica |
+| **Puerta de enlace de API** | 3000 | Enrutamiento, autenticación y comprobación de estado de servicios |
+| **Servicio de autenticación** | 3001 | Inicio de sesión, tokens y control de acceso por rol |
+| **Servicio de clientes** | 3002 | Datos de clientes y perfiles de socios |
+| **Servicio de membresías** | 3003 | Planes de membresía, suscripciones, visitas y vencimientos |
+| **Servicio de pagos** | 3004 | Pagos, facturas y resúmenes por cliente |
 
 ### Infraestructura compartida (`@gym/shared`)
 
@@ -72,7 +55,7 @@ Una plataforma integral de gestión de gimnasios construida con una arquitectura
 - **Formularios**: Validación con **Zod** (esquemas compartidos en `@gym/shared`), manejo manual de estado (sin React Hook Form)
 - **Componentes de IU**: **TailwindCSS + shadcn/ui (Radix UI primitives)**
 - **Iconos**: Emoji
-- **Gráficos**: Placeholders implementados en ReportsPage (Recharts planificado para producción)
+- **Gráficos**: visualizaciones SVG y CSS para tendencias, barras, distribución y mapas de calor
 
 ### DevOps
 - **Gestor de paquetes**: pnpm 11.24.0 (espacios de trabajo)
@@ -103,7 +86,7 @@ Antes de instalar cualquier cosa, comprueba que tienes lo siguiente. Si alguno f
 | **Redis** | 7.0 o superior | Escribe `redis-cli --version` |
 | **Docker** (opcional) | 24.0+ | Escribe `docker --version` |
 
-> **Para principiantes:** si alguno de estos comandos no existe, significa que no está instalado. Puedes instalar Node.js y pnpm fácilmente desde https://nodejs.org (trae npm) y luego escribir `npm install -g pnpm`.
+> Activa Corepack con `corepack enable` para que pnpm use la versión fijada en `package.json`.
 
 ### 2. Clona el repositorio a tu computadora
 
@@ -111,7 +94,7 @@ Abre una terminal (PowerShell, CMD, Terminal de macOS o consola de Linux) y copi
 
 ```bash
 # Descarga el código del proyecto a tu computadora
-git clone https://github.com/<TU_USUARIO>/gym-project.git
+git clone https://github.com/Kenzowo-dev/GYM_Proyect.git
 
 # Entra a la carpeta que se acaba de crear
 cd GYM_Proyect
@@ -125,93 +108,51 @@ El proyecto está dividido en varias partes (frontend, backend y servicios). pnp
 
 ```bash
 # Instala las dependencias de TODAS las partes del proyecto
+```
+
+La instalación se ejecuta en el paso siguiente para evitar duplicarla.
+
+### 4. Configura el entorno local
+
+Los archivos `.env.local` y `.env.docker` separan las direcciones de conexión del host y de la red Compose. Son archivos locales ignorados por Git; las plantillas contienen credenciales exclusivamente para desarrollo.
+
+```bash
+cp .env.local.example .env.local
+cp .env.docker.example .env.docker
+```
+
+### 5. Instala e inicia
+
+#### Opción A: Node local + PostgreSQL/Redis en Docker
+
+```bash
 pnpm install
-```
-
-> **Para principiantes:** este comando puede tardar varios minutos la primera vez. No lo interrumpas. Al finalizar, verás archivos `node_modules` en cada carpeta (`frontend/`, `services/...`, `shared/`).
-
-### 4. Configura las variables de entorno
-
-El proyecto utiliza un **único archivo `.env` en la raíz** que comparten todos los servicios. No existen archivos `.env.example` individuales por servicio.
-
-```bash
-# Copia la plantilla de configuración general
-cp .env.example .env
-```
-
-Luego edita `.env` con tus valores reales (base de datos, claves secretas, etc.). La plantilla ya incluye valores por defecto para desarrollo local.
-
-> **Importante:** El archivo `.env` raíz es **obligatorio**, no opcional. Todos los servicios leen sus variables desde este archivo compartido.
-
-### 5. Inicia las bases de datos (PostgreSQL y Redis)
-
-#### Opción A: Con Docker (recomendado, más fácil)
-
-Si instalaste Docker, levanta solo PostgreSQL y Redis:
-
-```bash
-docker compose up -d postgres redis
-```
-
-Esto iniciará PostgreSQL en el puerto 5432 y Redis en el puerto 6379 automáticamente.
-
-#### Opción B: Instalados localmente (sin Docker)
-
-1. **Inicia PostgreSQL:**
-   - Windows: abre el programa "pgAdmin" o ejecuta `pg_ctlcluster start` o `service postgresql start`.
-   - macOS: ejecuta `brew services start postgresql@16` (si usas Homebrew).
-   - Linux: ejecuta `sudo systemctl start postgresql`.
-2. **Crea la base de datos:**
-   ```bash
-   # Inicia la consola de PostgreSQL
-   psql -U postgres
-
-   # Dentro de psql, escribe:
-   CREATE DATABASE gym_db;
-   \q
-   ```
-3. **Inicia Redis:**
-   - Windows: `redis-server` (si lo instalaste).
-   - macOS: `brew services start redis`
-   - Linux: `sudo systemctl start redis`
-
-### 6. Inicia el entorno de desarrollo
-
-El proyecto soporta **dos modos de ejecución**. Elige uno:
-
----
-
-#### Modo A: Desarrollo local (recomendado para desarrollo diario)
-
-Los servicios corren en tu máquina (Node.js) y se conectan a PostgreSQL/Redis en Docker.
-
-```bash
-# 1. Asegúrate de que PostgreSQL y Redis estén corriendo (paso 5)
-docker compose up -d postgres redis
-
-# 2. Levanta todos los servicios + frontend en modo watch
+docker compose --env-file .env.docker up -d postgres redis
+pnpm db:init
 pnpm dev
 ```
 
-Verás en la terminal varios mensajes como `Listening on http://localhost:3000`, `Listening on http://localhost:5173`, etc. Deja esa terminal abierta mientras trabajas.
+El backend carga `.env.local`; el primer inicio del volumen crea el esquema y las cuentas demo. `pnpm db:init` vuelve a aplicar el esquema y restablece las contraseñas demo indicadas abajo sin borrar los demás datos.
 
-> **Nota:** `pnpm dev` compila `@gym/shared` en watch mode automáticamente antes de iniciar los servicios, así que un clon limpio funciona sin builds previos.
-
----
-
-#### Modo B: Completamente Dockerizado (para pruebas de integración / staging)
-
-Todos los servicios (incluyendo frontend) corren dentro de contenedores.
+#### Opción B: Todo en Docker
 
 ```bash
-# 1. Asegúrate de tener .env configurado
-cp .env.example .env
-
-# 2. Levanta TODO (build + up)
-docker compose up -d --build
+pnpm install
+docker compose --env-file .env.docker build
+docker compose --env-file .env.docker up -d
+pnpm db:init
+docker compose --env-file .env.docker ps
 ```
 
-> **Importante:** No ejecutes `pnpm dev` después de iniciar todos los servicios mediante Docker Compose. Los puertos colisionarían (3000-3006, 5173).
+Para iterar con cambios locales sin reconstruir imágenes ni descargar paquetes, ejecuta `pnpm docker:dev`. Este comando compila en el host, monta los artefactos compilados y reinicia los servicios de aplicación para que los procesos carguen los cambios; PostgreSQL y Redis conservan sus datos y no se reinician. Para instalar el proyecto desde cero o validar imágenes de despliegue, utiliza la compilación normal de Docker con acceso a Docker Hub y npm.
+
+El frontend queda en http://localhost:5173 y el gateway en http://localhost:3000. Para recrear la base local desde cero y borrar sus datos, ejecuta `docker compose --env-file .env.docker down -v` antes de levantarla de nuevo.
+
+No ejecutes `pnpm dev` y el stack completo de Compose a la vez porque usan los mismos puertos.
+
+#### Usuario demo local
+
+La base inicial incluye `admin@mundofitness.com` con contraseña `Admin1234!`, además de usuarios de recepción y socio con la misma contraseña. Son cuentas **LOCAL ONLY**.
 
 ---
 
@@ -235,13 +176,7 @@ pnpm --filter=membership-service dev
 # Terminal 5 — Servicio de pagos
 pnpm --filter=payment-service dev
 
-# Terminal 6 — Servicio de planes
-pnpm --filter=plan-service dev
-
-# Terminal 7 — Servicio de informes
-pnpm --filter=report-service dev
-
-# Terminal 8 — Frontend (React)
+# Terminal 6 — Frontend (React)
 pnpm --filter=frontend dev
 ```
 
@@ -255,15 +190,39 @@ Abre tu navegador y visita estas direcciones:
 | **Health check** `http://localhost:3000/health` | Health check del gateway + estado de todos los servicios |
 | **Lista de servicios** `http://localhost:3000/services` | JSON listando los microservicios conectados |
 
-> **Para principiantes:** si alguna dirección no carga, revisa la terminal donde ejecutaste `pnpm dev` y lee los mensajes de error. Lo más común es que la base de datos o Redis no estén encendidos (ver paso 5) o que no hayas editado correctamente el archivo `.env` (ver paso 4).
+Si una dirección no carga en Docker, revisa `docker compose --env-file .env.docker ps` y `docker compose --env-file .env.docker logs`.
+
+### 8. Prueba los recorridos principales
+
+En el navegador, abre `http://localhost:5173`. Para el stack Docker completo, inicia sesión con estas cuentas locales, incluidas en `shared/database/seed.sql`:
+
+| Grupo | Correo | Contraseña |
+|---|---|---|
+| Administración | `admin@mundofitness.com` | `Admin1234!` |
+| Recepción | `recepcion@mundofitness.com` | `Admin1234!` |
+| Socio | `socio@mundofitness.com` | `Admin1234!` |
+
+Comprueba los recorridos de cada rol:
+
+1. **Recepción:** abre Socios, busca por nombre, DNI o correo y consulta la ficha. En Membresías, revisa planes y suscripciones; abre Asignar Membresía y Registrar Check-In para revisar sus campos. En Pagos, revisa el historial y abre Registrar nuevo cobro.
+2. **Socio:** inicia sesión con la cuenta de socio. Comprueba el perfil, la vigencia de la membresía, los planes disponibles y el historial de pagos. El socio solo debe ver su propia información y volver a `/portal` si intenta abrir una ruta de recepción.
+3. **Administración:** comprueba el panel y Configuración. La navegación debe mantener las tareas operativas separadas de la configuración.
+
+Los formularios solo guardan datos al confirmar. Las operaciones que confirmes quedan en la base local y pueden afectar las siguientes pruebas. Las solicitudes web no procesan pagos electrónicos; recepción debe confirmar las operaciones manuales.
+
+Para compilar y actualizar los servicios de aplicación con los contenedores locales existentes, ejecuta `pnpm docker:dev`. Comprueba su estado con:
+
+```bash
+docker compose --env-file .env.docker -f compose.yaml -f compose.local.yaml ps
+```
 
 ### 8. Solución de problemas comunes (para principiantes)
 
-- **"Error de conexión a la base de datos":** asegúrate de haber iniciado PostgreSQL y de que `POSTGRES_PASSWORD` en tus `.env` coincida con la contraseña real de tu usuario `postgres`.
+- **"Error de conexión a la base de datos":** para Node local comprueba `POSTGRES_HOST=localhost` en `.env.local`; Compose configura el host de contenedor automáticamente.
 - **"Error de conexión a Redis":** verifica que Redis esté corriendo con `redis-cli ping` (debe responder `PONG`).
-- **"No se encuentra pnpm":** instálalo con `npm install -g pnpm` y luego repite `pnpm install`.
+- **"No se encuentra pnpm":** ejecuta `corepack enable` con Node instalado y vuelve a abrir la terminal.
 - **"El puerto 3000 ya está en uso":** cierra la terminal donde corriste `pnpm dev` o ejecuta `pnpm dev` en otra máquina.
-- **"Los archivos .env no existen":** repite el paso 4.2. Si la plantilla `.env.example` falta en algún servicio, copia las variables del ejemplo de la sección de arriba.
+- **"No se encuentra .env.docker":** vuelve a copiar `.env.docker.example` como `.env.docker`. Node local lee `.env.local`.
 
 ## Ejemplos de uso
 
@@ -276,17 +235,16 @@ Abre tu navegador y visita estas direcciones:
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "trainer@gym.com",
+    "email": "nuevo.socio@mundofitness.com",
     "password": "securePassword123",
     "firstName": "John",
-    "lastName": "Doe",
-    "role": "trainer"
+    "lastName": "Doe"
   }'
 
 # Inicia sesión (público)
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "trainer@gym.com", "password": "securePassword123"}'
+  -d '{"email": "nuevo.socio@mundofitness.com", "password": "securePassword123"}'
 
 # Refresca access token (público)
 curl -X POST http://localhost:3000/api/auth/refresh \
@@ -316,12 +274,12 @@ curl -X POST http://localhost:3000/api/auth/change-password \
 # Solicita reset de contraseña (público)
 curl -X POST http://localhost:3000/api/auth/forgot-password \
   -H "Content-Type: application/json" \
-  -d '{"email": "trainer@gym.com"}'
+  -d '{"email": "nuevo.socio@mundofitness.com"}'
 
 # Resetea contraseña con token (público)
 curl -X POST http://localhost:3000/api/auth/reset-password \
   -H "Content-Type: application/json" \
-  -d '{"token": "<reset_token>", "password": "newSecure456"}'
+  -d '{"token": "<reset_token>", "newPassword": "newSecure456"}'
 ```
 
 ### Gestión de usuarios (solo admin)
@@ -339,7 +297,7 @@ curl -X GET http://localhost:3000/api/auth/users/<user_id> \
 curl -X PATCH http://localhost:3000/api/auth/users/<user_id> \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
-  -d '{"role": "trainer", "isActive": true}'
+  -d '{"role": "receptionist", "isActive": true}'
 
 # Elimina usuario (admin)
 curl -X DELETE http://localhost:3000/api/auth/users/<user_id> \
@@ -353,7 +311,7 @@ curl -X GET http://localhost:3000/api/auth/roles \
 ### Gestión de clientes
 
 ```bash
-# Crea un cliente (admin, recepcionist, trainer)
+# Crea un cliente (admin o recepción)
 curl -X POST http://localhost:3000/api/clients \
   -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
@@ -705,191 +663,6 @@ curl -X POST http://localhost:3000/api/payments/refunds/<refund_id>/process \
   -H "Authorization: Bearer <access_token>"
 ```
 
-### Ejercicios (Plan Service)
-
-```bash
-# Lista ejercicios
-curl -X GET http://localhost:3000/api/plans/exercises \
-  -H "Authorization: Bearer <access_token>"
-
-# Obtiene ejercicio por ID
-curl -X GET http://localhost:3000/api/plans/exercises/<exercise_id> \
-  -H "Authorization: Bearer <access_token>"
-
-# Crea ejercicio (admin, trainer)
-curl -X POST http://localhost:3000/api/plans/exercises \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Press de banca",
-    "muscleGroup": "chest",
-    "equipment": "barbell",
-    "difficulty": "intermediate",
-    "instructions": "Acuéstate en el banco, sujeta la barra..."
-  }'
-
-# Actualiza ejercicio (admin, trainer)
-curl -X PATCH http://localhost:3000/api/plans/exercises/<exercise_id> \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"difficulty": "advanced"}'
-```
-
-### Planes de entrenamiento
-
-```bash
-# Lista planes de entrenamiento
-curl -X GET http://localhost:3000/api/plans/plans \
-  -H "Authorization: Bearer <access_token>"
-
-# Obtiene plan por ID
-curl -X GET http://localhost:3000/api/plans/plans/<plan_id> \
-  -H "Authorization: Bearer <access_token>"
-
-# Crea plan de entrenamiento (admin, trainer)
-curl -X POST http://localhost:3000/api/plans/plans \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Fuerza Superior",
-    "description": "Enfoque en pecho, espalda y hombros",
-    "exercises": [
-      {"exerciseId": "<ex_id_1>", "sets": 4, "reps": 8, "restSeconds": 90},
-      {"exerciseId": "<ex_id_2>", "sets": 3, "reps": 10, "restSeconds": 60}
-    ]
-  }'
-
-# Actualiza plan (admin, trainer)
-curl -X PATCH http://localhost:3000/api/plans/plans/<plan_id> \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"description": "Actualizado"}'
-
-# Elimina plan (admin)
-curl -X DELETE http://localhost:3000/api/plans/plans/<plan_id> \
-  -H "Authorization: Bearer <access_token>"
-```
-
-### Asignación de planes a clientes
-
-```bash
-# Asigna plan a cliente (admin, trainer)
-curl -X POST http://localhost:3000/api/plans/assign \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "clientId": "<client_id>",
-    "planId": "<plan_id>",
-    "startDate": "2024-01-15"
-  }'
-
-# Obtiene planes de un cliente
-curl -X GET http://localhost:3000/api/plans/client/<client_id> \
-  -H "Authorization: Bearer <access_token>"
-
-# Obtiene plan activo del cliente
-curl -X GET http://localhost:3000/api/plans/client/<client_id>/active \
-  -H "Authorization: Bearer <access_token>"
-
-# Actualiza progreso del plan asignado
-curl -X PATCH http://localhost:3000/api/plans/client-plans/<client_plan_id>/progress \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"week": 3, "completedSessions": 12}'
-
-# Completa plan asignado
-curl -X POST http://localhost:3000/api/plans/client-plans/<client_plan_id>/complete \
-  -H "Authorization: Bearer <access_token>"
-```
-
-### Registro de entrenamientos (Workout Logs)
-
-```bash
-# Registra entrenamiento
-curl -X POST http://localhost:3000/api/plans/logs \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "clientPlanId": "<client_plan_id>",
-    "exercises": [
-      {"exerciseId": "<ex_id>", "sets": 3, "reps": 10, "weight": 60, "rpe": 8}
-    ],
-    "durationMinutes": 45,
-    "notes": "Buen entrenamiento"
-  }'
-
-# Obtiene logs de un plan asignado
-curl -X GET http://localhost:3000/api/plans/logs/client-plan/<client_plan_id> \
-  -H "Authorization: Bearer <access_token>"
-
-# Obtiene log específico
-curl -X GET http://localhost:3000/api/plans/logs/<log_id> \
-  -H "Authorization: Bearer <access_token>"
-```
-
-### Informes y analítica
-
-```bash
-# Plantillas de informes
-curl -X GET http://localhost:3000/api/reports/templates \
-  -H "Authorization: Bearer <access_token>"
-
-# Crea plantilla (admin)
-curl -X POST http://localhost:3000/api/reports/templates \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Progreso Mensual",
-    "description": "Informe de progreso del cliente",
-    "query": "SELECT * FROM client_progress WHERE client_id = ?"
-  }'
-
-# Genera informe
-curl -X POST http://localhost:3000/api/reports/generate \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "templateId": "<template_id>",
-    "clientId": "<client_id>",
-    "dateRange": {"start": "2024-01-01", "end": "2024-01-31"}
-  }'
-
-# Lista informes generados
-curl -X GET http://localhost:3000/api/reports/generated \
-  -H "Authorization: Bearer <access_token>"
-
-# Obtiene informe generado
-curl -X GET http://localhost:3000/api/reports/generated/<report_id> \
-  -H "Authorization: Bearer <access_token>"
-
-# Ejecuta query personalizada (admin)
-curl -X POST http://localhost:3000/api/reports/query \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"sql": "SELECT COUNT(*) FROM clients WHERE created_at > ?", "params": ["2024-01-01"]}'
-
-# Widgets de dashboard
-curl -X GET http://localhost:3000/api/reports/widgets \
-  -H "Authorization: Bearer <access_token>"
-
-# Ejecuta widget específico
-curl -X GET http://localhost:3000/api/reports/widgets/<widget_id>/execute \
-  -H "Authorization: Bearer <access_token>"
-
-# Dashboards de usuario
-curl -X GET http://localhost:3000/api/reports/dashboards/user/<user_id> \
-  -H "Authorization: Bearer <access_token>"
-
-# Eventos de analítica
-curl -X POST http://localhost:3000/api/reports/events \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"eventType": "check_in", "clientId": "<client_id>", "metadata": {}}'
-
-curl -X GET http://localhost:3000/api/reports/events/counts \
-  -H "Authorization: Bearer <access_token>"
-```
-
 ## Documentación de la API
 
 ### URL base
@@ -967,8 +740,6 @@ Endpoints públicos (no requieren autenticación):
 | Clientes | `/api/clients` | `POST /`, `GET /`, `GET /dni/:dni`, `GET /user/:userId`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:clientId/measurements`, `GET /:clientId/measurements`, `GET /:clientId/measurements/latest`, `POST /:clientId/goals`, `GET /:clientId/goals`, `PATCH /goals/:id`, `DELETE /goals/:id`, `POST /:clientId/documents`, `GET /:clientId/documents`, `DELETE /documents/:id` |
 | Membresías | `/api/memberships` | `GET /plans`, `GET /plans/:id`, `POST /plans`, `PATCH /plans/:id`, `DELETE /plans/:id`, `GET /expiring`, `GET /client/:clientId`, `POST /`, `GET /:id`, `PATCH /:id`, `POST /:id/cancel`, `POST /:id/renew`, `POST /visits/check-in`, `POST /visits/:visitId/check-out`, `GET /visits/client/:clientId`, `POST /freezes`, `GET /freezes/:membershipId` |
 | Pagos | `/api/payments` | `POST /`, `GET /`, `GET /transaction/:transactionId`, `GET /summary/:clientId`, `GET /:id`, `PATCH /:id`, `POST /invoices`, `GET /invoices`, `GET /invoices/number/:invoiceNumber`, `GET /invoices/:id`, `POST /invoices/:id/pay`, `POST /invoices/:id/cancel`, `POST /methods`, `GET /methods/:clientId`, `POST /methods/:clientId/:methodId/default`, `DELETE /methods/:clientId/:methodId`, `POST /refunds`, `POST /refunds/:refundId/process` |
-| Planes | `/api/plans` | `GET /exercises`, `GET /exercises/:id`, `POST /exercises`, `PATCH /exercises/:id`, `GET /plans`, `GET /plans/:id`, `POST /plans`, `PATCH /plans/:id`, `DELETE /plans/:id`, `POST /assign`, `GET /client/:clientId`, `GET /client/:clientId/active`, `PATCH /client-plans/:clientPlanId/progress`, `POST /client-plans/:clientPlanId/complete`, `POST /logs`, `GET /logs/client-plan/:clientPlanId`, `GET /logs/:logId` |
-| Informes | `/api/reports` | `POST /templates`, `GET /templates`, `GET /templates/:id`, `PATCH /templates/:id`, `DELETE /templates/:id`, `POST /query`, `POST /generate`, `GET /generated`, `GET /generated/:id`, `POST /widgets`, `GET /widgets`, `GET /widgets/:widgetId/execute`, `PATCH /widgets/:id`, `DELETE /widgets/:id`, `POST /dashboards`, `GET /dashboards/user/:userId`, `GET /dashboards/:id`, `PATCH /dashboards/:id`, `DELETE /dashboards/:id`, `POST /events`, `GET /events/counts` |
 
 ## Estructura del proyecto
 
@@ -994,17 +765,14 @@ GYM_Proyect/
 │   ├── utils/
 │   │   ├── jwt.ts             # Utilidades de JWT
 │   │   └── validation.ts      # Ayudas de validación de Zod
-│   ├── test/
-│   │   └── integration-setup.ts  # Configuración Testcontainers para tests de integración
+│   ├── test/                    # Pruebas unitarias compartidas
 │   └── package.json
-├── services/                   # Microservicios (7 servicios)
+├── services/                   # Microservicios del sistema
 │   ├── api-gateway/           # Puerto 3000 - Punto de entrada
 │   ├── auth-service/          # Puerto 3001 - Autenticación
 │   ├── client-service/        # Puerto 3002 - Gestión de clientes
 │   ├── membership-service/    # Puerto 3003 - Membresías
 │   ├── payment-service/       # Puerto 3004 - Pagos
-│   ├── plan-service/          # Puerto 3005 - Planes de entrenamiento
-│   └── report-service/        # Puerto 3006 - Informes y analítica
 ├── compose.yaml          # Orquestación de contenedores (Docker Compose v2)
 ├── package.json               # Configuración raíz del espacio de trabajo
 ├── pnpm-workspace.yaml        # Definición del espacio de trabajo de pnpm
@@ -1117,10 +885,12 @@ Crea archivos `.env.production` y `.env.staging` por servicio con los valores ad
 
 ### Estrategia de pruebas
 
-- **Pruebas unitarias**: utilidades, validadores, funciones puras y clases de error (Vitest) — **92 tests pasando**
-- **Pruebas de integración**: endpoints de servicios con base de datos real (Testcontainers: PostgreSQL + Redis) — **Infraestructura lista en `shared/test/integration-setup.ts`**, tests creados para Auth, Client, Membership, Payment, Plan services
-- **Pruebas E2E**: flujos de usuario críticos (Playwright) — **Configurado en `playwright.config.ts`**, 5 suites: auth, dashboard, clients, memberships, payments
-- **Pruebas de contrato**: compatibilidad de API entre servicios via API Gateway — **Tests de contrato en `services/api-gateway/test/contract.test.ts`**
+- `pnpm test` ejecuta primero las pruebas unitarias y después las pruebas de integración.
+- `pnpm test:unit` ejecuta solo las pruebas unitarias del frontend y backend.
+- `pnpm test:integration` crea PostgreSQL y Redis desechables con Testcontainers, aplica el esquema y los datos iniciales, y verifica autenticación, clientes, membresías, pagos y el proxy del API Gateway. Requiere Docker activo.
+- Los planes se prueban a través del módulo de membresías, que es donde vive su API.
+- Playwright ejecuta los recorridos E2E del producto real en `tests/e2e`; requiere que todos los servicios Docker locales estén saludables. Levanta/actualiza el stack con `pnpm docker:dev`, instala Chromium una vez con `pnpm test:e2e:install` y ejecuta `pnpm test:e2e`.
+- La suite E2E cubre registro, inicio/cierre de sesión y renovación solicitada por web; alta, edición y búsqueda de clientes; planes, asignación de membresía y check-in; registro e historial de pagos; panel e informes. No utiliza servidores simulados.
 
 ## Solución de problemas
 
@@ -1133,7 +903,7 @@ Crea archivos `.env.production` y `.env.staging` por servicio con los valores ad
 # Comprueba que PostgreSQL esté en ejecución
 pg_isready -h localhost -p 5432
 
-# Verifica las credenciales en .env
+# Node local usa .env.local; Compose usa .env.docker
 ```
 
 **Error de conexión a Redis**:
@@ -1141,7 +911,7 @@ pg_isready -h localhost -p 5432
 # Comprueba que Redis esté en ejecución
 redis-cli ping
 
-# Verifica REDIS_HOST/REDIS_PORT en .env
+# Node local usa localhost; Compose configura el host redis
 ```
 
 **Errores de resolución de módulos**: ejecuta `pnpm install` desde la raíz para asegurarte de que todas las dependencias del espacio de trabajo estén enlazadas

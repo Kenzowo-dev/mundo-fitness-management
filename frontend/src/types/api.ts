@@ -85,6 +85,39 @@ export interface MembershipPlan {
   updatedAt: string;
 }
 
+export interface CreateMembershipPlanInput {
+  name: string;
+  description?: string;
+  durationDays: number;
+  price: number;
+  currency: 'PEN' | 'USD';
+  features: string[];
+  maxVisitsPerWeek?: number;
+  includesClasses: boolean;
+  includesSauna: boolean;
+  sortOrder: number;
+}
+
+export type UpdateMembershipPlanInput = Partial<CreateMembershipPlanInput> & { isActive?: boolean };
+
+export type MembershipRenewalRequestStatus = 'pending' | 'contacted' | 'closed';
+
+export interface MembershipRenewalRequest {
+  id: number;
+  clientId: number;
+  planId: number;
+  planName: string;
+  status: MembershipRenewalRequestStatus;
+  memberNote?: string;
+  staffNote?: string;
+  requestedAt: string;
+  updatedAt: string;
+  handledBy?: number;
+  clientName?: string;
+  clientEmail?: string;
+  clientDni?: string;
+}
+
 export interface ClientMembership {
   id: number;
   clientId: number;
@@ -104,6 +137,7 @@ export interface ClientMembership {
 export interface Payment {
   id: number;
   clientId: number;
+  clientName?: string;
   membershipId?: number;
   amount: number;
   currency: string;
@@ -113,6 +147,16 @@ export interface Payment {
   description?: string;
   paidAt?: string;
   createdAt: string;
+}
+
+export interface CreatePaymentInput {
+  clientId: number;
+  membershipId: number;
+  amount: number;
+  currency: 'PEN' | 'USD';
+  paymentMethod: 'cash' | 'bank_transfer' | 'digital_wallet' | 'credit_card' | 'debit_card';
+  transactionId?: string;
+  description?: string;
 }
 
 export interface Invoice {
@@ -136,97 +180,6 @@ export interface InvoiceItem {
   total: number;
 }
 
-export interface WorkoutPlan {
-  id: number;
-  name: string;
-  description?: string;
-  goal?: string;
-  difficulty: string;
-  durationWeeks?: number;
-  daysPerWeek?: number;
-  isPublic: boolean;
-  createdBy?: number;
-  createdAt: string;
-  updatedAt: string;
-  days?: PlanDay[];
-}
-
-export interface PlanDay {
-  id: number;
-  planId: number;
-  dayNumber: number;
-  name?: string;
-  focus?: string;
-  notes?: string;
-  exercises?: PlanExercise[];
-}
-
-export interface PlanExercise {
-  id: number;
-  planDayId: number;
-  exerciseId: number;
-  exercise?: Exercise;
-  orderIndex: number;
-  sets: number;
-  reps: string;
-  restSeconds: number;
-  weightPercentage?: number;
-  notes?: string;
-}
-
-export interface Exercise {
-  id: number;
-  name: string;
-  description?: string;
-  muscleGroup: string;
-  secondaryMuscles: string[];
-  equipment?: string;
-  difficulty: string;
-  instructions?: string;
-  videoUrl?: string;
-  imageUrl?: string;
-  isActive: boolean;
-}
-
-export interface ClientPlan {
-  id: number;
-  clientId: number;
-  planId: number;
-  plan?: WorkoutPlan;
-  assignedBy?: number;
-  startDate: string;
-  endDate?: string;
-  status: string;
-  currentWeek: number;
-  currentDay: number;
-  notes?: string;
-}
-
-export interface WorkoutLog {
-  id: number;
-  clientPlanId: number;
-  clientId: number;
-  planDayId: number;
-  completedAt: string;
-  durationMinutes?: number;
-  notes?: string;
-  rating?: number;
-  exercises?: LoggedExercise[];
-}
-
-export interface LoggedExercise {
-  id: number;
-  workoutLogId: number;
-  planExerciseId: number;
-  exerciseId: number;
-  exercise?: Exercise;
-  setsCompleted: number;
-  repsCompleted: number[];
-  weightsUsed: number[];
-  rpe?: number;
-  notes?: string;
-}
-
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
@@ -237,27 +190,38 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface ClientDashboardStats {
+  totalClients: number;
+  activeClients: number;
+}
+
+export interface MembershipDashboardStats {
+  activeMemberships: number;
+  visitsToday: number;
+}
+
+export interface PaymentDashboardStats {
+  revenueThisMonth: Array<{ currency: string; amount: number }>;
+}
+
+export interface ClientReports {
+  clientsByMonth: Array<{ month: string; count: number }>;
+  clientsByStatus: Array<{ status: string; count: number }>;
+}
+
+export interface MembershipReports {
+  membershipsByStatus: Array<{ status: string; count: number }>;
+  visitsByDay: Array<{ date: string; count: number }>;
+}
+
+export type PaymentReports = Array<{ month: string; currency: string; amount: number }>;
+
 export interface ApiError {
   error: {
     message: string;
     code: string;
     details?: unknown;
   };
-}
-
-export interface DashboardWidget {
-  id: number;
-  name: string;
-  type: 'metric' | 'line' | 'pie' | 'bar' | 'heatmap' | 'table';
-  width: number;
-  height: number;
-  query: string;
-  parameters?: Record<string, unknown>;
-}
-
-export interface WidgetData {
-  columns: string[];
-  rows: unknown[][];
 }
 
 export interface MembershipVisit {
@@ -291,18 +255,4 @@ export interface PaymentSummary {
   totalPending: number;
   totalOverdue: number;
   currency: string;
-}
-
-export interface Exercise {
-  id: number;
-  name: string;
-  description?: string;
-  muscleGroup: string;
-  secondaryMuscles: string[];
-  equipment?: string;
-  difficulty: string;
-  instructions?: string;
-  videoUrl?: string;
-  imageUrl?: string;
-  isActive: boolean;
 }

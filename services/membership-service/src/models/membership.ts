@@ -69,6 +69,24 @@ export interface CreateMembershipData {
   paymentMethodId?: string;
 }
 
+export type RenewalRequestStatus = 'pending' | 'contacted' | 'closed';
+
+export interface MembershipRenewalRequest {
+  id: number;
+  clientId: number;
+  planId: number;
+  planName: string;
+  status: RenewalRequestStatus;
+  memberNote?: string;
+  staffNote?: string;
+  requestedAt: Date;
+  updatedAt: Date;
+  handledBy?: number;
+  clientName?: string;
+  clientEmail?: string;
+  clientDni?: string;
+}
+
 export interface UpdateMembershipData {
   planId?: number;
   autoRenew?: boolean;

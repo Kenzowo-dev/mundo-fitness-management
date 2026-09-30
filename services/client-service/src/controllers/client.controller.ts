@@ -8,6 +8,8 @@ import {
   updateClient,
   deleteClient,
   listClients,
+  getClientStats,
+  getClientReports,
   addMeasurement,
   getClientMeasurements,
   getLatestMeasurement,
@@ -54,6 +56,15 @@ const updateClientSchema = z.object({
   medicalConditions: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(['active', 'inactive', 'suspended']).optional(),
+});
+
+const updateOwnClientSchema = z.object({
+  phone: z.string().max(20).optional(),
+  address: z.string().optional(),
+  emergencyContactName: z.string().max(100).optional(),
+  emergencyContactPhone: z.string().max(20).optional(),
+}).refine((data) => Object.values(data).some((value) => value !== undefined), {
+  message: 'Proporciona al menos un dato de contacto para actualizar.',
 });
 
 const measurementSchema = z.object({
@@ -173,6 +184,18 @@ export async function updateClientController(req: Request, res: Response, next: 
   }
 }
 
+export async function updateOwnClientController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = parseInt(Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId, 10);
+    const existing = await getClientByUserId(userId);
+    if (!existing) throw new NotFoundError('Client', userId);
+    const client = await updateClient(existing.id, req.body);
+    res.json(client);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function deleteClientController(req: Request, res: Response, next: NextFunction) {
   try {
     const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
@@ -191,6 +214,22 @@ export async function listClientsController(req: Request, res: Response, next: N
       data: clients,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getClientStatsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await getClientStats());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getClientReportsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await getClientReports());
   } catch (error) {
     next(error);
   }
@@ -305,6 +344,7 @@ export async function deleteDocumentController(req: Request, res: Response, next
 
 export const createClientValidation = validate(createClientSchema);
 export const updateClientValidation = validate(updateClientSchema);
+export const updateOwnClientValidation = validate(updateOwnClientSchema);
 export const measurementValidation = validate(measurementSchema);
 export const goalValidation = validate(goalSchema);
 export const updateGoalValidation = validate(updateGoalSchema);

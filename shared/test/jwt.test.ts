@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import {
   generateAccessToken,
@@ -12,7 +12,7 @@ describe('Shared Module - JWT Utilities', () => {
   const dummyUser = {
     sub: '1001',
     email: 'test@mundofitness.com',
-    role: 'trainer',
+    role: 'receptionist',
     permissions: ['clients:read', 'plans:write'],
   };
 
@@ -36,6 +36,14 @@ describe('Shared Module - JWT Utilities', () => {
     const decoded = verifyRefreshToken(refreshToken);
     assert.equal(decoded.sub, '1001');
     assert.equal(decoded.type, 'refresh');
+  });
+
+  it('debe generar refresh tokens distintos en emisiones simultáneas', () => {
+    const first = generateRefreshToken('1001');
+    const second = generateRefreshToken('1001');
+    assert.notEqual(first, second);
+    assert.ok(verifyRefreshToken(first).jti);
+    assert.ok(verifyRefreshToken(second).jti);
   });
 
   it('debe fallar al verificar un token alterado o malformado', () => {

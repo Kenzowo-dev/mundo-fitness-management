@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -10,7 +10,6 @@ describe('Auth Service - Validación y Seguridad de Autenticación', () => {
     firstName: z.string().min(1).max(100),
     lastName: z.string().min(1).max(100),
     phone: z.string().max(20).optional(),
-    role: z.enum(['member', 'trainer', 'receptionist']).optional(),
   });
 
   it('debe validar exitosamente un payload de registro válido', () => {
@@ -19,11 +18,10 @@ describe('Auth Service - Validación y Seguridad de Autenticación', () => {
       password: 'PasswordSeguro123!',
       firstName: 'Mateo',
       lastName: 'Gómez',
-      role: 'member',
     };
     const parsed = registerSchema.parse(validData);
     assert.equal(parsed.email, validData.email);
-    assert.equal(parsed.role, 'member');
+    assert.equal(parsed.role, undefined);
   });
 
   it('debe rechazar registro con contraseña menor a 8 caracteres', () => {

@@ -5,13 +5,14 @@ import rateLimit from 'express-rate-limit';
 import { createProxyMiddleware, Options as ProxyOptions } from 'http-proxy-middleware';
 import type * as http from 'node:http';
 import type * as net from 'node:net';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 import { config } from '@gym/shared/config/index.js';
 import { logger } from '@gym/shared/logger/index.js';
 import { connectRedis, disconnectRedis } from '@gym/shared/messaging/index.js';
 import { extractTokenFromHeader, verifyAccessToken, TokenPayload } from '@gym/shared/utils/jwt.js';
 import { AuthenticationError, isAppError } from '@gym/shared/errors/index.js';
 
-const app = express();
 const SERVICE_NAME = 'api-gateway';
 
 /**
@@ -28,34 +29,10 @@ interface AuthenticatedRequest extends Request {
 process.env.SERVICE_NAME = SERVICE_NAME;
 
 /**
- * Middlewares globales de seguridad y parsing:
- * - helmet: headers de seguridad HTTP (CSP, HSTS, X-Frame-Options, etc.)
- * - cors: Cross-Origin Resource Sharing con config centralizada
- * - express.json/urlencoded: parsing de request body
- */
-app.use(helmet());
-app.use(cors(config.cors));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-/**
- * Rate limiting global para prevenir abuso y DoS a nivel de gateway.
- * Protege todos los servicios downstream de tráfico excesivo.
- */
-const limiter = rateLimit({
-  windowMs: config.rateLimit.windowMs,
-  max: config.rateLimit.maxRequests,
-  message: { error: { message: 'Too many requests', code: 'RATE_LIMIT_EXCEEDED' } },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
-
-/**
  * Configuración de un servicio downstream para el proxy.
  * Incluye rutas públicas que no requieren autenticación (ej: login, register).
  */
-interface ServiceConfig {
+export interface ServiceConfig {
   name: string;
   url: string;
   paths: string[];
@@ -67,7 +44,7 @@ interface ServiceConfig {
  * Cada servicio define sus rutas base y endpoints públicos.
  * URLs configurables via environment variables para deployment flexible.
  */
-const services: ServiceConfig[] = [
+const configuredServices: ServiceConfig[] = [
   {
     name: 'auth-service',
     url: process.env.AUTH_SERVICE_URL || 'http://localhost:3001',
@@ -89,16 +66,6 @@ const services: ServiceConfig[] = [
     url: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3004',
     paths: ['/api/payments'],
   },
-  {
-    name: 'plan-service',
-    url: process.env.PLAN_SERVICE_URL || 'http://localhost:3005',
-    paths: ['/api/plans'],
-  },
-  {
-    name: 'report-service',
-    url: process.env.REPORT_SERVICE_URL || 'http://localhost:3006',
-    paths: ['/api/reports'],
-  },
 ];
 
 /**
@@ -109,7 +76,7 @@ const services: ServiceConfig[] = [
  * @param path - Ruta de la request entrante (relativa al mount point)
  * @returns true si la ruta es pública, false si requiere auth
  */
-function isPublicPath(path: string): boolean {
+function isPublicPath(path: string, services: ServiceConfig[]): boolean {
   for (const service of services) {
     if (service.publicPaths) {
       for (const publicPath of service.publicPaths) {
@@ -132,24 +99,26 @@ function isPublicPath(path: string): boolean {
  * 4. Adjuntar payload a req.user
  * 5. Continuar al proxy
  */
-function authenticateGateway(req: AuthenticatedRequest, _res: Response, next: NextFunction): void {
-  if (isPublicPath(req.path)) {
-    return next();
-  }
+function authenticateGateway(services: ServiceConfig[]) {
+  return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
+    if (isPublicPath(req.path, services)) {
+      return next();
+    }
 
-  const token = extractTokenFromHeader(req.headers.authorization);
-  if (!token) {
-    throw new AuthenticationError('Access token required', 'TOKEN_MISSING');
-  }
+    const token = extractTokenFromHeader(req.headers.authorization);
+    if (!token) {
+      throw new AuthenticationError('Access token required', 'TOKEN_MISSING');
+    }
 
-  try {
-    const payload = verifyAccessToken(token);
-    req.user = payload;
-    next();
-  } catch (error) {
-    logger.debug({ err: error }, 'Token verification failed');
-    throw new AuthenticationError('Invalid or expired token', 'TOKEN_INVALID');
-  }
+    try {
+      const payload = verifyAccessToken(token);
+      req.user = payload;
+      next();
+    } catch (error) {
+      logger.debug({ err: error }, 'Token verification failed');
+      throw new AuthenticationError('Invalid or expired token', 'TOKEN_INVALID');
+    }
+  };
 }
 
 /**
@@ -211,97 +180,71 @@ function createProxy(service: ServiceConfig) {
   return createProxyMiddleware(proxyOptions) as express.RequestHandler;
 }
 
-/**
- * Registra rutas de proxy para cada servicio configurado.
- * Aplica autenticación y luego proxy en cadena.
- * Orden: authenticateGateway -> createProxy(service)
- */
-for (const service of services) {
-  for (const path of service.paths) {
-    app.use(path, authenticateGateway, createProxy(service));
+/** Builds a gateway application with injectable downstream URLs for integration tests. */
+export function createGatewayApp(services: ServiceConfig[] = configuredServices): express.Express {
+  const app = express();
+  app.use(helmet());
+  app.use(cors(config.cors));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  const limiter = rateLimit({
+    windowMs: config.rateLimit.windowMs,
+    max: config.rateLimit.maxRequests,
+    message: { error: { message: 'Too many requests', code: 'RATE_LIMIT_EXCEEDED' } },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use(limiter);
+
+  for (const service of services) {
+    for (const path of service.paths) {
+      app.use(path, authenticateGateway(services), createProxy(service));
+    }
   }
-}
 
-/**
- * Health check agregado del gateway + todos los servicios downstream.
- * Hace fetch paralelo a /health de cada servicio con timeout 2s.
- * Retorna 200 si todos healthy, 503 si alguno falla (degraded).
- * Incluye status individual de cada servicio para debugging.
- */
-app.get('/health', async (_req, res) => {
-  const serviceHealth = await Promise.all(
-    services.map(async (service) => {
-      try {
-        const response = await fetch(`${service.url}/health`, { signal: AbortSignal.timeout(2000) });
-        const data = await response.json() as { status: string };
-        return { service: service.name, status: data.status, url: service.url };
-      } catch {
-        return { service: service.name, status: 'unhealthy', url: service.url };
-      }
-    })
-  );
+  app.get('/health', async (_req, res) => {
+    const serviceHealth = await Promise.all(
+      services.map(async (service) => {
+        try {
+          const response = await fetch(`${service.url}/health`, { signal: AbortSignal.timeout(2000) });
+          const data = await response.json() as { status: string };
+          return { service: service.name, status: response.ok ? data.status : 'unhealthy', url: service.url };
+        } catch {
+          return { service: service.name, status: 'unhealthy', url: service.url };
+        }
+      })
+    );
 
-  const allHealthy = serviceHealth.every((s) => s.status === 'healthy');
-  res.status(allHealthy ? 200 : 503).json({
-    status: allHealthy ? 'healthy' : 'degraded',
-    service: SERVICE_NAME,
-    timestamp: new Date().toISOString(),
-    services: serviceHealth,
-  });
-});
-
-/**
- * Endpoint de discovery: lista todos los servicios registrados con sus rutas y URLs.
- * Útil para debugging y cliente API dinámico.
- */
-app.get('/services', (_req, res) => {
-  res.json({
-    services: services.map((s) => ({
-      name: s.name,
-      paths: s.paths,
-      url: s.url,
-    })),
-  });
-});
-
-/**
- * Catch-all para rutas no encontradas en el gateway.
- * Retorna 404 con formato de error estandarizado.
- */
-app.use((_req, res) => {
-  res.status(404).json({
-    error: {
-      message: 'Route not found',
-      code: 'NOT_FOUND',
-    },
-  });
-});
-
-/**
- * Error handler global del gateway.
- * Captura errores no manejados (programming errors, proxy failures).
- * Loggea error completo y retorna statusCode apropiado para AppError.
- */
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error({ err }, 'Gateway error');
-  
-  if (isAppError(err)) {
-    return res.status(err.statusCode).json({
-      error: {
-        message: err.message,
-        code: err.code,
-        details: err.details,
-      },
+    const allHealthy = serviceHealth.every((service) => service.status === 'healthy');
+    res.status(allHealthy ? 200 : 503).json({
+      status: allHealthy ? 'healthy' : 'degraded',
+      service: SERVICE_NAME,
+      timestamp: new Date().toISOString(),
+      services: serviceHealth,
     });
-  }
-  
-  res.status(500).json({
-    error: {
-      message: 'Internal server error',
-      code: 'INTERNAL_ERROR',
-    },
   });
-});
+
+  app.get('/services', (_req, res) => {
+    res.json({ services: services.map(({ name, paths, url }) => ({ name, paths, url })) });
+  });
+
+  app.use((_req, res) => {
+    res.status(404).json({ error: { message: 'Route not found', code: 'NOT_FOUND' } });
+  });
+
+  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error({ err }, 'Gateway error');
+    if (isAppError(err)) {
+      return res.status(err.statusCode).json({
+        error: { message: err.message, code: err.code, details: err.details },
+      });
+    }
+    res.status(500).json({ error: { message: 'Internal server error', code: 'INTERNAL_ERROR' } });
+  });
+
+  return app;
+}
 
 /**
  * Inicia el gateway HTTP y conexión a Redis (para rate limiting distribuido futuro).
@@ -312,9 +255,10 @@ async function startServer(): Promise<void> {
     await connectRedis();
     logger.info('Redis connected');
 
+    const app = createGatewayApp();
     app.listen(config.port, () => {
       logger.info(`${SERVICE_NAME} running on port ${config.port}`);
-      logger.info('Configured services: ' + services.map((s) => `${s.name} -> ${s.url}`).join(', '));
+      logger.info('Configured services: ' + configuredServices.map((s) => `${s.name} -> ${s.url}`).join(', '));
     });
   } catch (error) {
     logger.error({ err: error }, 'Failed to start server');
@@ -335,4 +279,6 @@ async function shutdown(): Promise<void> {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-startServer();
+if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+  startServer();
+}

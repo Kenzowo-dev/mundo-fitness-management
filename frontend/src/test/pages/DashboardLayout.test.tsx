@@ -63,6 +63,7 @@ describe('DashboardLayout - Integration Tests', () => {
             <Route path="/membresias" element={<div data-testid="membresias-page">Membresias Page</div>} />
             <Route path="/planes" element={<div data-testid="planes-page">Planes Page</div>} />
             <Route path="/pagos" element={<div data-testid="pagos-page">Pagos Page</div>} />
+            <Route path="/informes" element={<div data-testid="informes-page">Informes Page</div>} />
             <Route path="/reportes" element={<div data-testid="reportes-page">Reportes Page</div>} />
             <Route path="/configuracion" element={<div data-testid="configuracion-page">Configuracion Page</div>} />
           </Routes>
@@ -119,9 +120,8 @@ describe('DashboardLayout - Integration Tests', () => {
       { label: 'Dashboard' },
       { label: 'Clientes' },
       { label: 'Membresías' },
-      { label: 'Planes' },
       { label: 'Pagos' },
-      { label: 'Reportes' },
+      { label: 'Informes' },
       { label: 'Configuración' },
     ]
 

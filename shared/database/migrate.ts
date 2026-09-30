@@ -41,7 +41,7 @@ export async function runDatabaseInit(options: { seed?: boolean } = { seed: true
       }
     }
 
-    logger.info('Base de datos inicializada y lista para producción.');
+    logger.info('Base de datos inicializada correctamente.');
   } catch (error) {
     logger.error({ err: error }, 'Error crítico durante la inicialización de la base de datos');
     throw error;

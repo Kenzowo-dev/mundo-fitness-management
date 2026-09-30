@@ -224,11 +224,11 @@ describe('ClientsPage - Integration Tests', () => {
     it('renders all clients in table', () => {
       renderClientsPage()
       expect(screen.getByText('71234567')).toBeInTheDocument()
-      expect(screen.getByText('Juan {client.lastName}')).toBeInTheDocument()
+      expect(screen.getByText('Juan Pérez')).toBeInTheDocument()
       expect(screen.getByText('72345678')).toBeInTheDocument()
-      expect(screen.getByText('María {client.lastName}')).toBeInTheDocument()
+      expect(screen.getByText('María García')).toBeInTheDocument()
       expect(screen.getByText('73456789')).toBeInTheDocument()
-      expect(screen.getByText('Carlos {client.lastName}')).toBeInTheDocument()
+      expect(screen.getByText('Carlos López')).toBeInTheDocument()
     })
 
     it('shows loading state initially', () => {

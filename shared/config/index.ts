@@ -14,8 +14,11 @@ function findEnvFile(startDir: string): string | undefined {
   let currentDir = startDir;
 
   while (true) {
-    const candidate = path.join(currentDir, '.env');
-    if (existsSync(candidate)) return candidate;
+    const candidates = process.env.ENV_FILE
+      ? [path.resolve(process.env.ENV_FILE)]
+      : [path.join(currentDir, '.env.local'), path.join(currentDir, '.env')];
+    const candidate = candidates.find((file) => existsSync(file));
+    if (candidate) return candidate;
 
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) return undefined;

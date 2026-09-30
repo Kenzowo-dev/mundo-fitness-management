@@ -213,34 +213,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push plan-service
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./services/plan-service/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/gym-plan-service:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/gym-plan-service:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=gym-plan-service
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push report-service
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./services/report-service/Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/gym-report-service:${{ github.sha }},${{ secrets.DOCKERHUB_USERNAME }}/gym-report-service:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=gym-report-service
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Build and push api-gateway
         uses: docker/build-push-action@v5
         with:

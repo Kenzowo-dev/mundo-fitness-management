@@ -1,69 +1,23 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { createClient, createPlan, loginAsReception } from './helpers';
 
-test.describe('Membership Management', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    
-    // Credenciales del seed: admin@mundofitness.com / Admin1234!
-    await page.fill('input[type="email"], input[name="email"]', 'admin@mundofitness.com');
-    await page.fill('input[type="password"], input[name="password"]', 'Admin1234!');
-    await page.click('button[type="submit"]');
-    
-    await page.waitForURL('**/dashboard');
-    await page.waitForLoadState('networkidle');
-    
-    await page.goto('/membresias');
-    await page.waitForLoadState('networkidle');
-  });
+test('reception can create a plan, assign it, and check a member in', async ({ page }) => {
+  await loginAsReception(page);
+  const client = await createClient(page);
+  const planName = await createPlan(page);
 
-  test('should display memberships page with tabs', async ({ page }) => {
-    await expect(page.locator('h1, h2')).toContainText(/Membresías|Memberships/i);
-    await expect(page.locator('[role="tablist"], .tabs')).toBeVisible();
-    await expect(page.locator('[role="tab"]')).toHaveCount(2);
-  });
+  await page.getByRole('button', { name: 'Asignar Membresía a socio' }).click();
+  await page.getByLabel('Seleccione el Socio').selectOption({ label: client.optionLabel });
+  const planOption = page.locator('#assign-plan option').filter({ hasText: planName });
+  await page.getByLabel('Seleccione el Plan').selectOption(await planOption.getAttribute('value') ?? '');
+  await page.getByRole('button', { name: 'Activar Membresía' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Membresía asignada exitosamente' })).toBeVisible();
 
-  test('should display membership plans tab', async ({ page }) => {
-    await expect(page.locator('[role="tabpanel"] table, .table')).toBeVisible();
-    const headers = page.locator('th');
-    await expect(headers).toContainText(['Nombre', 'Duración', 'Precio']);
-  });
+  await page.getByRole('button', { name: 'Registrar Check-In de socio' }).click();
+  await page.getByLabel('Seleccione el Socio').selectOption({ label: client.optionLabel });
+  await page.getByRole('button', { name: 'Registrar Ingreso' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Check-in registrado exitosamente' })).toBeVisible();
 
-  test('should switch to client memberships tab', async ({ page }) => {
-    await page.click('[role="tab"]:has-text("Suscripciones"), [role="tab"]:has-text("Memberships")');
-    await expect(page.locator('[role="tabpanel"] table, .table')).toBeVisible();
-  });
-
-  test('should open check-in modal', async ({ page }) => {
-    await page.click('button:has-text("Check-in"), button:has-text("Registrar Check-in")');
-    await expect(page.locator('[role="dialog"], .modal')).toBeVisible();
-    await expect(page.locator('h2, h3')).toContainText(/Check-in|Control de Acceso/i);
-  });
-
-  test('should register check-in for client', async ({ page }) => {
-    await page.click('button:has-text("Check-in"), button:has-text("Registrar Check-in")');
-    await page.waitForSelector('[role="dialog"], .modal');
-    
-    await page.selectOption('select[name="clientId"], select[id*="client"]', { index: 1 });
-    await page.click('button[type="submit"]:has-text("Registrar"), button:has-text("Ingreso")');
-    
-    await expect(page.locator('.success, .toast, [role="alert"]')).toContainText(/check-in|ingreso|éxito/i);
-  });
-
-  test('should open assign membership modal', async ({ page }) => {
-    await page.click('button:has-text("Asignar Membresía"), button:has-text("Asignar")');
-    await expect(page.locator('[role="dialog"], .modal')).toBeVisible();
-    await expect(page.locator('h2, h3')).toContainText(/Asignar Membresía/i);
-  });
-
-  test('should assign membership to client', async ({ page }) => {
-    await page.click('button:has-text("Asignar Membresía"), button:has-text("Asignar")');
-    await page.waitForSelector('[role="dialog"], .modal');
-    
-    await page.selectOption('select[name="clientId"], select[id*="client"]', { index: 1 });
-    await page.selectOption('select[name="planId"], select[id*="plan"]', { index: 1 });
-    await page.click('button[type="submit"]:has-text("Activar"), button:has-text("Asignar")');
-    
-    await expect(page.locator('.success, .toast, [role="alert"]')).toContainText(/asignado|activado|éxito/i);
-  });
+  await page.goto('/dashboard');
+  await expect(page.getByLabel('Check-ins de hoy')).toHaveText(/^[1-9]\d*$/);
 });

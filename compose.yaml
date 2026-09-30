@@ -13,6 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./shared/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./shared/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./shared/database/migrations/003-membership-renewal-requests.sql:/docker-entrypoint-initdb.d/03-membership-renewal-requests.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gym_user} -d ${POSTGRES_DB:-gym_db}"]
       interval: 10s
@@ -171,74 +172,6 @@ services:
       timeout: 10s
       retries: 3
 
-  plan-service:
-    build:
-      context: .
-      dockerfile: services/plan-service/Dockerfile
-    container_name: gym-plan-service
-    restart: unless-stopped
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: 3005
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
-      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      RATE_LIMIT_WINDOW_MS: 900000
-      RATE_LIMIT_MAX_REQUESTS: 100
-      SERVICE_NAME: plan-service
-    ports:
-      - "3005:3005"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3005/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  report-service:
-    build:
-      context: .
-      dockerfile: services/report-service/Dockerfile
-    container_name: gym-report-service
-    restart: unless-stopped
-    environment:
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: 3006
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: ${POSTGRES_DB:-gym_db}
-      POSTGRES_USER: ${POSTGRES_USER:-gym_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      RATE_LIMIT_WINDOW_MS: 900000
-      RATE_LIMIT_MAX_REQUESTS: 100
-      SERVICE_NAME: report-service
-    ports:
-      - "3006:3006"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3006/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   api-gateway:
     build:
       context: .
@@ -264,8 +197,6 @@ services:
       CLIENT_SERVICE_URL: http://client-service:3002
       MEMBERSHIP_SERVICE_URL: http://membership-service:3003
       PAYMENT_SERVICE_URL: http://payment-service:3004
-      PLAN_SERVICE_URL: http://plan-service:3005
-      REPORT_SERVICE_URL: http://report-service:3006
     ports:
       - "3000:3000"
     depends_on:
@@ -276,10 +207,6 @@ services:
       membership-service:
         condition: service_healthy
       payment-service:
-        condition: service_healthy
-      plan-service:
-        condition: service_healthy
-      report-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]
@@ -298,7 +225,13 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      - api-gateway
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5173/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

@@ -103,6 +103,58 @@ describe('ApiClient', () => {
     })
   })
 
+  describe('session lifecycle', () => {
+    const loginResponse = () => ({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        user: { id: 1, email: 'test@example.com', role: 'admin' },
+        tokens: { accessToken: 'access-1', refreshToken: 'refresh-1' },
+      }),
+    })
+
+    it('sends the access token when revoking the refresh token on logout', async () => {
+      global.fetch = vi.fn()
+        .mockResolvedValueOnce(loginResponse())
+        .mockResolvedValueOnce(createMockResponse(true, 204, null))
+
+      await api.login('test@example.com', 'password123')
+      await api.logout()
+
+      const [, logoutOptions] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[1]
+      expect(logoutOptions.headers.Authorization).toBe('Bearer access-1')
+      expect(api.isAuthenticated()).toBe(false)
+    })
+
+    it('shares one refresh request between concurrent unauthorized requests', async () => {
+      let refreshCount = 0
+      global.fetch = vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+        const url = String(input)
+        if (url.endsWith('/api/auth/login')) return loginResponse()
+        if (url.endsWith('/api/auth/refresh')) {
+          const refreshCall = ++refreshCount
+          await new Promise((resolve) => setTimeout(resolve, 10))
+          return refreshCall === 1
+            ? createMockResponse(true, 200, { accessToken: 'access-2', refreshToken: 'refresh-2' })
+            : createMockResponse(false, 401, { error: { message: 'Invalid refresh token' } })
+        }
+        if (url.endsWith('/api/auth/me')) {
+          const authorization = options?.headers
+          if (JSON.stringify(authorization).includes('access-2')) {
+            return createMockResponse(true, 200, { id: 1 })
+          }
+          return createMockResponse(false, 401, { error: { message: 'Unauthorized' } })
+        }
+        throw new Error(`Unexpected request: ${url}`)
+      })
+
+      await api.login('test@example.com', 'password123')
+      await Promise.all([api.getCurrentUser(), api.getCurrentUser()])
+
+      expect(refreshCount).toBe(1)
+    })
+  })
+
   describe('register', () => {
     it('should register successfully', async () => {
       const mockTokenPair = {
@@ -150,6 +202,19 @@ describe('ApiClient', () => {
     })
   })
 
+  describe('member self-service profile', () => {
+    it('updates only the signed-in member contact profile endpoint', async () => {
+      global.fetch = vi.fn().mockResolvedValue(createMockResponse(true, 200, { id: 1, phone: '+51987654321' }))
+
+      await api.updateOwnClientProfile(42, { phone: '+51987654321' })
+
+      const [url, options] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(url).toContain('/api/clients/user/42')
+      expect(options.method).toBe('PATCH')
+      expect(JSON.parse(options.body)).toEqual({ phone: '+51987654321' })
+    })
+  })
+
   describe('forgotPassword', () => {
     it('should call public forgot-password endpoint', async () => {
       global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: vi.fn().mockResolvedValue({ success: true }) })
@@ -160,6 +225,14 @@ describe('ApiClient', () => {
       const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
       expect(fetchCall[0]).toContain('/api/auth/forgot-password')
       expect(fetchCall[1].method).toBe('POST')
+    })
+
+    it('rejects when the server rejects the reset request', async () => {
+      global.fetch = vi.fn().mockResolvedValue(createMockResponse(false, 400, {
+        error: { message: 'Invalid email', code: 'VALIDATION_ERROR' },
+      }))
+
+      await expect(api.forgotPassword('not-an-email')).rejects.toThrow('Invalid email')
     })
   })
 
@@ -173,6 +246,14 @@ describe('ApiClient', () => {
       const fetchCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
       expect(fetchCall[0]).toContain('/api/auth/reset-password')
       expect(fetchCall[1].method).toBe('POST')
+    })
+
+    it('rejects an invalid reset token instead of reporting success', async () => {
+      global.fetch = vi.fn().mockResolvedValue(createMockResponse(false, 400, {
+        error: { message: 'Invalid or expired reset token', code: 'INVALID_TOKEN' },
+      }))
+
+      await expect(api.resetPassword('bad-token', 'newpassword123')).rejects.toThrow('Invalid or expired reset token')
     })
   })
 

@@ -11,7 +11,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/package.json
 
 # Install dependencies (including dev deps for build)
-RUN pnpm install --filter=frontend... --frozen-lockfile
+RUN pnpm install --filter=frontend... --frozen-lockfile --fetch-timeout=600000
 
 # Copy frontend source
 COPY frontend ./frontend

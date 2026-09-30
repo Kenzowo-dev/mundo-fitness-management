@@ -1,4 +1,5 @@
 import jwt, { SignOptions, VerifyOptions, JwtPayload } from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 import { config } from '../config/index.js';
 import { logger } from '../logger/index.js';
 
@@ -12,7 +13,7 @@ export interface TokenPayload extends JwtPayload {
   sub: string;
   /** Email del usuario para logging y auditoría */
   email: string;
-  /** Rol principal: 'admin' | 'trainer' | 'receptionist' | 'member' */
+  /** Rol principal: 'admin' | 'receptionist' | 'member' */
   role: string;
   /** Permisos granulares para RBAC fino */
   permissions: string[];
@@ -55,6 +56,7 @@ export function generateRefreshToken(userId: string): string {
   const payload: RefreshTokenPayload = {
     sub: userId,
     type: 'refresh',
+    jti: randomUUID(),
   };
   const options: SignOptions = {
     expiresIn: config.jwt.refreshExpiresIn as SignOptions['expiresIn'],

@@ -210,6 +210,20 @@ CREATE TABLE IF NOT EXISTS membership_freezes (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Solicitudes web que recepción revisa sin activar una membresía ni registrar pagos.
+CREATE TABLE IF NOT EXISTS membership_renewal_requests (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    plan_id BIGINT NOT NULL REFERENCES membership_plans(id) ON DELETE RESTRICT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'contacted', 'closed')),
+    member_note VARCHAR(500),
+    staff_note VARCHAR(500),
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    handled_by BIGINT REFERENCES users(id) ON DELETE SET NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_membership_plans_active ON membership_plans(is_active);
 CREATE INDEX IF NOT EXISTS idx_client_memberships_client_id ON client_memberships(client_id);
 CREATE INDEX IF NOT EXISTS idx_client_memberships_status ON client_memberships(status);
@@ -217,6 +231,12 @@ CREATE INDEX IF NOT EXISTS idx_client_memberships_end_date ON client_memberships
 CREATE INDEX IF NOT EXISTS idx_membership_visits_client_id ON membership_visits(client_id);
 CREATE INDEX IF NOT EXISTS idx_membership_visits_visited_at ON membership_visits(visited_at);
 CREATE INDEX IF NOT EXISTS idx_membership_freezes_membership_id ON membership_freezes(client_membership_id);
+CREATE INDEX IF NOT EXISTS idx_renewal_requests_status_requested_at
+    ON membership_renewal_requests(status, requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_renewal_requests_client_id
+    ON membership_renewal_requests(client_id, requested_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_renewal_requests_open_client
+    ON membership_renewal_requests(client_id) WHERE status IN ('pending', 'contacted');
 
 -- ----------------------------------------------------------------------------
 -- 4. SERVICIO DE PAGOS (payment-service)
@@ -314,191 +334,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ----------------------------------------------------------------------------
--- 5. SERVICIO DE PLANES DE ENTRENAMIENTO (plan-service)
--- ----------------------------------------------------------------------------
+-- Normalize legacy seed duplicates before enforcing master-data uniqueness.
+-- Keep the lowest ID and repoint existing references to it.
+WITH duplicate_plans AS (
+    SELECT id, MIN(id) OVER (PARTITION BY name) AS canonical_id
+    FROM membership_plans
+)
+UPDATE client_memberships cm
+SET plan_id = duplicates.canonical_id
+FROM duplicate_plans duplicates
+WHERE cm.plan_id = duplicates.id AND duplicates.id <> duplicates.canonical_id;
 
--- Biblioteca de ejercicios disponibles
-CREATE TABLE IF NOT EXISTS exercises (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    muscle_group VARCHAR(50) NOT NULL,
-    secondary_muscles VARCHAR(100)[],
-    equipment VARCHAR(100),
-    difficulty VARCHAR(20) NOT NULL DEFAULT 'beginner',
-    instructions TEXT,
-    video_url VARCHAR(500),
-    image_url VARCHAR(500),
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+WITH duplicate_plans AS (
+    SELECT id, MIN(id) OVER (PARTITION BY name) AS canonical_id
+    FROM membership_plans
+)
+DELETE FROM membership_plans plan
+USING duplicate_plans duplicates
+WHERE plan.id = duplicates.id AND duplicates.id <> duplicates.canonical_id;
 
--- Planes de entrenamiento estructurados
-CREATE TABLE IF NOT EXISTS workout_plans (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    goal VARCHAR(50),
-    difficulty VARCHAR(20) NOT NULL DEFAULT 'beginner',
-    duration_weeks INT,
-    days_per_week INT,
-    is_public BOOLEAN NOT NULL DEFAULT false,
-    created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Días o rutinas dentro de un plan
-CREATE TABLE IF NOT EXISTS plan_days (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    plan_id BIGINT NOT NULL REFERENCES workout_plans(id) ON DELETE CASCADE,
-    day_number INT NOT NULL,
-    name VARCHAR(100),
-    focus VARCHAR(100),
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Ejercicios asignados a un día de entrenamiento
-CREATE TABLE IF NOT EXISTS plan_exercises (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    plan_day_id BIGINT NOT NULL REFERENCES plan_days(id) ON DELETE CASCADE,
-    exercise_id BIGINT NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
-    order_index INT NOT NULL DEFAULT 0,
-    sets INT NOT NULL DEFAULT 3,
-    reps VARCHAR(20) NOT NULL DEFAULT '8-12',
-    rest_seconds INT NOT NULL DEFAULT 90,
-    weight_percentage DECIMAL(5,2),
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Asignación de plan de entrenamiento a un cliente
-CREATE TABLE IF NOT EXISTS client_plans (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-    plan_id BIGINT NOT NULL REFERENCES workout_plans(id) ON DELETE CASCADE,
-    assigned_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    end_date DATE,
-    status VARCHAR(20) NOT NULL DEFAULT 'active',
-    current_week INT NOT NULL DEFAULT 1,
-    current_day INT NOT NULL DEFAULT 1,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Registro de sesiones de entrenamiento ejecutadas
-CREATE TABLE IF NOT EXISTS workout_logs (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    client_plan_id BIGINT NOT NULL REFERENCES client_plans(id) ON DELETE CASCADE,
-    client_id BIGINT NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-    plan_day_id BIGINT NOT NULL REFERENCES plan_days(id) ON DELETE CASCADE,
-    completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    duration_minutes INT,
-    notes TEXT,
-    rating INT CHECK (rating >= 1 AND rating <= 5)
-);
-
--- Detalle de series y pesos en una sesión de entrenamiento
-CREATE TABLE IF NOT EXISTS logged_exercises (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    workout_log_id BIGINT NOT NULL REFERENCES workout_logs(id) ON DELETE CASCADE,
-    plan_exercise_id BIGINT NOT NULL REFERENCES plan_exercises(id) ON DELETE CASCADE,
-    exercise_id BIGINT NOT NULL REFERENCES exercises(id) ON DELETE CASCADE,
-    sets_completed INT NOT NULL DEFAULT 0,
-    reps_completed JSONB,
-    weights_used JSONB,
-    rpe DECIMAL(3,1),
-    notes TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group ON exercises(muscle_group);
-CREATE INDEX IF NOT EXISTS idx_workout_plans_public ON workout_plans(is_public);
-CREATE INDEX IF NOT EXISTS idx_plan_days_plan_id ON plan_days(plan_id);
-CREATE INDEX IF NOT EXISTS idx_plan_exercises_plan_day_id ON plan_exercises(plan_day_id);
-CREATE INDEX IF NOT EXISTS idx_client_plans_client_id ON client_plans(client_id);
-CREATE INDEX IF NOT EXISTS idx_workout_logs_client_plan_id ON workout_logs(client_plan_id);
-CREATE INDEX IF NOT EXISTS idx_logged_exercises_workout_log_id ON logged_exercises(workout_log_id);
-
--- ----------------------------------------------------------------------------
--- 6. SERVICIO DE INFORMES Y ANALÍTICA (report-service)
--- ----------------------------------------------------------------------------
-
--- Plantillas de reportes configurables
-CREATE TABLE IF NOT EXISTS report_templates (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    query_sql TEXT NOT NULL,
-    parameters JSONB NOT NULL DEFAULT '{}',
-    schedule_cron VARCHAR(100),
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Historial de reportes generados y exportaciones
-CREATE TABLE IF NOT EXISTS generated_reports (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    template_id BIGINT NOT NULL REFERENCES report_templates(id) ON DELETE CASCADE,
-    name VARCHAR(200) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    file_path VARCHAR(500),
-    file_size BIGINT,
-    mime_type VARCHAR(100),
-    parameters JSONB,
-    error_message TEXT,
-    generated_at TIMESTAMPTZ,
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Widgets del panel de control
-CREATE TABLE IF NOT EXISTS dashboard_widgets (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    query_sql TEXT NOT NULL,
-    config JSONB NOT NULL DEFAULT '{}',
-    position_x INT NOT NULL DEFAULT 0,
-    position_y INT NOT NULL DEFAULT 0,
-    width INT NOT NULL DEFAULT 6,
-    height INT NOT NULL DEFAULT 4,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Paneles personalizados de usuarios
-CREATE TABLE IF NOT EXISTS user_dashboards (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    is_default BOOLEAN NOT NULL DEFAULT false,
-    layout JSONB NOT NULL DEFAULT '[]',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- Eventos de analítica y auditoría
-CREATE TABLE IF NOT EXISTS analytics_events (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    event_name VARCHAR(100) NOT NULL,
-    user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
-    client_id BIGINT REFERENCES clients(id) ON DELETE SET NULL,
-    properties JSONB NOT NULL DEFAULT '{}',
-    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_generated_reports_template_id ON generated_reports(template_id);
-CREATE INDEX IF NOT EXISTS idx_generated_reports_status ON generated_reports(status);
-CREATE INDEX IF NOT EXISTS idx_dashboard_widgets_active ON dashboard_widgets(is_active);
-CREATE INDEX IF NOT EXISTS idx_user_dashboards_user_id ON user_dashboards(user_id);
-CREATE INDEX IF NOT EXISTS idx_analytics_events_name ON analytics_events(event_name);
-CREATE INDEX IF NOT EXISTS idx_analytics_events_timestamp ON analytics_events(timestamp);
-CREATE INDEX IF NOT EXISTS idx_analytics_events_client_id ON analytics_events(client_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_membership_plans_name ON membership_plans(name);

@@ -32,7 +32,7 @@ export default function ForgotPassword() {
         <div className="auth-card success-state">
           <header className="auth-header">
             <img
-              src="/src/assets/Logo.png"
+              src="/assets/Logo.png"
               alt=""
               className="auth-logo"
               aria-hidden="true"
@@ -59,7 +59,7 @@ export default function ForgotPassword() {
       <div className="auth-card">
         <header className="auth-header">
           <img
-            src="/src/assets/Logo.png"
+            src="/assets/Logo.png"
             alt=""
             className="auth-logo"
             aria-hidden="true"

@@ -25,17 +25,20 @@ export default function DashboardLayout() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [sidebarOpen]);
 
-  const navItems = [
+  const allNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { path: '/clientes', label: 'Clientes', icon: 'users' },
     { path: '/membresias', label: 'Membresías', icon: 'credit-card' },
-    { path: '/planes', label: 'Planes', icon: 'clipboard-list' },
     { path: '/pagos', label: 'Pagos', icon: 'dollar-sign' },
-    { path: '/reportes', label: 'Reportes', icon: 'bar-chart-2' },
+    { path: '/informes', label: 'Informes', icon: 'bar-chart-2' },
     { path: '/configuracion', label: 'Configuración', icon: 'settings' },
   ];
+  const navItems = allNavItems.filter((item) => {
+    if (user?.role === 'admin') return true;
+    return ['/dashboard', '/clientes', '/membresias', '/pagos', '/informes'].includes(item.path);
+  });
 
-  const currentLabel = navItems.find((i) => location.pathname === i.path)?.label || 'Dashboard';
+  const currentLabel = navItems.find((i) => location.pathname === i.path)?.label || 'Área de recepción';
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
   const closeSidebar = () => setSidebarOpen(false);
@@ -115,7 +118,7 @@ export default function DashboardLayout() {
         aria-label="Navegación principal"
       >
         <div className="sidebar-header">
-          <img src="/src/assets/Logo.png" alt="Mundo Fitness" className="sidebar-logo" />
+          <img src="/assets/Logo.png" alt="Mundo Fitness" className="sidebar-logo" />
           <h2>Mundo Fitness</h2>
         </div>
         <nav className="sidebar-nav" aria-label="Menú de navegación">

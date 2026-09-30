@@ -72,7 +72,10 @@ export default function ClientsPage() {
 
     try {
       setError(null)
-      await createClientMutation.mutateAsync(createForm)
+      const clientData = Object.fromEntries(
+        Object.entries(createForm).filter(([, value]) => value !== '' && value !== undefined),
+      ) as CreateClientData
+      await createClientMutation.mutateAsync(clientData)
       setIsCreateOpen(false)
       setCreateForm({
         dni: '',
@@ -102,7 +105,10 @@ export default function ClientsPage() {
 
     try {
       setError(null)
-      await updateClientMutation.mutateAsync({ id: editClient.id, data: editForm })
+      const clientData = Object.fromEntries(
+        Object.entries(editForm).filter(([, value]) => value !== '' && value !== undefined),
+      ) as Partial<Client>
+      await updateClientMutation.mutateAsync({ id: editClient.id, data: clientData })
       setEditClient(null)
       setEditForm({})
     } catch (err) {
@@ -184,7 +190,7 @@ export default function ClientsPage() {
         loading={isLoading}
         columns={[
           { key: 'dni', header: 'DNI', render: (client) => <strong>{client.dni}</strong> },
-          { key: 'firstName', header: 'Nombre', render: (client) => `${client.firstName} {client.lastName}` },
+          { key: 'firstName', header: 'Nombre', render: (client) => `${client.firstName} ${client.lastName}` },
           { key: 'email', header: 'Email', render: (client) => client.email || '-' },
           { key: 'phone', header: 'Teléfono', render: (client) => client.phone || '-' },
           { key: 'status', header: 'Estado', render: (client) => <StatusBadge status={client.status} /> },

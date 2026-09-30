@@ -3,6 +3,7 @@ import { publish } from '@gym/shared/messaging/index.js';
 import { CHANNELS } from '@gym/shared/messaging/index.js';
 import {
   Payment,
+  PaymentStatus,
   CreatePaymentData,
   UpdatePaymentData,
   Invoice,
@@ -15,6 +16,7 @@ import {
 import {
   ValidationError,
   NotFoundError,
+  ConflictError,
 } from '@gym/shared/errors/index.js';
 
 import { InvoiceItem } from '../models/payment.js';
@@ -22,10 +24,12 @@ import { InvoiceItem } from '../models/payment.js';
 export interface PaymentRow {
   id: number;
   client_id: number;
+  client_first_name?: string | null;
+  client_last_name?: string | null;
   membership_id: number | null;
   amount: string | number;
   currency: string;
-  status: string;
+  status: PaymentStatus;
   payment_method: string;
   transaction_id: string | null;
   gateway_response: Record<string, unknown> | string | null;
@@ -126,6 +130,9 @@ export function mapRowToPayment(row: PaymentRow): Payment {
   return {
     id: row.id,
     clientId: row.client_id,
+    clientName: row.client_first_name && row.client_last_name
+      ? `${row.client_first_name} ${row.client_last_name}`
+      : undefined,
     membershipId: row.membership_id ?? undefined,
     amount: typeof row.amount === 'number' ? row.amount : parseFloat(row.amount),
     currency: row.currency,
@@ -196,24 +203,50 @@ export function mapRowToRefund(row: RefundRow): Refund {
 }
 
 export async function createPayment(data: CreatePaymentData): Promise<Payment> {
-  const result = await query<PaymentRow>(
-    `
-    INSERT INTO payments (client_id, membership_id, amount, currency, payment_method, transaction_id, description, metadata)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING *
-    `,
-    [
-      data.clientId,
-      data.membershipId ?? null,
-      data.amount,
-      data.currency ?? 'USD',
-      data.paymentMethod,
-      data.transactionId ?? null,
-      data.description ?? null,
-      data.metadata ? JSON.stringify(data.metadata) : null,
-    ]
+  const client = await query<{ id: number }>('SELECT id FROM clients WHERE id = $1', [data.clientId]);
+  if (client.rows.length === 0) throw new NotFoundError('Client', data.clientId);
+
+  const membership = await query<{ id: number }>(
+    'SELECT id FROM client_memberships WHERE id = $1 AND client_id = $2',
+    [data.membershipId, data.clientId],
   );
-  return mapRowToPayment(result.rows[0]);
+  if (membership.rows.length === 0) {
+    throw new ValidationError('La membresía seleccionada no pertenece al socio.', { field: 'membershipId' });
+  }
+
+  let payment: Payment;
+  try {
+    const result = await query<PaymentRow>(
+      `INSERT INTO payments (
+         client_id, membership_id, amount, currency, payment_method, transaction_id, description, metadata, status, paid_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'completed', NOW())
+       RETURNING *`,
+      [
+        data.clientId,
+        data.membershipId,
+        data.amount,
+        data.currency ?? 'PEN',
+        data.paymentMethod,
+        data.transactionId ?? null,
+        data.description ?? null,
+        data.metadata ? JSON.stringify(data.metadata) : null,
+      ],
+    );
+    payment = mapRowToPayment(result.rows[0]);
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+      throw new ConflictError('La referencia de transacción ya está registrada.', 'PAYMENT_REFERENCE_EXISTS');
+    }
+    throw error;
+  }
+
+  await publish(CHANNELS.PAYMENT_COMPLETED, {
+    paymentId: payment.id,
+    membershipId: payment.membershipId ?? null,
+    clientId: payment.clientId,
+    amount: payment.amount,
+  });
+  return payment;
 }
 
 export async function getPaymentById(id: number): Promise<Payment | null> {
@@ -229,6 +262,12 @@ export async function getPaymentByTransactionId(transactionId: string): Promise<
 export async function updatePayment(id: number, data: UpdatePaymentData): Promise<Payment> {
   const existing = await getPaymentById(id);
   if (!existing) throw new NotFoundError('Payment', id);
+
+  if (data.status !== undefined && data.status !== existing.status) {
+    if (existing.status !== 'pending' || !['completed', 'failed', 'cancelled'].includes(data.status)) {
+      throw new ValidationError('Solo un pago pendiente puede confirmarse, marcarse fallido o cancelarse.', { field: 'status' });
+    }
+  }
 
   const fields: string[] = [];
   const values: unknown[] = [];
@@ -263,14 +302,14 @@ export async function updatePayment(id: number, data: UpdatePaymentData): Promis
   );
 
   const payment = mapRowToPayment(result.rows[0]);
-  if (payment.status === 'completed') {
+  if (data.status === 'completed' && existing.status !== 'completed') {
     await publish(CHANNELS.PAYMENT_COMPLETED, {
       paymentId: payment.id,
       membershipId: payment.membershipId ?? null,
       clientId: payment.clientId,
       amount: payment.amount,
     });
-  } else if (payment.status === 'failed') {
+  } else if (data.status === 'failed' && existing.status !== 'failed') {
     await publish(CHANNELS.PAYMENT_FAILED, { paymentId: payment.id, clientId: payment.clientId, reason: payment.failureReason });
   }
   return payment;
@@ -303,7 +342,11 @@ export async function listPayments(
 
   const [paymentsResult, countResult] = await Promise.all([
     query<PaymentRow>(
-      `SELECT * FROM payments ${whereClause} ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      `SELECT payments.*, clients.first_name AS client_first_name, clients.last_name AS client_last_name
+       FROM payments
+       LEFT JOIN clients ON clients.id = payments.client_id
+       ${whereClause.replace(/\b(client_id|membership_id|status)\b/g, 'payments.$1')}
+       ORDER BY payments.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...values, limit, offset]
     ),
     query<CountRow>(`SELECT COUNT(*) FROM payments ${whereClause}`, values),
@@ -313,6 +356,45 @@ export async function listPayments(
     payments: paymentsResult.rows.map(mapRowToPayment),
     total: parseInt(countResult.rows[0].count, 10),
   };
+}
+
+export async function getPaymentDashboardStats(): Promise<{ revenueThisMonth: Array<{ currency: string; amount: number }> }> {
+  const result = await query<{ currency: string; amount: string }>(
+    `SELECT currency,
+            COALESCE(SUM(amount - COALESCE(refund_amount, 0)), 0)::text AS amount
+     FROM payments
+     WHERE status = 'completed'
+       AND paid_at >= date_trunc('month', CURRENT_DATE)
+       AND paid_at < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+     GROUP BY currency
+     ORDER BY currency`
+  );
+  return {
+    revenueThisMonth: result.rows.map((row) => ({ currency: row.currency, amount: Number(row.amount) })),
+  };
+}
+
+export async function getPaymentReports(): Promise<Array<{ month: string; currency: string; amount: number }>> {
+  const result = await query<{ month: string; currency: string; amount: string }>(
+    `WITH months AS (
+       SELECT generate_series(date_trunc('month', CURRENT_DATE) - INTERVAL '5 months',
+                              date_trunc('month', CURRENT_DATE), INTERVAL '1 month') AS month
+     ), currencies AS (
+       SELECT DISTINCT currency FROM payments
+     )
+     SELECT to_char(months.month, 'YYYY-MM') AS month,
+            currencies.currency,
+            COALESCE(SUM(payments.amount - COALESCE(payments.refund_amount, 0)), 0)::text AS amount
+     FROM months
+     CROSS JOIN currencies
+     LEFT JOIN payments ON payments.currency = currencies.currency
+       AND payments.status = 'completed'
+       AND payments.paid_at >= months.month
+       AND payments.paid_at < months.month + INTERVAL '1 month'
+     GROUP BY months.month, currencies.currency
+     ORDER BY months.month, currencies.currency`
+  );
+  return result.rows.map((row) => ({ month: row.month, currency: row.currency, amount: Number(row.amount) }));
 }
 
 export async function createInvoice(data: CreateInvoiceData): Promise<Invoice> {

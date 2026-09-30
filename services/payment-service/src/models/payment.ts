@@ -1,10 +1,13 @@
+export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled';
+
 export interface Payment {
   id: number;
   clientId: number;
+  clientName?: string;
   membershipId?: number;
   amount: number;
   currency: string;
-  status: string;
+  status: PaymentStatus;
   paymentMethod: string;
   transactionId?: string;
   gatewayResponse?: Record<string, unknown>;
@@ -22,7 +25,7 @@ export interface Payment {
 
 export interface CreatePaymentData {
   clientId: number;
-  membershipId?: number;
+  membershipId: number;
   amount: number;
   currency?: string;
   paymentMethod: string;
@@ -32,7 +35,7 @@ export interface CreatePaymentData {
 }
 
 export interface UpdatePaymentData {
-  status?: string;
+  status?: Exclude<PaymentStatus, 'refunded'>;
   gatewayResponse?: Record<string, unknown>;
   paidAt?: Date;
   failedAt?: Date;

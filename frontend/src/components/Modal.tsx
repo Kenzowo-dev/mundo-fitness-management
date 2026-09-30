@@ -71,7 +71,7 @@ export default function Modal({
   ].filter(Boolean).join(' ')
 
   return (
-    <div className="modal-overlay" onClick={closeOnOverlayClick ? onClose : undefined} aria-hidden="true" data-testid="modal-overlay">
+    <div className="modal-overlay" onClick={closeOnOverlayClick ? onClose : undefined} data-testid="modal-overlay">
       <div
         className={modalClasses}
         role="dialog"

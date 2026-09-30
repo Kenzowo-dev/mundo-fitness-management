@@ -1,0 +1,35 @@
+# Build TypeScript on the host and mount its artifacts into local containers.
+services:
+  auth-service:
+    environment:
+      RATE_LIMIT_MAX_REQUESTS: 1000
+    volumes:
+      - ./shared/dist:/app/shared/dist:ro
+      - ./services/auth-service/dist:/app/services/auth-service/dist:ro
+  client-service:
+    environment:
+      RATE_LIMIT_MAX_REQUESTS: 1000
+    volumes:
+      - ./shared/dist:/app/shared/dist:ro
+      - ./services/client-service/dist:/app/services/client-service/dist:ro
+  membership-service:
+    environment:
+      RATE_LIMIT_MAX_REQUESTS: 1000
+    volumes:
+      - ./shared/dist:/app/shared/dist:ro
+      - ./services/membership-service/dist:/app/services/membership-service/dist:ro
+  payment-service:
+    environment:
+      RATE_LIMIT_MAX_REQUESTS: 1000
+    volumes:
+      - ./shared/dist:/app/shared/dist:ro
+      - ./services/payment-service/dist:/app/services/payment-service/dist:ro
+  api-gateway:
+    environment:
+      RATE_LIMIT_MAX_REQUESTS: 1000
+    volumes:
+      - ./shared/dist:/app/shared/dist:ro
+      - ./services/api-gateway/dist:/app/services/api-gateway/dist:ro
+  frontend:
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro

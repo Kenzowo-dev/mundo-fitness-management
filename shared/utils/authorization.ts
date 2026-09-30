@@ -11,6 +11,7 @@ export interface TokenUser {
 export interface AuthenticatedRequest<P = Record<string, string>> {
   user?: TokenUser;
   params: P;
+  body?: Record<string, unknown>;
 }
 
 export type ResourceOwnerChecker<P = Record<string, string>> = (
@@ -30,20 +31,32 @@ export function requireOwnership<P extends Record<string, string>>(
 
     const userId = Number(req.user.sub);
     const userRole = req.user.role;
-    const resourceId = req.params[idParamName];
 
+    // Staff routes already enforce their role before this ownership check.
+    // Ownership applies only to self-service roles; otherwise reception could
+    // never access another member's record.
+    const isStaff = ['admin', 'receptionist'].includes(userRole ?? '');
+
+    if (isStaff) {
+      return next();
+    }
+
+    const resourceId = req.params[idParamName];
     if (!resourceId) {
       throw new AuthorizationError('Resource ID required', 'MISSING_RESOURCE_ID');
     }
 
-    const isAdmin = userRole === 'admin';
-
-    if (isAdmin) {
-      return next();
-    }
-
     try {
-      const queryText = `SELECT 1 FROM ${resourceTable} WHERE ${ownerColumn} = $1 AND ${idParamName === 'id' ? 'id' : String(idParamName)} = $2`;
+      // Route parameter names are API vocabulary; the protected rows use their
+      // primary-key column (`id`) regardless of whether the URL calls it
+      // `membershipId`, `clientPlanId`, or something else.
+      const resourceIdColumn = 'id';
+      const clientOwnedTables = ['client_memberships', 'payments', 'invoices'];
+      const queryText = resourceTable === 'clients'
+        ? `SELECT 1 FROM clients WHERE user_id = $1 AND id = $2`
+        : clientOwnedTables.includes(resourceTable)
+          ? `SELECT 1 FROM ${resourceTable} resource JOIN clients client ON client.id = resource.client_id WHERE client.user_id = $1 AND resource.${resourceIdColumn} = $2`
+          : `SELECT 1 FROM ${resourceTable} WHERE ${ownerColumn} = $1 AND ${resourceIdColumn} = $2`;
       const result = await pool.query(queryText, [userId, resourceId]);
 
       if (result.rows.length === 0) {
@@ -64,6 +77,30 @@ export function requireClientOwnership<P extends Record<string, string>>(idParam
   return requireOwnership('clients', 'user_id', idParamName);
 }
 
+export function requireClientBodyOwnership() {
+  return async (
+    req: AuthenticatedRequest,
+    res: unknown,
+    next: (err?: Error) => void,
+  ) => {
+    if (!req.user) {
+      throw new AuthorizationError('Authentication required', 'NOT_AUTHENTICATED');
+    }
+
+    const clientId = req.body?.clientId;
+    if (typeof clientId !== 'number' || !Number.isInteger(clientId) || clientId < 1) {
+      throw new AuthorizationError('Client ID required', 'MISSING_CLIENT_ID');
+    }
+
+    const ownershipCheck = requireClientOwnership<{ clientId: string }>('clientId');
+    await ownershipCheck(
+      { user: req.user, params: { clientId: String(clientId) } },
+      res,
+      next,
+    );
+  };
+}
+
 export function requireMembershipOwnership<P extends Record<string, string>>(idParamName: keyof P = 'id' as keyof P) {
   return requireOwnership('client_memberships', 'client_id', idParamName);
 }
@@ -74,14 +111,6 @@ export function requirePaymentOwnership<P extends Record<string, string>>(idPara
 
 export function requireInvoiceOwnership<P extends Record<string, string>>(idParamName: keyof P = 'id' as keyof P) {
   return requireOwnership('invoices', 'client_id', idParamName);
-}
-
-export function requireClientPlanOwnership<P extends Record<string, string>>(idParamName: keyof P = 'clientPlanId' as keyof P) {
-  return requireOwnership('client_plans', 'client_id', idParamName);
-}
-
-export function requireDashboardOwnership<P extends Record<string, string>>(idParamName: keyof P = 'id' as keyof P) {
-  return requireOwnership('user_dashboards', 'user_id', idParamName);
 }
 
 export function requireUserSelfOrAdmin<P extends Record<string, string>>(idParamName: keyof P = 'id' as keyof P) {

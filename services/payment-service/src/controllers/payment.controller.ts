@@ -6,6 +6,8 @@ import {
   getPaymentByTransactionId,
   updatePayment,
   listPayments,
+  getPaymentDashboardStats,
+  getPaymentReports,
   createInvoice,
   getInvoiceById,
   getInvoiceByNumber,
@@ -27,17 +29,17 @@ import {
 
 const createPaymentSchema = z.object({
   clientId: z.number().int().positive(),
-  membershipId: z.number().int().positive().optional(),
-  amount: z.number().positive(),
-  currency: z.string().length(3).default('USD'),
-  paymentMethod: z.string().min(1).max(50),
+  membershipId: z.number().int().positive(),
+  amount: z.number().positive().max(99_999_999.99).multipleOf(0.01),
+  currency: z.enum(['PEN', 'USD']).default('PEN'),
+  paymentMethod: z.enum(['cash', 'bank_transfer', 'digital_wallet', 'credit_card', 'debit_card']),
   transactionId: z.string().max(100).optional(),
   description: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 
 const updatePaymentSchema = z.object({
-  status: z.enum(['pending', 'completed', 'failed', 'refunded', 'cancelled']).optional(),
+  status: z.enum(['pending', 'completed', 'failed', 'cancelled']).optional(),
   gatewayResponse: z.record(z.unknown()).optional(),
   failureReason: z.string().optional(),
 });
@@ -146,6 +148,34 @@ export async function listPaymentsController(req: Request, res: Response, next: 
       data: payments,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPaymentDashboardStatsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await getPaymentDashboardStats());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getPaymentReportsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await getPaymentReports());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getClientPaymentsController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const rawClientId = Array.isArray(req.params.clientId) ? req.params.clientId[0] : req.params.clientId;
+    const clientId = Number(rawClientId);
+    if (!Number.isInteger(clientId) || clientId < 1) throw new ValidationError('Invalid client ID');
+    const { payments, total } = await listPayments(1, 100, { clientId });
+    res.json({ data: payments, pagination: { page: 1, limit: 100, total, totalPages: Math.ceil(total / 100) } });
   } catch (error) {
     next(error);
   }

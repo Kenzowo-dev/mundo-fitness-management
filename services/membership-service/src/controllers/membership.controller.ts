@@ -18,20 +18,27 @@ import {
   createFreeze,
   getMembershipFreezes,
   getExpiringMemberships,
+  getMembershipDashboardStats,
+  getMembershipReports,
+  createMembershipRenewalRequest,
+  listMyMembershipRenewalRequests,
+  listMembershipRenewalRequests,
+  updateMembershipRenewalRequest,
 } from '../services/membership.service.js';
 import {
   ValidationError,
   NotFoundError,
 } from '@gym/shared/errors/index.js';
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 const createPlanSchema = z.object({
-  name: z.string().min(1).max(100),
-  description: z.string().optional(),
-  durationDays: z.number().int().positive(),
-  price: z.number().positive(),
-  currency: z.string().length(3).default('USD'),
-  features: z.array(z.string()).optional(),
-  maxVisitsPerWeek: z.number().int().positive().optional(),
+  name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(500).optional(),
+  durationDays: z.number().int().min(1).max(3660),
+  price: z.number().positive().max(99_999_999.99).multipleOf(0.01),
+  currency: z.enum(['PEN', 'USD']).default('PEN'),
+  features: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+  maxVisitsPerWeek: z.number().int().min(1).max(21).optional(),
   includesPersonalTrainer: z.boolean().default(false),
   includesClasses: z.boolean().default(false),
   includesSauna: z.boolean().default(false),
@@ -39,13 +46,13 @@ const createPlanSchema = z.object({
 });
 
 const updatePlanSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  description: z.string().optional(),
-  durationDays: z.number().int().positive().optional(),
-  price: z.number().positive().optional(),
-  currency: z.string().length(3).optional(),
-  features: z.array(z.string()).optional(),
-  maxVisitsPerWeek: z.number().int().positive().optional(),
+  name: z.string().trim().min(1).max(100).optional(),
+  description: z.string().trim().max(500).optional(),
+  durationDays: z.number().int().min(1).max(3660).optional(),
+  price: z.number().positive().max(99_999_999.99).multipleOf(0.01).optional(),
+  currency: z.enum(['PEN', 'USD']).optional(),
+  features: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+  maxVisitsPerWeek: z.number().int().min(1).max(21).optional(),
   includesPersonalTrainer: z.boolean().optional(),
   includesClasses: z.boolean().optional(),
   includesSauna: z.boolean().optional(),
@@ -59,6 +66,16 @@ const createMembershipSchema = z.object({
   startDate: z.string().date().optional(),
   autoRenew: z.boolean().default(true),
   paymentMethodId: z.string().max(100).optional(),
+});
+
+const createRenewalRequestSchema = z.object({
+  planId: z.number().int().positive(),
+  memberNote: z.string().trim().max(500).optional(),
+});
+
+const updateRenewalRequestSchema = z.object({
+  status: z.enum(['contacted', 'closed']),
+  staffNote: z.string().trim().max(500).optional(),
 });
 
 const updateMembershipSchema = z.object({
@@ -107,20 +124,20 @@ export async function createPlanController(req: Request, res: Response, next: Ne
   }
 }
 
-export async function getPlanController(req: Request, res: Response, next: NextFunction) {
+export async function getPlanController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
     const plan = await getPlanById(id);
-    if (!plan) throw new NotFoundError('MembershipPlan', id);
+    if (!plan || (!plan.isActive && req.user?.role !== 'admin')) throw new NotFoundError('MembershipPlan', id);
     res.json(plan);
   } catch (error) {
     next(error);
   }
 }
 
-export async function listPlansController(req: Request, res: Response, next: NextFunction) {
+export async function listPlansController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
-    const activeOnly = req.query.active !== 'false';
+    const activeOnly = req.query.activeOnly !== 'false' || req.user?.role !== 'admin';
     const plans = await listPlans(activeOnly);
     res.json(plans);
   } catch (error) {
@@ -267,9 +284,72 @@ export async function getExpiringMembershipsController(req: Request, res: Respon
   }
 }
 
+export async function getMembershipDashboardStatsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await getMembershipDashboardStats());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMembershipReportsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await getMembershipReports());
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createRenewalRequestController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = Number(req.user?.sub);
+    const renewalRequest = await createMembershipRenewalRequest(userId, req.body.planId, req.body.memberNote);
+    res.status(201).json(renewalRequest);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listMyRenewalRequestsController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const userId = Number(req.user?.sub);
+    const requests = await listMyMembershipRenewalRequests(userId);
+    res.json(requests);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listRenewalRequestsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const requests = await listMembershipRenewalRequests();
+    res.json(requests);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateRenewalRequestController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const requestId = Number(req.params.requestId);
+    const userId = Number(req.user?.sub);
+    const renewalRequest = await updateMembershipRenewalRequest(
+      requestId,
+      req.body.status,
+      userId,
+      req.body.staffNote,
+    );
+    res.json(renewalRequest);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export const createPlanValidation = validate(createPlanSchema);
 export const updatePlanValidation = validate(updatePlanSchema);
 export const createMembershipValidation = validate(createMembershipSchema);
+export const createRenewalRequestValidation = validate(createRenewalRequestSchema);
+export const updateRenewalRequestValidation = validate(updateRenewalRequestSchema);
 export const updateMembershipValidation = validate(updateMembershipSchema);
 export const visitValidation = validate(visitSchema);
 export const freezeValidation = validate(freezeSchema);

@@ -5,6 +5,9 @@ import {
   getPaymentByTransactionIdController,
   updatePaymentController,
   listPaymentsController,
+  getPaymentDashboardStatsController,
+  getPaymentReportsController,
+  getClientPaymentsController,
   createInvoiceController,
   getInvoiceController,
   getInvoiceByNumberController,
@@ -24,14 +27,17 @@ import {
   paymentMethodValidation,
   refundValidation,
 } from '../controllers/payment.controller.js';
-import { authenticate, authorize, requireClientAccess, requirePaymentAccess, requireInvoiceAccess } from '../middleware/auth.middleware.js';
+import { authenticate, authorize, requireClientAccess, requireClientBodyAccess, requirePaymentAccess, requireInvoiceAccess } from '../middleware/auth.middleware.js';
 
 const router: Router = Router();
 
 // Rutas específicas antes que genéricas
 router.post('/', authenticate, authorize('admin', 'receptionist'), requireClientAccess, createPaymentValidation, createPaymentController);
 router.get('/', authenticate, authorize('admin', 'receptionist'), listPaymentsController);
+router.get('/stats', authenticate, authorize('admin', 'receptionist'), getPaymentDashboardStatsController);
+router.get('/reports', authenticate, authorize('admin', 'receptionist'), getPaymentReportsController);
 router.get('/transaction/:transactionId', authenticate, authorize('admin', 'receptionist'), getPaymentByTransactionIdController);
+router.get('/client/:clientId', authenticate, requireClientAccess, getClientPaymentsController);
 router.get('/summary/:clientId', authenticate, requireClientAccess, getClientPaymentsSummaryController);
 
 // Facturas - específicas
@@ -43,7 +49,7 @@ router.post('/invoices/:id/pay', authenticate, authorize('admin', 'receptionist'
 router.post('/invoices/:id/cancel', authenticate, authorize('admin', 'receptionist'), requireInvoiceAccess, cancelInvoiceController);
 
 // Métodos de pago
-router.post('/methods', authenticate, paymentMethodValidation, createPaymentMethodController);
+router.post('/methods', authenticate, paymentMethodValidation, requireClientBodyAccess, createPaymentMethodController);
 router.get('/methods/:clientId', authenticate, requireClientAccess, getClientPaymentMethodsController);
 router.post('/methods/:clientId/:methodId/default', authenticate, requireClientAccess, setDefaultPaymentMethodController);
 router.delete('/methods/:clientId/:methodId', authenticate, requireClientAccess, deactivatePaymentMethodController);

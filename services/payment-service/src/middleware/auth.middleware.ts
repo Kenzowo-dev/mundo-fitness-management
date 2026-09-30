@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { extractTokenFromHeader, verifyAccessToken, TokenPayload } from '@gym/shared/utils/jwt.js';
 import { logger } from '@gym/shared/logger/index.js';
 import { AuthenticationError, AuthorizationError } from '@gym/shared/errors/index.js';
-import { requireClientOwnership, requirePaymentOwnership, requireInvoiceOwnership, requireUserSelfOrAdmin } from '@gym/shared/utils/authorization.js';
+import { requireClientOwnership, requireClientBodyOwnership, requirePaymentOwnership, requireInvoiceOwnership, requireUserSelfOrAdmin } from '@gym/shared/utils/authorization.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: TokenPayload;
@@ -49,6 +49,7 @@ export function authorize(...allowedRoles: string[]) {
 }
 
 export const requireClientAccess = requireClientOwnership('clientId');
+export const requireClientBodyAccess = requireClientBodyOwnership();
 export const requirePaymentAccess = requirePaymentOwnership('id');
 export const requireInvoiceAccess = requireInvoiceOwnership('id');
 export const requireUserSelf = requireUserSelfOrAdmin('id');

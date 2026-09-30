@@ -1,72 +1,49 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { loginAsReception } from './helpers';
 
-test.describe('Authentication Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-  });
+test('a member can register, log in, request a renewal, and log out', async ({ page }) => {
+  const suffix = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
+  const email = `e2e-member-${suffix}@example.test`;
+  const password = 'MemberPass123!';
 
-  test('should display login form', async ({ page }) => {
-    await expect(page.locator('h1, h2')).toContainText(/Iniciar Sesión|Login|Bienvenido/i);
-    await expect(page.locator('input[type="email"], input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[type="password"], input[name="password"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
-  });
+  await page.goto('/registro');
+  await page.getByLabel('Nombre', { exact: true }).fill('Socio E2E');
+  await page.getByLabel('Apellido', { exact: true }).fill('Mundo Fitness');
+  await page.getByLabel('Correo electrónico').fill(email);
+  await page.getByLabel('Contraseña', { exact: true }).fill(password);
+  await page.getByLabel('Confirmar contraseña').fill(password);
+  await page.getByLabel('Número de teléfono').fill('987654321');
+  await page.getByLabel('Fecha de nacimiento').fill('1995-06-15');
+  await page.getByLabel('Género').selectOption('otro');
+  await page.getByRole('button', { name: 'Crear cuenta' }).click();
+  await expect(page).toHaveURL(/\/portal$/);
+  await expect(page.getByRole('heading', { name: 'Mis datos' })).toBeVisible({ timeout: 15000 });
 
-  test('should show validation errors for empty fields', async ({ page }) => {
-    await page.click('button[type="submit"]');
-    await expect(page.locator('.error, [role="alert"], .text-red')).toBeVisible();
-  });
+  await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await expect(page).toHaveURL('/');
 
-  test('should show error for invalid credentials', async ({ page }) => {
-    await page.fill('input[type="email"], input[name="email"]', 'invalid@test.com');
-    await page.fill('input[type="password"], input[name="password"]', 'wrongpassword');
-    await page.click('button[type="submit"]');
-    
-    await expect(page.locator('.error, [role="alert"], .text-red')).toContainText(/credenciales|invalid|incorrect/i);
-  });
+  await page.goto('/login');
+  await page.getByRole('textbox', { name: 'Correo electrónico' }).fill(email);
+  await page.getByRole('textbox', { name: 'Contraseña' }).fill(password);
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  await expect(page).toHaveURL(/\/portal$/);
+  await expect(page.getByRole('heading', { name: 'Mis datos' })).toBeVisible({ timeout: 15000 });
 
-  test('should navigate to register page', async ({ page }) => {
-    await page.click('a:has-text("Registrar"), a:has-text("Crear cuenta"), a:has-text("Sign up")');
-    await expect(page).toHaveURL(/.*registro/);
-  });
-});
+  const renewalPlan = page.locator('label', { hasText: 'Plan solicitado' }).locator('select');
+  await expect(renewalPlan.locator('option').nth(1)).toBeAttached();
+  await renewalPlan.selectOption({ index: 1 });
+  await page.getByLabel('Comentario para recepción (opcional)').fill('Solicito renovar mi membresía.');
+  await page.getByRole('button', { name: 'Solicitar renovación' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Solicitud enviada' })).toBeVisible();
 
-test.describe('User Registration', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/registro');
-    await page.waitForLoadState('networkidle');
-  });
+  await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+  await expect(page).toHaveURL('/');
 
-  test('should display registration form with all fields', async ({ page }) => {
-    await expect(page.locator('input[name="firstName"], input[placeholder*="Nombre"]')).toBeVisible();
-    await expect(page.locator('input[name="lastName"], input[placeholder*="Apellido"]')).toBeVisible();
-    await expect(page.locator('input[name="email"], input[type="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"], input[type="password"]')).toBeVisible();
-    // DNI field removed - now auto-generated from userId
-    // await expect(page.locator('input[name="dni"], input[placeholder*="DNI"]')).toBeVisible();
-  });
-
-  test('should validate required fields', async ({ page }) => {
-    await page.click('button[type="submit"]');
-    await expect(page.locator('.error, [role="alert"], .text-red')).toBeVisible();
-  });
-
-  test('should validate email format', async ({ page }) => {
-    await page.fill('input[name="firstName"]', 'Test');
-    await page.fill('input[name="lastName"]', 'User');
-    await page.fill('input[name="email"]', 'invalid-email');
-    await page.fill('input[name="password"]', 'SecurePass123');
-    await page.click('button[type="submit"]');
-    await expect(page.locator('.error, [role="alert"], .text-red')).toContainText(/email|correo/i);
-  });
-
-  test('should validate password strength', async ({ page }) => {
-    await page.fill('input[name="firstName"]', 'Test');
-    await page.fill('input[name="lastName"]', 'User');
-    await page.fill('input[name="email"]', 'test@example.com');
-    await page.fill('input[name="password"]', '123');
-    await page.click('button[type="submit"]');
-    await expect(page.locator('.error, [role="alert"], .text-red')).toContainText(/8 caracteres|8 characters|password/i);
-  });
+  await loginAsReception(page);
+  await page.goto('/membresias');
+  await page.getByRole('tab', { name: /Solicitudes web/ }).click();
+  const renewalRow = page.getByRole('row').filter({ hasText: email });
+  await expect(renewalRow).toBeVisible();
+  await renewalRow.getByRole('button', { name: 'Marcar contactada' }).click();
+  await expect(renewalRow.getByRole('button', { name: 'Marcar contactada' })).toBeDisabled();
 });

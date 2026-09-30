@@ -444,140 +444,6 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@24.13.3)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(tsx@4.23.13)(yaml@2.9.1)
 
-  services/plan-service:
-    dependencies:
-      '@gym/shared':
-        specifier: workspace:*
-        version: link:../../shared
-      cors:
-        specifier: ^2.8.5
-        version: 2.8.6
-      express:
-        specifier: ^5.2.1
-        version: 5.2.1(supports-color@8.1.1)
-      express-rate-limit:
-        specifier: ^7.4.1
-        version: 7.5.1(express@5.2.1(supports-color@8.1.1))
-      helmet:
-        specifier: ^8.0.0
-        version: 8.3.0
-      pg:
-        specifier: ^8.23.0
-        version: 8.23.0
-      redis:
-        specifier: ^5.0.0
-        version: 5.12.1
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      '@eslint/js':
-        specifier: ^10.0.1
-        version: 10.0.1(eslint@10.9.1(supports-color@8.1.1))
-      '@types/cors':
-        specifier: ^2.8.17
-        version: 2.8.19
-      '@types/express':
-        specifier: ^5.0.6
-        version: 5.0.6
-      '@types/node':
-        specifier: ^24.13.3
-        version: 24.13.3
-      '@types/pg':
-        specifier: ^8.23.1
-        version: 8.23.1
-      '@types/supertest':
-        specifier: ^7.2.1
-        version: 7.2.1
-      eslint:
-        specifier: ^10.9.0
-        version: 10.9.1(supports-color@8.1.1)
-      globals:
-        specifier: ^17.11.0
-        version: 17.11.0
-      supertest:
-        specifier: ^7.3.0
-        version: 7.3.0(supports-color@8.1.1)
-      tsx:
-        specifier: ^4.23.13
-        version: 4.23.13
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-      typescript-eslint:
-        specifier: ^8.67.0
-        version: 8.68.0(eslint@10.9.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7(@types/node@24.13.3)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(tsx@4.23.13)(yaml@2.9.1)
-
-  services/report-service:
-    dependencies:
-      '@gym/shared':
-        specifier: workspace:*
-        version: link:../../shared
-      cors:
-        specifier: ^2.8.5
-        version: 2.8.6
-      express:
-        specifier: ^5.2.1
-        version: 5.2.1(supports-color@8.1.1)
-      express-rate-limit:
-        specifier: ^7.4.1
-        version: 7.5.1(express@5.2.1(supports-color@8.1.1))
-      helmet:
-        specifier: ^8.0.0
-        version: 8.3.0
-      pg:
-        specifier: ^8.23.0
-        version: 8.23.0
-      redis:
-        specifier: ^5.0.0
-        version: 5.12.1
-      zod:
-        specifier: ^3.24.1
-        version: 3.25.76
-    devDependencies:
-      '@eslint/js':
-        specifier: ^10.0.1
-        version: 10.0.1(eslint@10.9.1(supports-color@8.1.1))
-      '@types/cors':
-        specifier: ^2.8.17
-        version: 2.8.19
-      '@types/express':
-        specifier: ^5.0.6
-        version: 5.0.6
-      '@types/node':
-        specifier: ^24.13.3
-        version: 24.13.3
-      '@types/pg':
-        specifier: ^8.23.1
-        version: 8.23.1
-      '@types/supertest':
-        specifier: ^7.2.1
-        version: 7.2.1
-      eslint:
-        specifier: ^10.9.0
-        version: 10.9.1(supports-color@8.1.1)
-      globals:
-        specifier: ^17.11.0
-        version: 17.11.0
-      supertest:
-        specifier: ^7.3.0
-        version: 7.3.0(supports-color@8.1.1)
-      tsx:
-        specifier: ^4.23.13
-        version: 4.23.13
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-      typescript-eslint:
-        specifier: ^8.67.0
-        version: 8.68.0(eslint@10.9.1(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
-      vitest:
-        specifier: ^3.0.0
-        version: 3.2.7(@types/node@24.13.3)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(tsx@4.23.13)(yaml@2.9.1)
-
   shared:
     dependencies:
       bcryptjs:
@@ -638,6 +504,7 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@24.13.3)(jsdom@25.0.1(supports-color@8.1.1))(lightningcss@1.33.0)(supports-color@8.1.1)(tsx@4.23.13)(yaml@2.9.1)
+
 
 packages:
 

@@ -12,7 +12,7 @@ export default function LandingPage() {
       <header className="navbar" aria-label="Encabezado del sitio">
         <div className="logo">
           <img
-            src="/src/assets/Logo.png"
+            src="/assets/Logo.png"
             alt="Mundo Fitness"
             className="logo-image"
           />
@@ -83,7 +83,7 @@ export default function LandingPage() {
 
           <div className="hero-image">
             <img
-              src="/src/assets/hero.png"
+              src="/assets/hero.png"
               alt="Instalaciones modernas de Mundo Fitness"
               className="hero-img-cover"
               style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }}

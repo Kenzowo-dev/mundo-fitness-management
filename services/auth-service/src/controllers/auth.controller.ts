@@ -74,7 +74,7 @@ const updateUserSchema = z.object({
   phone: z.string().max(20).optional(),
   birthDate: z.string().date().optional(),
   gender: z.string().max(20).optional(),
-  role: z.enum(['member', 'trainer', 'receptionist', 'admin']).optional(),
+  role: z.enum(['member', 'receptionist', 'admin']).optional(),
   isActive: z.boolean().optional(),
 });
 

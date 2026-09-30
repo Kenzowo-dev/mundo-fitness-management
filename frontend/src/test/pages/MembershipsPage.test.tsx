@@ -30,8 +30,8 @@ const mockPlans = [
 ]
 
 const mockMemberships = [
-  { id: 1, clientId: 1, planId: 1, plan: mockPlans[0], startDate: '2024-01-15', endDate: '2024-02-14', status: 'active', autoRenew: true, createdAt: '2024-01-15T10:00:00Z', updatedAt: '2024-01-15T10:00:00Z' },
-  { id: 2, clientId: 2, planId: 2, plan: mockPlans[1], startDate: '2024-02-20', endDate: '2024-05-20', status: 'active', autoRenew: true, createdAt: '2024-02-20T10:00:00Z', updatedAt: '2024-02-20T10:00:00Z' },
+  { id: 1, clientId: 1, planId: 1, plan: mockPlans[0], startDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), endDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), status: 'active', autoRenew: true, createdAt: '2024-01-15T10:00:00Z', updatedAt: '2024-01-15T10:00:00Z' },
+  { id: 2, clientId: 2, planId: 2, plan: mockPlans[1], startDate: new Date(Date.now() - 86400000).toISOString().slice(0, 10), endDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), status: 'active', autoRenew: true, createdAt: '2024-02-20T10:00:00Z', updatedAt: '2024-02-20T10:00:00Z' },
 ]
 
 const createWrapper = () => {
@@ -119,6 +119,8 @@ describe('MembershipsPage - Integration Tests', () => {
     memberships?: ReturnType<typeof createMockQuery>[]
     createMutation?: ReturnType<typeof createMockMutation>
     checkInMutation?: ReturnType<typeof createMockMutation>
+    renewalRequests?: ReturnType<typeof createMockQuery>
+    updateRenewalMutation?: ReturnType<typeof createMockMutation>
   }) => {
     const clientsMock = overrides?.clients ?? createMockQuery({
       data: { data: mockClients, pagination: { page: 1, limit: 100, total: 2, totalPages: 1 } },
@@ -149,6 +151,10 @@ describe('MembershipsPage - Integration Tests', () => {
     vi.spyOn(useApiModule, 'useAllClientMemberships').mockReturnValue(membershipsMock as ReturnType<typeof useApiModule.useAllClientMemberships>)
     vi.spyOn(useApiModule, 'useCreateMembership').mockReturnValue(createMock as ReturnType<typeof useApiModule.useCreateMembership>)
     vi.spyOn(useApiModule, 'useCheckIn').mockReturnValue(checkInMock as ReturnType<typeof useApiModule.useCheckIn>)
+    vi.spyOn(useApiModule, 'useMembershipRenewalRequests').mockReturnValue((overrides?.renewalRequests ?? createMockQuery({ data: [], isLoading: false, isFetching: false, isSuccess: true, status: 'success' })) as ReturnType<typeof useApiModule.useMembershipRenewalRequests>)
+    vi.spyOn(useApiModule, 'useUpdateMembershipRenewalRequest').mockReturnValue((overrides?.updateRenewalMutation ?? createMockMutation()) as ReturnType<typeof useApiModule.useUpdateMembershipRenewalRequest>)
+    vi.spyOn(useApiModule, 'useCreateMembershipPlan').mockReturnValue(createMockMutation() as ReturnType<typeof useApiModule.useCreateMembershipPlan>)
+    vi.spyOn(useApiModule, 'useUpdateMembershipPlan').mockReturnValue(createMockMutation() as ReturnType<typeof useApiModule.useUpdateMembershipPlan>)
 
     return render(<MembershipsPage />, { wrapper: createWrapper() })
   }
@@ -186,6 +192,22 @@ describe('MembershipsPage - Integration Tests', () => {
       expect(screen.getByText('Gestión de Membresías y Control de Acceso')).toBeInTheDocument()
     })
 
+    it('shows the web renewal inbox and lets reception mark a request as contacted', async () => {
+      const updateMutation = createMockMutation()
+      renderMembershipsPage({
+        renewalRequests: createMockQuery({
+          data: [{ id: 8, clientId: 1, clientName: 'Juan Pérez', clientEmail: 'juan@test.com', planId: 1, planName: 'Plan Básico', status: 'pending', requestedAt: '2026-09-29T12:00:00Z' }],
+          isLoading: false, isFetching: false, isSuccess: true, status: 'success',
+        }),
+        updateRenewalMutation: updateMutation,
+      })
+      fireEvent.click(screen.getByRole('tab', { name: /Solicitudes web/ }))
+      expect(await screen.findByText('Juan Pérez')).toBeInTheDocument()
+      expect(screen.getByText(/no crea membresías ni registra pagos/i)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Marcar contactada' }))
+      expect(updateMutation.mutate).toHaveBeenCalledWith({ id: 8, data: { status: 'contacted' } })
+    })
+
     it('renders tabs for plans and memberships', () => {
       renderMembershipsPage()
       expect(screen.getByRole('tab', { name: 'Planes de membresía' })).toBeInTheDocument()
@@ -204,10 +226,16 @@ describe('MembershipsPage - Integration Tests', () => {
       expect(screen.getByText('Duración')).toBeInTheDocument()
       expect(screen.getByText('Precio')).toBeInTheDocument()
       expect(screen.getByText('Visitas/semana')).toBeInTheDocument()
-      expect(screen.getByText('Entrenador')).toBeInTheDocument()
       expect(screen.getByText('Clases')).toBeInTheDocument()
       expect(screen.getByText('Sauna')).toBeInTheDocument()
       expect(screen.getByText('Estado')).toBeInTheDocument()
+    })
+
+    it('lets administrators open the plan creation form', async () => {
+      renderMembershipsPage()
+      fireEvent.click(screen.getByRole('button', { name: 'Crear plan de membresía' }))
+      expect(await screen.findByRole('dialog', { hidden: true })).toBeInTheDocument()
+      expect(screen.getByLabelText(/Nombre del plan/)).toBeInTheDocument()
     })
 
     it('shows memberships tab when switched', async () => {
@@ -226,7 +254,7 @@ describe('MembershipsPage - Integration Tests', () => {
     it('shows loading state for plans tab', () => {
       renderMembershipsPage({
         clients: createMockQuery({ data: { data: mockClients, pagination: { page: 1, limit: 100, total: 2, totalPages: 1 } } }),
-        plans: createMockQuery({ data: mockPlans }),
+        plans: createMockQuery(),
         memberships: [
           createMockQuery({ data: [mockMemberships[0]] }),
           createMockQuery({ data: [mockMemberships[1]] }),
@@ -234,6 +262,23 @@ describe('MembershipsPage - Integration Tests', () => {
       })
       const loadingRows = screen.getAllByLabelText('Cargando fila')
       expect(loadingRows.length).toBeGreaterThan(0)
+    })
+
+    it('shows plans when the client list is still loading', () => {
+      renderMembershipsPage({
+        clients: createMockQuery(),
+        plans: createMockQuery({
+          data: mockPlans,
+          isLoading: false,
+          isFetching: false,
+          isSuccess: true,
+          status: 'success',
+        }),
+        memberships: [],
+      })
+
+      expect(screen.getByText(mockPlans[0].name)).toBeInTheDocument()
+      expect(screen.queryByLabelText('Cargando fila')).not.toBeInTheDocument()
     })
 
     it('shows loading state for memberships tab', async () => {
@@ -249,11 +294,6 @@ describe('MembershipsPage - Integration Tests', () => {
       const loadingRows = screen.getAllByLabelText('Cargando fila')
       expect(loadingRows.length).toBeGreaterThan(0)
     })
-  })
-
-  describe('Empty State', () => {
-    // EmptyState in TableContainer not rendering in test environment
-    // Core integration tests (modals, mutations, tabs, loading, error) are passing
   })
 
   describe('Error State', () => {
@@ -327,7 +367,7 @@ describe('MembershipsPage - Integration Tests', () => {
       await waitFor(() => {
         expect(mockCheckIn.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
           clientId: 1,
-          membershipId: 1,
+          clientMembershipId: 1,
         }))
       })
     })

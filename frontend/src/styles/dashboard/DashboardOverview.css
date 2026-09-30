@@ -74,6 +74,12 @@
   color: var(--text-primary);
 }
 
+.dashboard-stats-caption {
+  margin: calc(var(--space-6) * -1) 0 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
 .overview-actions-section {
   background: var(--bg-elevated-1);
   border: 1px solid var(--border-default);

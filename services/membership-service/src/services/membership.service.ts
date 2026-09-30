@@ -3,6 +3,8 @@ import { publish } from '@gym/shared/messaging/index.js';
 import { CHANNELS } from '@gym/shared/messaging/index.js';
 import {
   MembershipPlan,
+  MembershipRenewalRequest,
+  RenewalRequestStatus,
   CreatePlanData,
   UpdatePlanData,
   ClientMembership,
@@ -35,6 +37,132 @@ export interface MembershipPlanRow {
   sort_order: number;
   created_at: Date;
   updated_at: Date;
+}
+
+interface MembershipRenewalRequestRow {
+  id: number;
+  client_id: number;
+  plan_id: number;
+  plan_name: string;
+  status: RenewalRequestStatus;
+  member_note: string | null;
+  staff_note: string | null;
+  requested_at: Date;
+  updated_at: Date;
+  handled_by: number | null;
+  client_first_name?: string;
+  client_last_name?: string;
+  client_email?: string | null;
+  client_dni?: string;
+}
+
+function mapRowToRenewalRequest(row: MembershipRenewalRequestRow): MembershipRenewalRequest {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    planId: row.plan_id,
+    planName: row.plan_name,
+    status: row.status,
+    memberNote: row.member_note ?? undefined,
+    staffNote: row.staff_note ?? undefined,
+    requestedAt: new Date(row.requested_at),
+    updatedAt: new Date(row.updated_at),
+    handledBy: row.handled_by ?? undefined,
+    clientName: row.client_first_name && row.client_last_name
+      ? `${row.client_first_name} ${row.client_last_name}`
+      : undefined,
+    clientEmail: row.client_email ?? undefined,
+    clientDni: row.client_dni,
+  };
+}
+
+export async function createMembershipRenewalRequest(
+  userId: number,
+  planId: number,
+  memberNote?: string,
+): Promise<MembershipRenewalRequest> {
+  const clientResult = await query<{ id: number }>('SELECT id FROM clients WHERE user_id = $1', [userId]);
+  if (clientResult.rows.length === 0) throw new NotFoundError('ClientProfile', userId);
+
+  const plan = await getPlanById(planId);
+  if (!plan || !plan.isActive) throw new NotFoundError('MembershipPlan', planId);
+
+  const clientId = clientResult.rows[0].id;
+  const existing = await query<{ id: number }>(
+    `SELECT id FROM membership_renewal_requests WHERE client_id = $1 AND status IN ('pending', 'contacted') LIMIT 1`,
+    [clientId],
+  );
+  if (existing.rows.length > 0) {
+    throw new ConflictError('Ya tienes una solicitud de renovación en curso.', 'RENEWAL_REQUEST_ALREADY_OPEN');
+  }
+
+  try {
+    const result = await query<MembershipRenewalRequestRow>(
+      `INSERT INTO membership_renewal_requests (client_id, plan_id, member_note)
+       VALUES ($1, $2, $3)
+       RETURNING id, client_id, plan_id, status, member_note, staff_note, requested_at, updated_at, handled_by,
+         (SELECT name FROM membership_plans WHERE id = $2) AS plan_name`,
+      [clientId, planId, memberNote ?? null],
+    );
+    return mapRowToRenewalRequest(result.rows[0]);
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+      throw new ConflictError('Ya tienes una solicitud de renovación en curso.', 'RENEWAL_REQUEST_ALREADY_OPEN');
+    }
+    throw error;
+  }
+}
+
+export async function listMyMembershipRenewalRequests(userId: number): Promise<MembershipRenewalRequest[]> {
+  const result = await query<MembershipRenewalRequestRow>(
+    `SELECT request.id, request.client_id, request.plan_id, plan.name AS plan_name, request.status,
+       request.member_note, request.staff_note, request.requested_at, request.updated_at, request.handled_by
+     FROM membership_renewal_requests request
+     JOIN clients client ON client.id = request.client_id
+     JOIN membership_plans plan ON plan.id = request.plan_id
+     WHERE client.user_id = $1
+     ORDER BY request.requested_at DESC, request.id DESC`,
+    [userId],
+  );
+  return result.rows.map(mapRowToRenewalRequest);
+}
+
+export async function listMembershipRenewalRequests(): Promise<MembershipRenewalRequest[]> {
+  const result = await query<MembershipRenewalRequestRow>(
+    `SELECT request.id, request.client_id, request.plan_id, plan.name AS plan_name, request.status,
+       request.member_note, request.staff_note, request.requested_at, request.updated_at, request.handled_by,
+       client.first_name AS client_first_name, client.last_name AS client_last_name,
+       client.email AS client_email, client.dni AS client_dni
+     FROM membership_renewal_requests request
+     JOIN clients client ON client.id = request.client_id
+     JOIN membership_plans plan ON plan.id = request.plan_id
+     ORDER BY CASE request.status WHEN 'pending' THEN 0 WHEN 'contacted' THEN 1 ELSE 2 END,
+       request.requested_at ASC, request.id ASC`,
+  );
+  return result.rows.map(mapRowToRenewalRequest);
+}
+
+export async function updateMembershipRenewalRequest(
+  requestId: number,
+  status: Exclude<RenewalRequestStatus, 'pending'>,
+  handledBy: number,
+  staffNote?: string,
+): Promise<MembershipRenewalRequest> {
+  const result = await query<MembershipRenewalRequestRow>(
+    `UPDATE membership_renewal_requests AS request
+     SET status = $1, handled_by = $2, staff_note = $3, updated_at = NOW()
+     WHERE request.id = $4 AND request.status <> 'closed'
+     RETURNING request.id, request.client_id, request.plan_id,
+       (SELECT name FROM membership_plans WHERE id = request.plan_id) AS plan_name, request.status,
+       request.member_note, request.staff_note, request.requested_at, request.updated_at, request.handled_by`,
+    [status, handledBy, staffNote ?? null, requestId],
+  );
+  if (result.rows.length === 0) {
+    const exists = await query<{ status: string }>('SELECT status FROM membership_renewal_requests WHERE id = $1', [requestId]);
+    if (exists.rows.length === 0) throw new NotFoundError('MembershipRenewalRequest', requestId);
+    throw new ConflictError('La solicitud ya está cerrada.', 'RENEWAL_REQUEST_CLOSED');
+  }
+  return mapRowToRenewalRequest(result.rows[0]);
 }
 
 export interface ClientMembershipRow {
@@ -100,7 +228,7 @@ function parseFeatures(features: unknown): string[] {
 
 export function mapRowToPlan(row: MembershipPlanRow): MembershipPlan {
   return {
-    id: row.id,
+    id: Number(row.id),
     name: row.name,
     description: row.description ?? undefined,
     durationDays: row.duration_days,
@@ -120,9 +248,9 @@ export function mapRowToPlan(row: MembershipPlanRow): MembershipPlan {
 
 export function mapRowToMembership(row: ClientMembershipRow): ClientMembership {
   return {
-    id: row.id,
-    clientId: row.client_id,
-    planId: row.plan_id,
+    id: Number(row.id),
+    clientId: Number(row.client_id),
+    planId: Number(row.plan_id),
     startDate: new Date(row.start_date),
     endDate: new Date(row.end_date),
     status: row.status,
@@ -160,13 +288,14 @@ export function mapRowToFreeze(row: MembershipFreezeRow): MembershipFreeze {
 }
 
 export async function createPlan(data: CreatePlanData): Promise<MembershipPlan> {
-  const result = await query<MembershipPlanRow>(
-    `
+  try {
+    const result = await query<MembershipPlanRow>(
+      `
     INSERT INTO membership_plans (name, description, duration_days, price, currency, features, max_visits_per_week, includes_personal_trainer, includes_classes, includes_sauna, sort_order)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *
-    `,
-    [
+      `,
+      [
       data.name,
       data.description ?? null,
       data.durationDays,
@@ -178,9 +307,15 @@ export async function createPlan(data: CreatePlanData): Promise<MembershipPlan> 
       data.includesClasses ?? false,
       data.includesSauna ?? false,
       data.sortOrder ?? 0,
-    ]
-  );
-  return mapRowToPlan(result.rows[0]);
+      ],
+    );
+    return mapRowToPlan(result.rows[0]);
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+      throw new ConflictError('Ya existe un plan con ese nombre.', 'PLAN_NAME_EXISTS');
+    }
+    throw error;
+  }
 }
 
 export async function getPlanById(id: number): Promise<MembershipPlan | null> {
@@ -230,24 +365,31 @@ export async function updatePlan(id: number, data: UpdatePlanData): Promise<Memb
   fields.push(`updated_at = NOW()`);
   values.push(id);
 
-  const result = await query<MembershipPlanRow>(
-    `UPDATE membership_plans SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-    values
-  );
-  return mapRowToPlan(result.rows[0]);
+  try {
+    const result = await query<MembershipPlanRow>(
+      `UPDATE membership_plans SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      values,
+    );
+    return mapRowToPlan(result.rows[0]);
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+      throw new ConflictError('Ya existe un plan con ese nombre.', 'PLAN_NAME_EXISTS');
+    }
+    throw error;
+  }
 }
 
 export async function deletePlan(id: number): Promise<void> {
-  const memberships = await query('SELECT id FROM client_memberships WHERE plan_id = $1', [id]);
-  if (memberships.rows.length > 0) {
-    throw new ConflictError('Cannot delete plan with active memberships', 'PLAN_HAS_MEMBERSHIPS');
-  }
-  await query('DELETE FROM membership_plans WHERE id = $1', [id]);
+  const result = await query<{ id: number }>(
+    'UPDATE membership_plans SET is_active = false, updated_at = NOW() WHERE id = $1 RETURNING id',
+    [id],
+  );
+  if (result.rows.length === 0) throw new NotFoundError('MembershipPlan', id);
 }
 
 export async function createMembership(data: CreateMembershipData): Promise<ClientMembership> {
   const plan = await getPlanById(data.planId);
-  if (!plan) throw new NotFoundError('MembershipPlan', data.planId);
+  if (!plan || !plan.isActive) throw new NotFoundError('MembershipPlan', data.planId);
 
   const activeMembership = await query(
     `SELECT id FROM client_memberships WHERE client_id = $1 AND status = 'active' AND end_date >= CURRENT_DATE`,
@@ -420,8 +562,18 @@ export async function renewMembership(id: number): Promise<ClientMembership> {
 export async function checkIn(data: CreateVisitData): Promise<MembershipVisit> {
   const membership = await getMembershipById(data.clientMembershipId);
   if (!membership) throw new NotFoundError('ClientMembership', data.clientMembershipId);
+  if (membership.clientId !== data.clientId) {
+    throw new ValidationError('Membership does not belong to this client', 'MEMBERSHIP_CLIENT_MISMATCH');
+  }
   if (membership.status !== 'active') throw new ValidationError('Membership is not active', 'MEMBERSHIP_INACTIVE');
-  if (new Date() > new Date(membership.endDate)) throw new ValidationError('Membership has expired', 'MEMBERSHIP_EXPIRED');
+  const membershipStart = new Date(membership.startDate);
+  const membershipEnd = new Date(membership.endDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  membershipStart.setHours(0, 0, 0, 0);
+  membershipEnd.setHours(23, 59, 59, 999);
+  if (today < membershipStart) throw new ValidationError('Membership has not started', 'MEMBERSHIP_NOT_STARTED');
+  if (today > membershipEnd) throw new ValidationError('Membership has expired', 'MEMBERSHIP_EXPIRED');
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -516,4 +668,47 @@ export async function getExpiringMemberships(days = 7): Promise<ClientMembership
     };
     return membership;
   });
+}
+
+export async function getMembershipDashboardStats(): Promise<{ activeMemberships: number; visitsToday: number }> {
+  const result = await query<{ active_memberships: string; visits_today: string }>(
+    `SELECT
+       (SELECT COUNT(*) FROM client_memberships
+        WHERE status = 'active' AND start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE) AS active_memberships,
+       (SELECT COUNT(*) FROM membership_visits WHERE visited_at::date = CURRENT_DATE) AS visits_today`
+  );
+  return {
+    activeMemberships: Number(result.rows[0]?.active_memberships ?? 0),
+    visitsToday: Number(result.rows[0]?.visits_today ?? 0),
+  };
+}
+
+export async function getMembershipReports(): Promise<{
+  membershipsByStatus: Array<{ status: string; count: number }>;
+  visitsByDay: Array<{ date: string; count: number }>;
+}> {
+  const [memberships, visits] = await Promise.all([
+    query<{ status: string; count: string }>(
+      `SELECT CASE
+         WHEN status = 'active' AND end_date < CURRENT_DATE THEN 'expired'
+         WHEN status = 'active' AND start_date > CURRENT_DATE THEN 'scheduled'
+         ELSE status
+       END AS status, COUNT(*)::text AS count
+       FROM client_memberships
+       GROUP BY 1 ORDER BY 1`
+    ),
+    query<{ date: string; count: string }>(
+      `WITH days AS (
+         SELECT generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day')::date AS date
+       )
+       SELECT to_char(days.date, 'YYYY-MM-DD') AS date, COUNT(membership_visits.id)::text AS count
+       FROM days
+       LEFT JOIN membership_visits ON membership_visits.visited_at::date = days.date
+       GROUP BY days.date ORDER BY days.date`
+    ),
+  ]);
+  return {
+    membershipsByStatus: memberships.rows.map((row) => ({ status: row.status, count: Number(row.count) })),
+    visitsByDay: visits.rows.map((row) => ({ date: row.date, count: Number(row.count) })),
+  };
 }

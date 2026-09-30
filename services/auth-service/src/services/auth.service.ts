@@ -42,8 +42,9 @@ function comparePassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
 
-function hashToken(token: string): Promise<string> {
-  return bcrypt.hash(token, BCRYPT_ROUNDS);
+function hashRefreshToken(token: string): string {
+  // Refresh JWTs are high-entropy secrets; a full-length digest avoids bcrypt's 72-byte truncation.
+  return createHash('sha256').update(token).digest('hex');
 }
 
 export interface UserRow {
@@ -119,7 +120,7 @@ export async function registerUser(data: CreateUserData): Promise<{ user: User; 
 
   const passwordHash = await hashPassword(data.password);
 
-  return await transaction(async (client) => {
+  const registration = await transaction(async (client) => {
     const userResult = await client.query<UserRow>(
       `
       INSERT INTO users (email, password_hash, first_name, last_name, phone, birth_date, gender, role)
@@ -134,20 +135,23 @@ export async function registerUser(data: CreateUserData): Promise<{ user: User; 
 
     await storeRefreshToken(client, user.id, tokens.refreshToken);
 
-    await publish(CHANNELS.USER_CREATED, {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phone: user.phone ?? undefined,
-      birthDate: user.birthDate?.toISOString() ?? undefined,
-      gender: user.gender ?? undefined,
-    });
-
-    logger.info({ userId: user.id }, 'User registered successfully');
     return { user, tokens };
   });
+
+  // Publish only after the user row is committed, so client-service can safely reference its ID.
+  await publish(CHANNELS.USER_CREATED, {
+    userId: registration.user.id,
+    email: registration.user.email,
+    role: registration.user.role,
+    firstName: registration.user.firstName,
+    lastName: registration.user.lastName,
+    phone: registration.user.phone,
+    birthDate: registration.user.birthDate?.toISOString(),
+    gender: registration.user.gender,
+  });
+
+  logger.info({ userId: registration.user.id }, 'User registered successfully');
+  return registration;
 }
 
 export async function loginUser(email: string, password: string): Promise<{ user: User; tokens: TokenPair }> {
@@ -198,8 +202,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenPai
     throw new AuthenticationError('Invalid token type', 'INVALID_TOKEN_TYPE');
   }
 
-  const tokenRecord = await findValidRefreshToken(Number(payload.sub), refreshToken);
-  if (!tokenRecord) {
+  const tokenRecords = await findValidRefreshTokens(Number(payload.sub), refreshToken);
+  if (tokenRecords.length === 0) {
     throw new AuthenticationError('Refresh token revoked or expired', 'TOKEN_REVOKED');
   }
 
@@ -215,7 +219,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenPai
   const user = userResult.rows[0];
   const tokens = await createTokenPair(user.id, user.email, user.role);
 
-  await revokeRefreshToken(tokenRecord.id);
+  await Promise.all(tokenRecords.map(({ id }) => revokeRefreshToken(id)));
   await storeRefreshToken(null, user.id, tokens.refreshToken);
 
   return tokens;
@@ -223,10 +227,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<TokenPai
 
 export async function logoutUser(userId: number, refreshToken?: string): Promise<void> {
   if (refreshToken) {
-    const tokenRecord = await findValidRefreshToken(userId, refreshToken);
-    if (tokenRecord) {
-      await revokeRefreshToken(tokenRecord.id);
-    }
+    const tokenRecords = await findValidRefreshTokens(userId, refreshToken);
+    await Promise.all(tokenRecords.map(({ id }) => revokeRefreshToken(id)));
   } else {
     await revokeAllUserRefreshTokens(userId);
   }
@@ -451,7 +453,7 @@ async function getUserPermissions(role: string): Promise<string[]> {
 }
 
 async function storeRefreshToken(client: PoolClient | null, userId: number, refreshToken: string): Promise<void> {
-  const tokenHash = await hashToken(refreshToken);
+  const tokenHash = hashRefreshToken(refreshToken);
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
   const queryText = `
@@ -466,7 +468,7 @@ async function storeRefreshToken(client: PoolClient | null, userId: number, refr
   }
 }
 
-async function findValidRefreshToken(userId: number, refreshToken: string): Promise<RefreshTokenRecord | null> {
+async function findValidRefreshTokens(userId: number, refreshToken: string): Promise<RefreshTokenRecord[]> {
   const result = await query<RefreshTokenRow>(
     `SELECT id, user_id, token_hash, expires_at, created_at, revoked_at
      FROM refresh_tokens
@@ -474,20 +476,21 @@ async function findValidRefreshToken(userId: number, refreshToken: string): Prom
     [userId]
   );
 
+  const matches: RefreshTokenRecord[] = [];
+  const tokenHash = hashRefreshToken(refreshToken);
   for (const row of result.rows) {
-    const isMatch = await bcrypt.compare(refreshToken, row.token_hash);
-    if (isMatch) {
-      return {
+    if (tokenHash === row.token_hash) {
+      matches.push({
         id: row.id,
         userId: row.user_id,
         tokenHash: row.token_hash,
         expiresAt: new Date(row.expires_at),
         createdAt: new Date(row.created_at),
         revokedAt: row.revoked_at ? new Date(row.revoked_at) : undefined,
-      };
+      });
     }
   }
-  return null;
+  return matches;
 }
 
 async function revokeRefreshToken(tokenId: number): Promise<void> {

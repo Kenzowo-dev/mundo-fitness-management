@@ -49,4 +49,4 @@ export function authorize(...allowedRoles: string[]) {
 }
 
 export const requireClientAccess = requireClientOwnership('id');
-export const requireUserSelf = requireUserSelfOrAdmin('id');
+export const requireUserSelf = requireUserSelfOrAdmin('userId');

@@ -29,9 +29,7 @@
     "./utils/authorization.js": "./dist/utils/authorization.js",
     "./utils/authorization": "./dist/utils/authorization.js",
     "./utils/email": "./dist/utils/email.js",
-    "./utils/email.js": "./dist/utils/email.js",
-    "./test/integration-setup": "./dist/test/integration-setup.js",
-    "./test/integration-setup.js": "./dist/test/integration-setup.js"
+    "./utils/email.js": "./dist/utils/email.js"
   },
   "scripts": {
     "build": "tsc",
