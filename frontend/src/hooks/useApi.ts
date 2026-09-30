@@ -205,12 +205,17 @@ export function useUpdateClient() {
   });
 }
 
-export function useUpdateOwnClientProfile(userId: number) {
+export function useUpdateOwnClientProfile(userId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>>) =>
-      api.updateOwnClientProfile(userId, data),
+    mutationFn: (data: Partial<Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>>) => {
+      if (userId === undefined) {
+        throw new Error('No se puede actualizar el perfil sin una sesión activa.');
+      }
+      return api.updateOwnClientProfile(userId, data);
+    },
     onSuccess: (client) => {
+      if (userId === undefined) return;
       queryClient.setQueryData(['member-portal', 'client', userId], client);
     },
   });

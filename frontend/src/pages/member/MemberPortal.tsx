@@ -28,7 +28,7 @@ export default function MemberPortal() {
     retry: false,
   });
   const clientId = clientQuery.data?.id;
-  const updateProfileMutation = useUpdateOwnClientProfile(user?.id ?? 0);
+  const updateProfileMutation = useUpdateOwnClientProfile(user?.id);
   const membershipsQuery = useQuery<ClientMembership[]>({
     queryKey: ['member-portal', 'memberships', clientId],
     queryFn: () => api.getClientMemberships(clientId!) as Promise<ClientMembership[]>,

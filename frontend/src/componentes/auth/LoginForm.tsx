@@ -28,7 +28,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit} noValidate>
+    <form className="auth-form" onSubmit={handleSubmit}>
       {error && (
         <div className="auth-error" role="alert" aria-live="assertive">
           {error}

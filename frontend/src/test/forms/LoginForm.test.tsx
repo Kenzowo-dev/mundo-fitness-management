@@ -81,6 +81,7 @@ describe('LoginForm', () => {
       fireEvent.click(submitBtn)
       const emailInput = screen.getByLabelText('Correo electrónico')
       expect(emailInput).toBeRequired()
+      expect(mockLogin).not.toHaveBeenCalled()
     })
 
     it('shows browser validation for empty password', async () => {
@@ -89,6 +90,7 @@ describe('LoginForm', () => {
       fireEvent.click(submitBtn)
       const passwordInput = screen.getByLabelText('Contraseña')
       expect(passwordInput).toBeRequired()
+      expect(mockLogin).not.toHaveBeenCalled()
     })
   })
 
