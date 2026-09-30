@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import '@/styles/components/Tabs.css'
 
 interface TabItem {
@@ -39,6 +39,7 @@ export default function Tabs({
   const isControlled = controlledActiveTab !== undefined
   const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState(defaultActiveTab || tabs[0]?.id || '')
   const activeTab = isControlled ? controlledActiveTab : uncontrolledActiveTab
+  const tabRefs = useRef(new Map<string, HTMLButtonElement>())
 
   const handleTabClick = (tabId: string) => {
     const tab = tabs.find(t => t.id === tabId)
@@ -47,11 +48,30 @@ export default function Tabs({
     onChange?.(tabId)
   }
 
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    const enabledTabs = tabs.map((tab, index) => ({ tab, index })).filter(({ tab }) => !tab.disabled)
+    if (enabledTabs.length === 0) return
+
+    const currentEnabledIndex = enabledTabs.findIndex(({ index }) => index === currentIndex)
+    let targetIndex: number | undefined
+    if (event.key === 'ArrowRight') targetIndex = (currentEnabledIndex + 1) % enabledTabs.length
+    else if (event.key === 'ArrowLeft') targetIndex = (currentEnabledIndex - 1 + enabledTabs.length) % enabledTabs.length
+    else if (event.key === 'Home') targetIndex = 0
+    else if (event.key === 'End') targetIndex = enabledTabs.length - 1
+    else return
+
+    event.preventDefault()
+    const nextTab = enabledTabs[targetIndex].tab
+    tabRefs.current.get(nextTab.id)?.focus()
+    handleTabClick(nextTab.id)
+  }
+
   return (
     <div className={`tabs ${className}`} role="tablist" aria-label={ariaLabel}>
-      {tabs.map((tab) => (
+      {tabs.map((tab, index) => (
         <button
           key={tab.id}
+          ref={(node) => { if (node) tabRefs.current.set(tab.id, node); else tabRefs.current.delete(tab.id) }}
           role="tab"
           id={`tab-${tab.id}`}
           aria-selected={activeTab === tab.id}
@@ -60,6 +80,8 @@ export default function Tabs({
           className={`tab ${activeTab === tab.id ? 'tab-active' : ''} ${tab.disabled ? 'tab-disabled' : ''}`}
           onClick={() => handleTabClick(tab.id)}
           disabled={tab.disabled}
+          tabIndex={activeTab === tab.id ? 0 : -1}
+          onKeyDown={(event) => handleTabKeyDown(event, index)}
         >
           {tab.label}
           {tab.count !== undefined && (

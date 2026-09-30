@@ -43,6 +43,33 @@ describe('Tabs', () => {
     expect(handleChange).not.toHaveBeenCalled()
   })
 
+  it('supports arrow-key navigation and skips disabled tabs', () => {
+    render(<Tabs tabs={defaultTabs} ariaLabel="Test tabs" />)
+    const first = screen.getByRole('tab', { name: 'Tab 1' })
+    const second = screen.getByRole('tab', { name: 'Tab 2' })
+
+    first.focus()
+    fireEvent.keyDown(first, { key: 'ArrowRight' })
+    expect(second).toHaveFocus()
+    expect(second).toHaveAttribute('aria-selected', 'true')
+
+    fireEvent.keyDown(second, { key: 'ArrowRight' })
+    expect(first).toHaveFocus()
+    expect(first).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('supports Home and End navigation', () => {
+    render(<Tabs tabs={defaultTabs} ariaLabel="Test tabs" />)
+    const first = screen.getByRole('tab', { name: 'Tab 1' })
+    const second = screen.getByRole('tab', { name: 'Tab 2' })
+
+    first.focus()
+    fireEvent.keyDown(first, { key: 'End' })
+    expect(second).toHaveFocus()
+    fireEvent.keyDown(second, { key: 'Home' })
+    expect(first).toHaveFocus()
+  })
+
   it('works in uncontrolled mode', () => {
     render(<Tabs tabs={defaultTabs} defaultActiveTab="tab2" ariaLabel="Test" />)
     expect(screen.getByRole('tab', { name: 'Tab 2' })).toHaveAttribute('aria-selected', 'true')

@@ -1,33 +1,84 @@
-/* payments-page.css — Layout específico de página de pagos */
-
 .payments-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
+  min-width: 0;
 }
 
-/* Modal body padding para formularios internos */
-.modal-body {
-  padding: 24px;
+.payments-page .modal-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
+  padding: var(--space-6);
 }
 
-/* Grid de 2 columnas para formularios en modales */
-.form-grid-2 {
+.payment-form-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  color: var(--text-secondary);
+  background: var(--bg-elevated-1);
+  border-left: 3px solid var(--accent-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.payment-form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.payment-field-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.payment-query-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: 48rem;
+}
+
+.payment-optional-fields {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-default);
+}
+
+.payment-optional-fields summary {
+  width: fit-content;
+  padding: var(--space-2) 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.payment-optional-fields summary:hover,
+.payment-optional-fields summary:focus-visible {
+  color: var(--text-primary);
+}
+
+.payments-page :is(button, a, summary, select, input, textarea):focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
   .payments-page {
-    gap: 16px;
+    gap: var(--space-4);
   }
 
-  .form-grid-2 {
+  .payments-page .modal-body {
+    padding: var(--space-4);
+  }
+
+  .payment-form-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: var(--space-3);
   }
 }

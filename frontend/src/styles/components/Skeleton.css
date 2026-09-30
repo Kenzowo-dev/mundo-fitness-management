@@ -2,7 +2,7 @@
 
 .skeleton {
   background: var(--border-default);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   animation: pulse 1.5s ease-in-out infinite;
   pointer-events: none;
 }
@@ -16,5 +16,11 @@
   }
   100% {
     opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
   }
 }

@@ -162,7 +162,7 @@ describe('PaymentsPage - Integration Tests', () => {
 
   const openPaymentModal = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Registrar nuevo cobro' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar nuevo pago' }))
     })
     await waitFor(() => {
       expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
@@ -171,52 +171,66 @@ describe('PaymentsPage - Integration Tests', () => {
 
   const switchToInvoicesTab = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByRole('tab', { name: 'Facturas registradas' }))
+      fireEvent.click(screen.getByRole('tab', { name: 'Comprobantes' }))
     })
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Comprobantes' })).toBeInTheDocument()
     }, { timeout: 3000 })
   }
 
   describe('Render inicial / Listado', () => {
     it('renders page title', () => {
       renderPaymentsPage()
-      expect(screen.getByText('Pagos y comprobantes')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Pagos' })).toBeInTheDocument()
     })
 
     it('renders action button in header', () => {
       renderPaymentsPage()
-      expect(screen.getByRole('button', { name: 'Registrar nuevo cobro' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Registrar nuevo pago' })).toBeInTheDocument()
     })
 
     it('renders tabs for payments and invoices', () => {
       renderPaymentsPage()
-      expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Pagos' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Comprobantes' })).toBeInTheDocument()
     })
 
     it('shows payments tab with columns', () => {
       renderPaymentsPage()
-      expect(screen.getByText('Socio / Cliente')).toBeInTheDocument()
+      expect(screen.getByText('Socio')).toBeInTheDocument()
       expect(screen.getByText('Monto')).toBeInTheDocument()
-      expect(screen.getByText('Método')).toBeInTheDocument()
+      expect(screen.getByText('Medio de pago')).toBeInTheDocument()
       expect(screen.getByText('Estado')).toBeInTheDocument()
       expect(screen.getByText('Fecha')).toBeInTheDocument()
-      expect(screen.getByText('Transacción / Recibo')).toBeInTheDocument()
+      expect(screen.getByText('Recibo')).toBeInTheDocument()
     })
 
     it('shows invoices tab when switched', async () => {
       renderPaymentsPage()
       await switchToInvoicesTab()
-      expect(screen.getByText('Número de Factura')).toBeInTheDocument()
+      expect(screen.getByText('Comprobante')).toBeInTheDocument()
       expect(screen.getByText('Socio')).toBeInTheDocument()
-      expect(screen.getByText('Monto Total')).toBeInTheDocument()
-      expect(screen.getByText('Vencimiento')).toBeInTheDocument()
+      expect(screen.getByText('Monto')).toBeInTheDocument()
+      expect(screen.getByText('Fecha')).toBeInTheDocument()
       expect(screen.getByText('Estado')).toBeInTheDocument()
     })
   })
 
   describe('Loading State', () => {
+    it('shows a skeleton while socios load in the payment form', async () => {
+      renderPaymentsPage({ clients: createMockQuery() })
+      await openPaymentModal()
+      expect(screen.getByLabelText('Cargando socios')).toBeInTheDocument()
+    })
+
+    it('shows a skeleton while the selected socio memberships load', async () => {
+      vi.spyOn(api, 'getClientMemberships').mockReturnValue(new Promise(() => {}))
+      renderPaymentsPage()
+      await openPaymentModal()
+      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      expect(await screen.findByLabelText('Cargando membresías del socio')).toBeInTheDocument()
+    })
+
     it('shows the empty payments state after a successful empty response', () => {
       renderPaymentsPage({
         payments: createMockQuery({
@@ -229,7 +243,7 @@ describe('PaymentsPage - Integration Tests', () => {
       })
 
       expect(screen.queryByLabelText('Cargando fila')).not.toBeInTheDocument()
-      expect(screen.getByText('No hay pagos registrados aún en el sistema.')).toBeInTheDocument()
+      expect(screen.getByText('Todavía no hay pagos registrados')).toBeInTheDocument()
     })
 
     it('shows the empty invoices state after a successful empty response', async () => {
@@ -245,7 +259,7 @@ describe('PaymentsPage - Integration Tests', () => {
       await switchToInvoicesTab()
 
       expect(screen.queryByLabelText('Cargando fila')).not.toBeInTheDocument()
-      expect(screen.getByText('No hay facturas emitidas en el periodo seleccionado.')).toBeInTheDocument()
+      expect(screen.getByText('Todavía no hay comprobantes')).toBeInTheDocument()
     })
 
     it('shows loading state for payments tab', () => {
@@ -278,7 +292,7 @@ describe('PaymentsPage - Integration Tests', () => {
         }),
       })
 
-      expect(screen.getByRole('status', { name: 'No hay pagos registrados aún en el sistema.' })).toBeInTheDocument()
+      expect(screen.getByRole('status', { name: 'Todavía no hay pagos registrados' })).toBeInTheDocument()
     })
   })
 
@@ -288,27 +302,31 @@ describe('PaymentsPage - Integration Tests', () => {
         payments: createMockErrorQuery('Failed to fetch payments'),
       })
       expect(screen.getByRole('alert')).toBeInTheDocument()
-      expect(screen.getByText('Error')).toBeInTheDocument()
+      expect(screen.getByText('No se pudo cargar el historial')).toBeInTheDocument()
       expect(screen.getByText('Failed to fetch payments')).toBeInTheDocument()
     })
 
     it('shows error alert when invoices query fails', () => {
+      const invoicesQuery = createMockErrorQuery('Failed to fetch invoices')
       renderPaymentsPage({
-        invoices: createMockErrorQuery('Failed to fetch invoices'),
+        invoices: invoicesQuery,
       })
+      fireEvent.click(screen.getByRole('tab', { name: 'Comprobantes' }))
       expect(screen.getByRole('alert')).toBeInTheDocument()
-      expect(screen.getByText('Error')).toBeInTheDocument()
+      expect(screen.getByText('No se pudieron cargar los comprobantes')).toBeInTheDocument()
       expect(screen.getByText('Failed to fetch invoices')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(invoicesQuery.refetch).toHaveBeenCalledTimes(1)
     })
 
     it('page does not crash on error', () => {
       renderPaymentsPage({
         payments: createMockErrorQuery('Network error'),
       })
-      expect(screen.getByText('Pagos y comprobantes')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Registrar nuevo cobro' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Pagos' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Registrar nuevo pago' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Pagos' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Comprobantes' })).toBeInTheDocument()
     })
   })
 
@@ -316,20 +334,21 @@ describe('PaymentsPage - Integration Tests', () => {
     it('opens payment modal', async () => {
       renderPaymentsPage()
       await openPaymentModal()
-      expect(screen.getByText('Registrar Pago / Cobro')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Registrar pago' })).toBeInTheDocument()
     })
 
     it('renders payment form with required fields', async () => {
       renderPaymentsPage()
       await openPaymentModal()
 
-      expect(screen.getByLabelText(/Socio \/ Cliente/)).toBeInTheDocument()
+      expect(screen.getByLabelText(/^Socio/)).toBeInTheDocument()
       expect(screen.getByLabelText(/Monto/)).toBeInTheDocument()
       expect(screen.getByLabelText(/Método de Pago/)).toBeInTheDocument()
-      expect(screen.getByText(/Esta acción no realiza cargos electrónicos/)).toBeInTheDocument()
-      expect(screen.getByLabelText(/Descripción/)).toBeInTheDocument()
+      expect(screen.getByText(/no realiza cobros electrónicos/)).toBeInTheDocument()
+      fireEvent.click(screen.getByText('Agregar descripción (opcional)'))
+      expect(screen.getByLabelText(/Descripción del pago/)).toBeInTheDocument()
       // Verify select has options
-      const clientSelect = screen.getByLabelText(/Socio \/ Cliente/)
+      const clientSelect = screen.getByLabelText(/^Socio/)
       expect(clientSelect.querySelectorAll('option').length).toBeGreaterThan(0)
     })
 
@@ -338,13 +357,14 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
       await waitFor(() => expect(api.getClientMemberships).toHaveBeenCalledWith(1))
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
       fireEvent.change(screen.getByLabelText(/Método de Pago/), { target: { value: 'credit_card' } })
-      fireEvent.change(screen.getByLabelText(/Descripción/), { target: { value: 'Pago mensualidad' } })
+      fireEvent.click(screen.getByText('Agregar descripción (opcional)'))
+      fireEvent.change(screen.getByLabelText(/Descripción del pago/), { target: { value: 'Pago mensualidad' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Confirmar Cobro', hidden: true }))
@@ -366,7 +386,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
@@ -386,7 +406,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
@@ -405,7 +425,7 @@ describe('PaymentsPage - Integration Tests', () => {
       const mockCreate = createMockMutation()
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
-      fireEvent.change(screen.getByLabelText(/Socio \/ Cliente/), { target: { value: '1' } })
+      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '1.005' } })
@@ -435,16 +455,16 @@ describe('PaymentsPage - Integration Tests', () => {
   describe('Tab Navigation', () => {
     it('switches between payments and invoices tabs', async () => {
       renderPaymentsPage()
-      expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Pagos' })).toBeInTheDocument()
 
       await switchToInvoicesTab()
-      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Comprobantes' })).toBeInTheDocument()
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('tab', { name: 'Historial de Pagos' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Pagos' }))
       })
       await waitFor(() => {
-        expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Pagos' })).toBeInTheDocument()
       })
     })
 
@@ -452,17 +472,17 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({
         payments: createMockQuery({ data: { data: mockPayments, pagination: { page: 2, limit: 20, total: 50, totalPages: 3 } } }),
       })
-      expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Pagos' })).toBeInTheDocument()
 
       await switchToInvoicesTab()
-      expect(screen.getByRole('tab', { name: 'Facturas registradas' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Comprobantes' })).toBeInTheDocument()
 
       // Switching back should reset to page 1
       await act(async () => {
-        fireEvent.click(screen.getByRole('tab', { name: 'Historial de Pagos' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Pagos' }))
       })
       await waitFor(() => {
-        expect(screen.getByRole('tab', { name: 'Historial de Pagos' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Pagos' })).toBeInTheDocument()
       })
     })
   })
