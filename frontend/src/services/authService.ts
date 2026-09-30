@@ -1,6 +1,7 @@
-import usuariosIniciales from '../data/usuarios.json'
+﻿import usersInitialData from '../data/usuarios.json'
+import { STRINGS } from '../constants/strings'
 
-export interface Usuario {
+export interface User {
   id: number
   fullName: string
   email: string
@@ -11,7 +12,7 @@ export interface Usuario {
   gender: string
 }
 
-export interface RegistroUsuario {
+export interface UserRegistration {
   firstName: string
   lastName: string
   email: string
@@ -24,51 +25,63 @@ export interface RegistroUsuario {
 const STORAGE_KEY = 'usuarios'
 const CURRENT_USER_KEY = 'usuarioActual'
 
-function obtenerUsuarios(): Usuario[] {
-  const guardados = localStorage.getItem(STORAGE_KEY)
+// Obtiene los usuarios almacenados o carga los datos iniciales.
+function getUsers(): User[] {
+  const storedUsers =
+    localStorage.getItem(STORAGE_KEY)
 
-  if (guardados) {
-    return JSON.parse(guardados) as Usuario[]
+  if (storedUsers) {
+    return JSON.parse(storedUsers) as User[]
   }
 
-  const iniciales = usuariosIniciales as Usuario[]
+  const initialUsers =
+    usersInitialData as User[]
 
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify(iniciales),
+    JSON.stringify(initialUsers),
   )
 
-  return iniciales
+  return initialUsers
 }
 
-function guardarUsuarios(usuarios: Usuario[]) {
+// Guarda los usuarios en el almacenamiento local.
+function saveUsers(users: User[]): void {
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify(usuarios),
+    JSON.stringify(users),
   )
 }
 
-export function registrarUsuario(
-  data: RegistroUsuario,
-): Usuario {
-  const usuarios = obtenerUsuarios()
+// Registra un nuevo usuario.
+export function registerUser(
+  data: UserRegistration,
+): User {
+  const users = getUsers()
 
-  const existe = usuarios.some(
-    (usuario) =>
-      usuario.email.toLowerCase() === data.email.toLowerCase(),
+  const exists = users.some(
+    (user) =>
+      user.email.toLowerCase() ===
+      data.email.toLowerCase(),
   )
 
-  if (existe) {
-    throw new Error('Ya existe un usuario con ese correo')
+  if (exists) {
+    throw new Error(
+      STRINGS.user.duplicateEmail,
+    )
   }
 
-  const nuevoId =
-    usuarios.length > 0
-      ? Math.max(...usuarios.map((usuario) => usuario.id)) + 1
+  const newId =
+    users.length > 0
+      ? Math.max(
+          ...users.map(
+            (user) => user.id,
+          ),
+        ) + 1
       : 1
 
-  const nuevoUsuario: Usuario = {
-    id: nuevoId,
+  const newUser: User = {
+    id: newId,
     fullName: `${data.firstName} ${data.lastName}`,
     email: data.email,
     password: data.password,
@@ -78,77 +91,98 @@ export function registrarUsuario(
     gender: data.gender,
   }
 
-  guardarUsuarios([...usuarios, nuevoUsuario])
+  saveUsers([
+    ...users,
+    newUser,
+  ])
 
-  return nuevoUsuario
+  return newUser
 }
 
-export function iniciarSesion(
+// Inicia sesión con las credenciales proporcionadas.
+export function login(
   email: string,
   password: string,
-): Usuario {
-  const usuarios = obtenerUsuarios()
+): User {
+  const users = getUsers()
 
-  const usuario = usuarios.find(
+  const user = users.find(
     (item) =>
-      item.email.toLowerCase() === email.toLowerCase() &&
+      item.email.toLowerCase() ===
+        email.toLowerCase() &&
       item.password === password,
   )
 
-  if (!usuario) {
-    throw new Error('Correo o contraseña incorrectos')
+  if (!user) {
+    throw new Error(
+      STRINGS.user.invalidCredentials,
+    )
   }
 
-  const usuarioSesion: Usuario = {
-    id: usuario.id,
-    fullName: usuario.fullName,
-    email: usuario.email,
-    role: usuario.role,
-    phone: usuario.phone,
-    birthDate: usuario.birthDate,
-    gender: usuario.gender,
+  const sessionUser: User = {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    role: user.role,
+    phone: user.phone,
+    birthDate: user.birthDate,
+    gender: user.gender,
   }
 
   localStorage.setItem(
     CURRENT_USER_KEY,
-    JSON.stringify(usuarioSesion),
+    JSON.stringify(sessionUser),
   )
 
-  return usuarioSesion
+  return sessionUser
 }
 
-export function obtenerUsuarioActual(): Usuario | null {
-  const usuario = localStorage.getItem(CURRENT_USER_KEY)
+// Obtiene el usuario que tiene la sesión activa.
+export function getCurrentUser(): User | null {
+  const storedUser =
+    localStorage.getItem(
+      CURRENT_USER_KEY,
+    )
 
-  if (!usuario) {
+  if (!storedUser) {
     return null
   }
 
-  return JSON.parse(usuario) as Usuario
+  return JSON.parse(storedUser) as User
 }
 
-export function cerrarSesion() {
-  localStorage.removeItem(CURRENT_USER_KEY)
+// Cierra la sesión del usuario actual.
+export function logout(): void {
+  localStorage.removeItem(
+    CURRENT_USER_KEY,
+  )
 }
 
-export function obtenerUsuariosAdmin(): Usuario[] {
-  return obtenerUsuarios()
+// Obtiene todos los usuarios registrados.
+export function getUsersForAdmin(): User[] {
+  return getUsers()
 }
 
-export function eliminarUsuario(id: number): void {
-  const usuarios = obtenerUsuarios()
+// Elimina temporalmente un usuario del almacenamiento local.
+export function removeUser(
+  id: number,
+): void {
+  const users = getUsers()
 
-  const existe = usuarios.some(
-    (usuario) => usuario.id === id,
+  const exists = users.some(
+    (user) => user.id === id,
   )
 
-  if (!existe) {
-    throw new Error('Usuario no encontrado')
+  if (!exists) {
+    throw new Error(
+      STRINGS.user.notFound,
+    )
   }
 
-  const nuevosUsuarios = usuarios.filter(
-    (usuario) => usuario.id !== id,
-  )
+  const remainingUsers =
+    users.filter(
+      (user) => user.id !== id,
+    )
 
-  guardarUsuarios(nuevosUsuarios)
+  saveUsers(remainingUsers)
 }

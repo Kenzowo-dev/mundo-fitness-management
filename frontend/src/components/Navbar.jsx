@@ -1,12 +1,13 @@
-import { useNavigate } from 'react-router-dom'
-import { cerrarSesion } from '../services/authService'
+﻿import { useNavigate } from 'react-router-dom'
+import { logout } from '../services/authService'
 import './Navbar.css'
 
 function Navbar() {
   const navigate = useNavigate()
 
+  // Cierra la sesión y redirige al inicio de sesión.
   const handleLogout = () => {
-    cerrarSesion()
+    logout()
     navigate('/login')
   }
 

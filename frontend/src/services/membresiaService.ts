@@ -1,6 +1,7 @@
-import membresiasIniciales from '../data/membresias.json'
+import membershipsInitialData from '../data/membresias.json'
+import { STRINGS } from '../constants/strings'
 
-export interface Membresia {
+export interface Membership {
   id: number
   user_id?: number
   client_id: number
@@ -11,7 +12,7 @@ export interface Membresia {
   status: string
 }
 
-export interface MembresiaData {
+export interface MembershipData {
   userId?: number
   clientId: number
   plan: string
@@ -23,84 +24,93 @@ export interface MembresiaData {
 
 const STORAGE_KEY = 'membresias'
 
-function obtenerMembresias(): Membresia[] {
-  const guardadas = localStorage.getItem(STORAGE_KEY)
+// Obtiene las membresías almacenadas localmente o carga los datos iniciales.
+const getStoredMemberships = (): Membership[] => {
+  const storedMemberships = localStorage.getItem(STORAGE_KEY)
 
-  if (guardadas) {
-    return JSON.parse(guardadas) as Membresia[]
+  if (storedMemberships) {
+    return JSON.parse(storedMemberships) as Membership[]
   }
 
-  const iniciales = membresiasIniciales as Membresia[]
+  const initialMemberships =
+    membershipsInitialData as Membership[]
 
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify(iniciales),
+    JSON.stringify(initialMemberships),
   )
 
-  return iniciales
+  return initialMemberships
 }
 
-function guardarMembresias(
-  membresias: Membresia[],
-) {
+// Guarda las membresías en el almacenamiento local.
+const saveMemberships = (
+  memberships: Membership[],
+): void => {
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify(membresias),
+    JSON.stringify(memberships),
   )
 }
 
-export async function getMembresias(): Promise<Membresia[]> {
-  return obtenerMembresias()
+// Obtiene todas las membresías.
+export const getMemberships = async (): Promise<
+  Membership[]
+> => {
+  return getStoredMemberships()
 }
 
-export async function getMembresiaById(
+// Obtiene una membresía mediante su identificador.
+export const getMembershipById = async (
   id: number,
-): Promise<Membresia> {
-  const membresias = obtenerMembresias()
+): Promise<Membership> => {
+  const memberships = getStoredMemberships()
 
-  const membresia = membresias.find(
-    (m) => m.id === id,
+  const membership = memberships.find(
+    (item) => item.id === id,
   )
 
-  if (!membresia) {
+  if (!membership) {
     throw new Error(
       'Membresía no encontrada',
     )
   }
 
-  return membresia
+  return membership
 }
 
-export async function createMembresia(
-  data: MembresiaData,
-): Promise<Membresia> {
-  const membresias = obtenerMembresias()
+// Crea una nueva membresía y evita duplicar membresías activas.
+export const createMembership = async (
+  data: MembershipData,
+): Promise<Membership> => {
+  const memberships = getStoredMemberships()
 
   if (data.userId !== undefined) {
-    const yaTieneMembresia = membresias.some(
-      (membresia) =>
-        membresia.user_id === data.userId &&
-        membresia.status === 'activa',
-    )
+    const hasActiveMembership =
+      memberships.some(
+        (membership) =>
+          membership.user_id === data.userId &&
+          membership.status === 'activa',
+      )
 
-    if (yaTieneMembresia) {
+    if (hasActiveMembership) {
       throw new Error(
-        'El usuario ya tiene una membresía activa',
+        STRINGS.membership.notFound,
       )
     }
   }
 
-  const nuevoId =
-    membresias.length > 0
+  const newId =
+    memberships.length > 0
       ? Math.max(
-          ...membresias.map(
-            (m) => m.id,
+          ...memberships.map(
+            (membership) => membership.id,
           ),
         ) + 1
       : 1
 
-  const nueva: Membresia = {
-    id: nuevoId,
+  const newMembership: Membership = {
+    id: newId,
     user_id: data.userId,
     client_id: data.clientId,
     plan: data.plan,
@@ -110,47 +120,48 @@ export async function createMembresia(
     status: data.status,
   }
 
-  guardarMembresias([
-    ...membresias,
-    nueva,
+  saveMemberships([
+    ...memberships,
+    newMembership,
   ])
 
-  return nueva
+  return newMembership
 }
 
-export async function updateMembresia(
+// Actualiza una membresía existente sin permitir duplicar membresías activas.
+export const updateMembership = async (
   id: number,
-  data: MembresiaData,
-): Promise<Membresia> {
-  const membresias = obtenerMembresias()
+  data: MembershipData,
+): Promise<Membership> => {
+  const memberships = getStoredMemberships()
 
-  const index = membresias.findIndex(
-    (m) => m.id === id,
+  const index = memberships.findIndex(
+    (membership) => membership.id === id,
   )
 
   if (index === -1) {
     throw new Error(
-      'Membresía no encontrada',
+      STRINGS.membership.notFound,
     )
   }
 
   if (data.userId !== undefined) {
-    const otraMembresiaActiva =
-      membresias.some(
-        (membresia) =>
-          membresia.id !== id &&
-          membresia.user_id === data.userId &&
-          membresia.status === 'activa',
+    const hasAnotherActiveMembership =
+      memberships.some(
+        (membership) =>
+          membership.id !== id &&
+          membership.user_id === data.userId &&
+          membership.status === 'activa',
       )
 
-    if (otraMembresiaActiva) {
+    if (hasAnotherActiveMembership) {
       throw new Error(
-        'El usuario ya tiene otra membresía activa',
+        STRINGS.membership.anotherActiveMembershipExists,
       )
     }
   }
 
-  const actualizada: Membresia = {
+  const updatedMembership: Membership = {
     id,
     user_id: data.userId,
     client_id: data.clientId,
@@ -161,42 +172,42 @@ export async function updateMembresia(
     status: data.status,
   }
 
-  const nuevasMembresias = [
-    ...membresias,
+  const updatedMemberships = [
+    ...memberships,
   ]
 
-  nuevasMembresias[index] =
-    actualizada
+  updatedMemberships[index] =
+    updatedMembership
 
-  guardarMembresias(
-    nuevasMembresias,
+  saveMemberships(
+    updatedMemberships,
   )
 
-  return actualizada
+  return updatedMembership
 }
 
-export async function deleteMembresia(
+// Elimina una membresía del almacenamiento local.
+export const deleteMembership = async (
   id: number,
-): Promise<void> {
-  const membresias = obtenerMembresias()
+): Promise<void> => {
+  const memberships = getStoredMemberships()
 
-  const existe = membresias.some(
-    (m) => m.id === id,
+  const membershipExists = memberships.some(
+    (membership) => membership.id === id,
   )
 
-  if (!existe) {
+  if (!membershipExists) {
     throw new Error(
-      'Membresía no encontrada',
+      STRINGS.membership.notFound,
     )
   }
 
-  const nuevasMembresias =
-    membresias.filter(
-      (m) => m.id !== id,
+  const remainingMemberships =
+    memberships.filter(
+      (membership) => membership.id !== id,
     )
 
-  guardarMembresias(
-    nuevasMembresias,
+  saveMemberships(
+    remainingMemberships,
   )
 }
-

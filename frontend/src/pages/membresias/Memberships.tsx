@@ -1,20 +1,24 @@
 import { Link } from 'react-router-dom'
-import ListaMembresias from '../../componentes/membresias/ListaMembresias'
+import VMembershipList from '../../componentes/membresias/VMembershipList'
 import '../../styles/membresias/Membresias.css'
 
-function Membresias() {
+function Memberships() {
   return (
     <div className="pagina-membresias">
       <div className="pagina-header">
         <h1>Membresías</h1>
-        <Link to="/membresias/nueva" className="btn-nueva-membresia">
+
+        <Link
+          to="/membresias/nueva"
+          className="btn-nueva-membresia"
+        >
           + Nueva membresía
         </Link>
       </div>
 
-      <ListaMembresias />
+      <VMembershipList />
     </div>
   )
 }
 
-export default Membresias
+export default Memberships
