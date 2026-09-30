@@ -116,7 +116,7 @@ describe('MembershipsPage - Integration Tests', () => {
   const renderMembershipsPage = (overrides?: {
     clients?: ReturnType<typeof createMockQuery>
     plans?: ReturnType<typeof createMockQuery>
-    memberships?: ReturnType<typeof createMockQuery>[]
+    memberships?: ReturnType<typeof createMockQuery>
     createMutation?: ReturnType<typeof createMockMutation>
     checkInMutation?: ReturnType<typeof createMockMutation>
     renewalRequests?: ReturnType<typeof createMockQuery>
@@ -138,17 +138,20 @@ describe('MembershipsPage - Integration Tests', () => {
       status: 'success',
     })
 
-    const membershipsMock = overrides?.memberships ?? [
-      createMockQuery({ data: [mockMemberships[0]], isLoading: false, isFetching: false, isSuccess: true, status: 'success' }),
-      createMockQuery({ data: [mockMemberships[1]], isLoading: false, isFetching: false, isSuccess: true, status: 'success' }),
-    ]
+    const membershipsMock = overrides?.memberships ?? createMockQuery({
+      data: mockMemberships,
+      isLoading: false,
+      isFetching: false,
+      isSuccess: true,
+      status: 'success',
+    })
 
     const createMock = overrides?.createMutation ?? createMockMutation()
     const checkInMock = overrides?.checkInMutation ?? createMockMutation()
 
     vi.spyOn(useApiModule, 'useClients').mockReturnValue(clientsMock as ReturnType<typeof useApiModule.useClients>)
     vi.spyOn(useApiModule, 'useMembershipPlans').mockReturnValue(plansMock as ReturnType<typeof useApiModule.useMembershipPlans>)
-    vi.spyOn(useApiModule, 'useAllClientMemberships').mockReturnValue(membershipsMock as ReturnType<typeof useApiModule.useAllClientMemberships>)
+    vi.spyOn(useApiModule, 'useAllMemberships').mockReturnValue(membershipsMock as ReturnType<typeof useApiModule.useAllMemberships>)
     vi.spyOn(useApiModule, 'useCreateMembership').mockReturnValue(createMock as ReturnType<typeof useApiModule.useCreateMembership>)
     vi.spyOn(useApiModule, 'useCheckIn').mockReturnValue(checkInMock as ReturnType<typeof useApiModule.useCheckIn>)
     vi.spyOn(useApiModule, 'useMembershipRenewalRequests').mockReturnValue((overrides?.renewalRequests ?? createMockQuery({ data: [], isLoading: false, isFetching: false, isSuccess: true, status: 'success' })) as ReturnType<typeof useApiModule.useMembershipRenewalRequests>)
@@ -255,10 +258,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({
         clients: createMockQuery({ data: { data: mockClients, pagination: { page: 1, limit: 100, total: 2, totalPages: 1 } } }),
         plans: createMockQuery(),
-        memberships: [
-          createMockQuery({ data: [mockMemberships[0]] }),
-          createMockQuery({ data: [mockMemberships[1]] }),
-        ],
+        memberships: createMockQuery(),
       })
       const loadingRows = screen.getAllByLabelText('Cargando fila')
       expect(loadingRows.length).toBeGreaterThan(0)
@@ -274,7 +274,7 @@ describe('MembershipsPage - Integration Tests', () => {
           isSuccess: true,
           status: 'success',
         }),
-        memberships: [],
+        memberships: createMockQuery({ data: [], isLoading: false, isFetching: false, isSuccess: true, status: 'success' }),
       })
 
       expect(screen.getByText(mockPlans[0].name)).toBeInTheDocument()
@@ -285,10 +285,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({
         clients: createMockQuery({ data: { data: mockClients, pagination: { page: 1, limit: 100, total: 2, totalPages: 1 } } }),
         plans: createMockQuery({ data: mockPlans }),
-        memberships: [
-          createMockQuery({ data: [mockMemberships[0]] }),
-          createMockQuery({ data: [mockMemberships[1]] }),
-        ],
+        memberships: createMockQuery(),
       })
       await switchToMembershipsTab()
       const loadingRows = screen.getAllByLabelText('Cargando fila')
@@ -315,10 +312,7 @@ describe('MembershipsPage - Integration Tests', () => {
 
     it('shows error alert when memberships query fails', () => {
       renderMembershipsPage({
-        memberships: [
-          createMockErrorQuery('Failed to fetch memberships'),
-          createMockQuery({ data: [mockMemberships[1]], isLoading: false, isFetching: false, isSuccess: true, status: 'success' }),
-        ],
+        memberships: createMockErrorQuery('Failed to fetch memberships'),
       })
       expect(screen.getByRole('alert')).toBeInTheDocument()
       expect(screen.getByText('Error cargando datos')).toBeInTheDocument()

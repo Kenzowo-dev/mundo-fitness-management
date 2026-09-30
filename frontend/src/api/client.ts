@@ -473,6 +473,10 @@ class ApiClient {
     return this.request(`/api/memberships/${id}`);
   }
 
+  async getAllMemberships() {
+    return this.request('/api/memberships');
+  }
+
   /**
    * Obtiene todas las membresías asociadas a un cliente.
    * @param clientId - ID del cliente

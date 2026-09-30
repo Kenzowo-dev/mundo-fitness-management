@@ -1,7 +1,6 @@
-import { useState, useCallback, useMemo } from 'react'
-import { useClients, useMembershipPlans, useAllClientMemberships, useCreateMembership, useCheckIn, useMembershipRenewalRequests, useUpdateMembershipRenewalRequest, useCreateMembershipPlan, useUpdateMembershipPlan } from '../../hooks/useApi'
+import { useState, useMemo } from 'react'
+import { useClients, useMembershipPlans, useAllMemberships, useCreateMembership, useCheckIn, useMembershipRenewalRequests, useUpdateMembershipRenewalRequest, useCreateMembershipPlan, useUpdateMembershipPlan } from '../../hooks/useApi'
 import type { Client, ClientMembership, CreateMembershipPlanInput, MembershipPlan, MembershipRenewalRequest } from '../../types/api'
-import type { UseQueryResult } from '@tanstack/react-query'
 import StatusBadge from '../../components/StatusBadge'
 import Button from '../../components/Button'
 import FormField from '../../components/FormField'
@@ -25,29 +24,24 @@ export default function MembershipsPage() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const { data: clientsData, isLoading: clientsLoading, error: clientsError, refetch: refetchClients } = useClients(1, 100)
+  const { data: clientsData, error: clientsError } = useClients(1, 100)
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
   const { data: plansData, isLoading: plansLoading, error: plansError } = useMembershipPlans(!isAdmin)
 
   const allClients: Client[] = useMemo(() => clientsData?.data ?? [], [clientsData?.data])
-  const clientIds = useMemo(() => allClients.map(c => c.id), [allClients])
   const clientNames = useMemo(() => {
     const map: Record<number, string> = {}
     allClients.forEach((c) => { map[c.id] = `${c.firstName} ${c.lastName} (${c.dni})` })
     return map
   }, [allClients])
 
-  const membershipsQueries: UseQueryResult<ClientMembership[], Error>[] = useAllClientMemberships(clientIds, !clientsLoading)
-
-  const allMemberships: ClientMembership[] = useMemo(() =>
-    membershipsQueries.flatMap((q) => q.data ?? []),
-    [membershipsQueries]
-  )
+  const membershipsQuery = useAllMemberships()
+  const allMemberships: ClientMembership[] = useMemo(() => membershipsQuery.data ?? [], [membershipsQuery.data])
 
   const plans: MembershipPlan[] = useMemo(() => plansData ?? [], [plansData])
 
-  const error = clientsError || plansError || membershipsQueries.find((q) => q.error)?.error
+  const error = clientsError || plansError || membershipsQuery.error
 
   const createMembershipMutation = useCreateMembership()
   const checkInMutation = useCheckIn()
@@ -55,11 +49,6 @@ export default function MembershipsPage() {
   const updateRenewalRequest = useUpdateMembershipRenewalRequest()
   const createPlanMutation = useCreateMembershipPlan()
   const updatePlanMutation = useUpdateMembershipPlan()
-
-  const fetchData = useCallback(() => {
-    refetchClients()
-    membershipsQueries.forEach((q) => q.refetch())
-  }, [refetchClients, membershipsQueries])
 
   const handleCheckInSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -122,7 +111,6 @@ export default function MembershipsPage() {
       setSelectedClientId('')
       setSelectedPlanId('')
       setTimeout(() => setActionSuccess(null), 4000)
-      fetchData()
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Error al asignar la membresía')
     }
@@ -241,7 +229,7 @@ export default function MembershipsPage() {
       <TabPanel id="memberships" activeTab={activeTab}>
         <TableContainer
           data={allMemberships}
-          loading={clientsLoading || membershipsQueries.some(q => q.isLoading)}
+          loading={membershipsQuery.isLoading}
           columns={membershipColumns}
           rowKey="id"
           emptyState={{

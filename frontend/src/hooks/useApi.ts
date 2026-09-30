@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import type {
   User,
@@ -31,6 +31,7 @@ const QUERY_KEYS = {
   renewalRequests: ['membershipRenewalRequests'] as const,
   myRenewalRequests: ['myMembershipRenewalRequests'] as const,
   clientMemberships: (clientId: number) => ['clientMemberships', clientId] as const,
+  allMemberships: ['memberships', 'all'] as const,
   payments: (page: number, limit: number, filters?: { clientId?: number; status?: string }) =>
     ['payments', page, limit, filters] as const,
   payment: (id: number) => ['payment', id] as const,
@@ -272,6 +273,7 @@ export function useCreateMembership() {
       api.createMembership(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.clientMemberships(variables.clientId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.allMemberships });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'memberships'] });
     },
   });
@@ -319,6 +321,7 @@ export function useUpdateMembership() {
     mutationFn: ({ id, data }: { id: number; data: Partial<ClientMembership> }) => api.updateMembership(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.membership(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.allMemberships });
     },
   });
 }
@@ -329,6 +332,7 @@ export function useCancelMembership() {
     mutationFn: ({ id, reason }: { id: number; reason?: string }) => api.cancelMembership(id, reason),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.membership(id) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.allMemberships });
     },
   });
 }
@@ -416,12 +420,10 @@ export function usePaymentsSummary(clientId: number, enabled = true) {
   });
 }
 
-export function useAllClientMemberships(clientIds: number[], enabled = true) {
-  return useQueries({
-    queries: clientIds.map((clientId) => ({
-      queryKey: QUERY_KEYS.clientMemberships(clientId),
-      queryFn: () => api.getClientMemberships(clientId) as Promise<ClientMembership[]>,
-      enabled: enabled && clientId > 0,
-    })),
+export function useAllMemberships(enabled = true) {
+  return useQuery<ClientMembership[], Error>({
+    queryKey: QUERY_KEYS.allMemberships,
+    queryFn: () => api.getAllMemberships() as Promise<ClientMembership[]>,
+    enabled,
   });
 }

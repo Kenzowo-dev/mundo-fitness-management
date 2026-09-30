@@ -1,6 +1,22 @@
 import { expect, test } from '@playwright/test';
 import { createClient, createPlan, loginAsReception } from './helpers';
 
+test('membership page fetches subscriptions with one batched request', async ({ page }) => {
+  await loginAsReception(page);
+  const membershipApiCalls: string[] = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (url.origin === 'http://localhost:3000' && url.pathname.startsWith('/api/memberships')) {
+      membershipApiCalls.push(url.pathname);
+    }
+  });
+
+  await page.goto('/membresias');
+  await expect(page.getByRole('heading', { name: /Gestión de Membresías/ })).toBeVisible();
+  await expect.poll(() => membershipApiCalls.filter((path) => path === '/api/memberships').length).toBe(1);
+  expect(membershipApiCalls.filter((path) => /^\/api\/memberships\/client\/\d+$/.test(path))).toEqual([]);
+});
+
 test('reception can create a plan, assign it, and check a member in', async ({ page }) => {
   await loginAsReception(page);
   const client = await createClient(page);

@@ -8,6 +8,7 @@ import {
   deletePlan,
   createMembership,
   getMembershipById,
+  listMemberships,
   getClientMemberships,
   updateMembership,
   cancelMembership,
@@ -180,6 +181,15 @@ export async function getMembershipController(req: Request, res: Response, next:
     const membership = await getMembershipById(id);
     if (!membership) throw new NotFoundError('ClientMembership', id);
     res.json(membership);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listMembershipsController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const memberships = await listMemberships();
+    res.json(memberships);
   } catch (error) {
     next(error);
   }

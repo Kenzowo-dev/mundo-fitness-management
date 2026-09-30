@@ -7,6 +7,7 @@ import {
   deletePlanController,
   createMembershipController,
   getMembershipController,
+  listMembershipsController,
   getClientMembershipsController,
   updateMembershipController,
   cancelMembershipController,
@@ -54,6 +55,7 @@ router.get('/expiring', authenticate, authorize('admin', 'receptionist'), getExp
 router.get('/stats', authenticate, authorize('admin', 'receptionist'), getMembershipDashboardStatsController);
 router.get('/reports', authenticate, authorize('admin', 'receptionist'), getMembershipReportsController);
 router.get('/client/:clientId', authenticate, requireClientAccess, getClientMembershipsController);
+router.get('/', authenticate, authorize('admin', 'receptionist'), listMembershipsController);
 router.post('/', authenticate, authorize('admin', 'receptionist'), createMembershipValidation, createMembershipController);
 router.get('/:id', authenticate, authorize('admin', 'receptionist'), requireMembershipAccess, getMembershipController);
 router.patch('/:id', authenticate, authorize('admin', 'receptionist'), requireMembershipAccess, updateMembershipValidation, updateMembershipController);

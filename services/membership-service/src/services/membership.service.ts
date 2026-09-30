@@ -428,7 +428,10 @@ export async function getMembershipById(id: number): Promise<ClientMembership | 
     [id]
   );
   if (result.rows.length === 0) return null;
-  const row = result.rows[0];
+  return mapRowToMembershipWithPlan(result.rows[0]);
+}
+
+function mapRowToMembershipWithPlan(row: MembershipWithPlanRow): ClientMembership {
   const membership = mapRowToMembership(row);
   membership.plan = {
     id: row.plan_id,
@@ -450,37 +453,26 @@ export async function getMembershipById(id: number): Promise<ClientMembership | 
   return membership;
 }
 
-export async function getClientMemberships(clientId: number): Promise<ClientMembership[]> {
-  const result = await query<MembershipWithPlanRow>(
-    `SELECT cm.*, mp.name, mp.description, mp.duration_days, mp.price, mp.currency, mp.features,
+const MEMBERSHIP_WITH_PLAN_SELECT = `SELECT cm.*, mp.name, mp.description, mp.duration_days, mp.price, mp.currency, mp.features,
             mp.max_visits_per_week, mp.includes_personal_trainer, mp.includes_classes, mp.includes_sauna
      FROM client_memberships cm
-     JOIN membership_plans mp ON cm.plan_id = mp.id
+     JOIN membership_plans mp ON cm.plan_id = mp.id`;
+
+export async function listMemberships(): Promise<ClientMembership[]> {
+  const result = await query<MembershipWithPlanRow>(
+    `${MEMBERSHIP_WITH_PLAN_SELECT} ORDER BY cm.created_at DESC, cm.id DESC`
+  );
+  return result.rows.map(mapRowToMembershipWithPlan);
+}
+
+export async function getClientMemberships(clientId: number): Promise<ClientMembership[]> {
+  const result = await query<MembershipWithPlanRow>(
+    `${MEMBERSHIP_WITH_PLAN_SELECT}
      WHERE cm.client_id = $1
      ORDER BY cm.created_at DESC`,
     [clientId]
   );
-  return result.rows.map((row) => {
-    const membership = mapRowToMembership(row);
-    membership.plan = {
-      id: row.plan_id,
-      name: row.name,
-      description: row.description ?? undefined,
-      durationDays: row.duration_days,
-      price: typeof row.price === 'number' ? row.price : parseFloat(row.price),
-      currency: row.currency,
-      features: parseFeatures(row.features),
-      maxVisitsPerWeek: row.max_visits_per_week ?? undefined,
-      includesPersonalTrainer: Boolean(row.includes_personal_trainer),
-      includesClasses: Boolean(row.includes_classes),
-      includesSauna: Boolean(row.includes_sauna),
-      isActive: true,
-      sortOrder: 0,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
-    };
-    return membership;
-  });
+  return result.rows.map(mapRowToMembershipWithPlan);
 }
 
 export async function updateMembership(id: number, data: UpdateMembershipData): Promise<ClientMembership> {
