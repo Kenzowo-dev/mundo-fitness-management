@@ -1,21 +1,138 @@
-/* memberships-page.css — Layout específico de página de membresías */
-
 .memberships-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
+  min-width: 0;
 }
 
-/* Modal body padding para formularios internos */
-.modal-body {
-  padding: 24px;
+.membership-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.membership-metric {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+.membership-metric-icon {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--accent-primary);
+  background: var(--bg-elevated-2);
+  border-radius: var(--radius-md);
+}
+
+.membership-metric p {
+  margin: 0 0 var(--space-1);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.membership-metric strong {
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.membership-metric-skeleton {
+  display: block;
+  width: 48px;
+  height: 24px;
+  background: linear-gradient(90deg, var(--bg-elevated-2) 20%, var(--bg-hover) 50%, var(--bg-elevated-2) 80%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: membership-skeleton 1.25s ease-in-out infinite;
+}
+
+.membership-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+}
+
+.membership-section-heading h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.membership-section-heading p,
+.membership-note {
+  margin: var(--space-1) 0 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.membership-note {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-elevated-1);
+  border-left: 3px solid var(--accent-secondary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.memberships-page .modal-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+
+.memberships-page .renewal-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.memberships-page :is(button, a, select, input, textarea):focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+@keyframes membership-skeleton {
+  to { background-position: -200% 0; }
 }
 
 @media (max-width: 768px) {
   .memberships-page {
-    gap: 16px;
+    gap: var(--space-4);
+  }
+
+  .membership-overview {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .membership-metric {
+    padding: var(--space-4);
+  }
+
+  .membership-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .membership-metric-skeleton {
+    animation: none;
+    background: var(--bg-hover);
   }
 }

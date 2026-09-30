@@ -164,7 +164,7 @@ describe('MembershipsPage - Integration Tests', () => {
 
   const openCheckInModal = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Registrar Check-In de socio' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso de socio' }))
     })
     await waitFor(() => {
       expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
@@ -173,7 +173,7 @@ describe('MembershipsPage - Integration Tests', () => {
 
   const openAssignModal = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Asignar Membresía a socio' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Asignar membresía a socio' }))
     })
     await waitFor(() => {
       expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
@@ -182,17 +182,17 @@ describe('MembershipsPage - Integration Tests', () => {
 
   const switchToMembershipsTab = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByRole('tab', { name: 'Suscripciones de clientes' }))
+      fireEvent.click(screen.getByRole('tab', { name: 'Membresías' }))
     })
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Suscripciones de clientes' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Membresías' })).toBeInTheDocument()
     }, { timeout: 3000 })
   }
 
   describe('Render inicial / Listado', () => {
     it('renders page title', () => {
       renderMembershipsPage()
-      expect(screen.getByText('Gestión de Membresías y Control de Acceso')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Membresías' })).toBeInTheDocument()
     })
 
     it('shows the web renewal inbox and lets reception mark a request as contacted', async () => {
@@ -206,21 +206,21 @@ describe('MembershipsPage - Integration Tests', () => {
       })
       fireEvent.click(screen.getByRole('tab', { name: /Solicitudes web/ }))
       expect(await screen.findByText('Juan Pérez')).toBeInTheDocument()
-      expect(screen.getByText(/no crea membresías ni registra pagos/i)).toBeInTheDocument()
+      expect(screen.getByText(/la renovación y el pago se gestionan por separado/i)).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Marcar contactada' }))
       expect(updateMutation.mutate).toHaveBeenCalledWith({ id: 8, data: { status: 'contacted' } })
     })
 
     it('renders tabs for plans and memberships', () => {
       renderMembershipsPage()
-      expect(screen.getByRole('tab', { name: 'Planes de membresía' })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'Suscripciones de clientes' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Planes' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Membresías' })).toBeInTheDocument()
     })
 
     it('renders action buttons in header', () => {
       renderMembershipsPage()
-      expect(screen.getByRole('button', { name: 'Registrar Check-In de socio' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Asignar Membresía a socio' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Registrar ingreso de socio' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Asignar membresía a socio' })).toBeInTheDocument()
     })
 
     it('shows plans tab with columns', () => {
@@ -236,7 +236,7 @@ describe('MembershipsPage - Integration Tests', () => {
 
     it('lets administrators open the plan creation form', async () => {
       renderMembershipsPage()
-      fireEvent.click(screen.getByRole('button', { name: 'Crear plan de membresía' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Crear plan' }))
       expect(await screen.findByRole('dialog', { hidden: true })).toBeInTheDocument()
       expect(screen.getByLabelText(/Nombre del plan/)).toBeInTheDocument()
     })
@@ -244,10 +244,10 @@ describe('MembershipsPage - Integration Tests', () => {
     it('shows memberships tab when switched', async () => {
       renderMembershipsPage()
       await switchToMembershipsTab()
-      expect(screen.getByText('Cliente / Socio')).toBeInTheDocument()
+      expect(screen.getByText('Socio')).toBeInTheDocument()
       expect(screen.getByText('Plan Adquirido')).toBeInTheDocument()
-      expect(screen.getByText('Fecha Inicio')).toBeInTheDocument()
-      expect(screen.getByText('Fecha Fin')).toBeInTheDocument()
+      expect(screen.getByText('Inicio')).toBeInTheDocument()
+      expect(screen.getByText('Vence')).toBeInTheDocument()
       expect(screen.getByText('Estado')).toBeInTheDocument()
       expect(screen.getByText('Auto-renovar')).toBeInTheDocument()
     })
@@ -322,9 +322,9 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({
         clients: createMockErrorQuery('Network error'),
       })
-      expect(screen.getByText('Gestión de Membresías y Control de Acceso')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Registrar Check-In de socio' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Asignar Membresía a socio' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Membresías' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Registrar ingreso de socio' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Asignar membresía a socio' })).toBeInTheDocument()
     })
   })
 
@@ -332,7 +332,7 @@ describe('MembershipsPage - Integration Tests', () => {
     it('opens check-in modal', async () => {
       renderMembershipsPage()
       await openCheckInModal()
-      expect(screen.getByText('Control de Acceso: Registrar Check-In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Registrar ingreso de socio' })).toBeInTheDocument()
     })
 
     it('renders client select in check-in modal', async () => {
@@ -378,7 +378,7 @@ describe('MembershipsPage - Integration Tests', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText('¡Check-in registrado exitosamente! Acceso concedido al gimnasio.')).toBeInTheDocument()
+        expect(screen.getByText('Ingreso registrado. El acceso al gimnasio está habilitado.')).toBeInTheDocument()
       })
     })
 
@@ -418,7 +418,7 @@ describe('MembershipsPage - Integration Tests', () => {
     it('opens assign membership modal', async () => {
       renderMembershipsPage()
       await openAssignModal()
-      expect(screen.getByText('Asignar Membresía a Socio')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Asignar membresía' })).toBeInTheDocument()
     })
 
     it('renders client and plan selects in assign modal', async () => {
@@ -469,7 +469,7 @@ describe('MembershipsPage - Integration Tests', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText('¡Membresía asignada exitosamente al cliente!')).toBeInTheDocument()
+        expect(screen.getByText('Membresía asignada correctamente al socio.')).toBeInTheDocument()
       })
     })
 
@@ -509,16 +509,16 @@ describe('MembershipsPage - Integration Tests', () => {
   describe('Tab Navigation', () => {
     it('switches between plans and memberships tabs', async () => {
       renderMembershipsPage()
-      expect(screen.getByRole('tab', { name: 'Planes de membresía' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Planes' })).toBeInTheDocument()
 
       await switchToMembershipsTab()
-      expect(screen.getByRole('tab', { name: 'Suscripciones de clientes' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'Membresías' })).toBeInTheDocument()
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('tab', { name: 'Planes de membresía' }))
+        fireEvent.click(screen.getByRole('tab', { name: 'Planes' }))
       })
       await waitFor(() => {
-        expect(screen.getByRole('tab', { name: 'Planes de membresía' })).toBeInTheDocument()
+        expect(screen.getByRole('tab', { name: 'Planes' })).toBeInTheDocument()
       })
     })
   })
