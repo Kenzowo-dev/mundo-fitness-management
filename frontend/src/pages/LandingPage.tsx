@@ -1,183 +1,143 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import '@/styles/LandingPage.css'
+
+const membershipFeatures = [
+  {
+    title: 'Tu membresía, clara',
+    description: 'Consulta el plan asociado a tu cuenta y revisa su periodo de vigencia.',
+  },
+  {
+    title: 'Pagos a la vista',
+    description: 'Revisa el historial de pagos registrados por recepción.',
+  },
+  {
+    title: 'Atención en recepción',
+    description: 'El equipo del gimnasio puede ayudarte con renovaciones y datos de tu cuenta.',
+  },
+]
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false)
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [mobileMenuOpen])
+
   const closeMobileMenu = () => setMobileMenuOpen(false)
 
   return (
-    <div className="app">
-      <header className="navbar" aria-label="Encabezado del sitio">
-        <div className="logo">
-          <img
-            src="/assets/Logo.png"
-            alt="Mundo Fitness"
-            className="logo-image"
-          />
-        </div>
+    <div className="public-site">
+      <a className="public-skip-link" href="#main-content">Saltar al contenido principal</a>
 
-        {/* Botón hamburguesa para mobile (WCAG 2.4.1) */}
+      <header className="public-header">
+        <Link to="/" className="public-brand" aria-label="Mundo Fitness, inicio" onClick={closeMobileMenu}>
+          <img src="/assets/Logo.png" alt="" width="150" height="56" />
+        </Link>
+
         <button
           type="button"
-          className={`menu-toggle ${mobileMenuOpen ? 'open' : ''}`}
-          aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú de navegación'}
+          className="public-menu-toggle"
+          aria-label={mobileMenuOpen ? 'Cerrar navegación' : 'Abrir navegación'}
           aria-expanded={mobileMenuOpen}
-          aria-controls="main-nav"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-controls="public-navigation"
+          onClick={() => setMobileMenuOpen((open) => !open)}
         >
-          <span className="hamburger"></span>
+          <span aria-hidden="true" />
+          <span aria-hidden="true" />
         </button>
 
         <nav
-          id="main-nav"
-          className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}
+          id="public-navigation"
+          className={`public-navigation${mobileMenuOpen ? ' is-open' : ''}`}
           aria-label="Navegación principal"
         >
-          <a href="#inicio" onClick={closeMobileMenu}>Inicio</a>
-          <a href="#nosotros" onClick={closeMobileMenu}>Nosotros</a>
-          <a href="#ubicacion" onClick={closeMobileMenu}>Ubicación</a>
+          <a href="#beneficios" onClick={closeMobileMenu}>Tu cuenta</a>
+          <a href="#ubicacion" onClick={closeMobileMenu}>Visítanos</a>
+          <Link className="public-navigation-login" to="/login" onClick={closeMobileMenu}>Iniciar sesión</Link>
         </nav>
-
-        <div className="auth-buttons">
-          <Link to="/login" className="btn btn-login">
-            Iniciar sesión
-          </Link>
-
-          <Link to="/registro" className="btn btn-register">
-            Registrarse
-          </Link>
-        </div>
       </header>
 
       <main id="main-content">
-        <section id="inicio" className="hero-section" aria-labelledby="hero-title">
-          <div className="hero-content">
-            <p className="hero-subtitle">
-              TU MEJOR VERSIÓN COMIENZA AQUÍ
+        <section className="public-hero" aria-labelledby="hero-title">
+          <div className="public-hero-copy">
+            <p className="public-eyebrow">Mundo Fitness · Trujillo</p>
+            <h1 id="hero-title">Tu entrenamiento sigue. <span>Tu membresía también.</span></h1>
+            <p className="public-hero-description">
+              Accede a tu cuenta para revisar tu membresía, su vigencia y los pagos registrados.
+              Si trabajas en recepción, entra al espacio de gestión del gimnasio.
             </p>
-
-            <h1 id="hero-title">
-              TRANSFORMA TU
-              <span> CUERPO.</span>
-              <br />
-              SUPERA TUS
-              <span> LÍMITES.</span>
-            </h1>
-
-            <p className="hero-description">
-              Entrena con nosotros, alcanza tus objetivos y forma parte de una
-              comunidad que busca superarse cada día.
-            </p>
-
-            <div className="hero-actions">
-              <Link to="/login" className="btn btn-primary">
-                Iniciar sesión
-              </Link>
-              <Link to="/registro" className="btn btn-secondary">
-                Registrarse
-              </Link>
+            <div className="public-hero-actions">
+              <Link className="public-button public-button-primary" to="/login">Acceder a mi cuenta</Link>
+              <Link className="public-button public-button-secondary" to="/registro">Crear cuenta de socio</Link>
             </div>
+            <p className="public-staff-note">
+              ¿Trabajas en recepción? <Link to="/login">Ingresa al sistema de gestión</Link>.
+            </p>
           </div>
 
-          <div className="hero-image">
+          <div className="public-hero-media">
             <img
-              src="/assets/hero.png"
-              alt="Instalaciones modernas de Mundo Fitness"
-              className="hero-img-cover"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '16px' }}
+              src="/assets/gym-membership-hero.jpg"
+              alt="Imagen referencial de una zona de entrenamiento con pesas y máquinas"
+              width="960"
+              height="720"
+              fetchPriority="high"
             />
-          </div>
-        </section>
-
-        <section id="nosotros" className="about-section" aria-labelledby="about-title">
-          <div className="section-title">
-            <p>CONÓCENOS</p>
-            <h2 id="about-title">
-              Entrena. Mejora. <span>Supérate.</span>
-            </h2>
-          </div>
-
-          <div className="about-content">
-            <article className="about-card">
-              <h3>Entrenamiento</h3>
-              <p>
-                Espacios y equipos pensados para ayudarte a alcanzar tus
-                objetivos.
-              </p>
-            </article>
-
-            <article className="about-card">
-              <h3>Comunidad</h3>
-              <p>
-                Forma parte de una comunidad que comparte tu motivación y tus
-                ganas de mejorar.
-              </p>
-            </article>
-
-            <article className="about-card">
-              <h3>Resultados</h3>
-              <p>
-                Trabaja constantemente y convierte tus metas en resultados
-                reales.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section id="ubicacion" className="location-section" aria-labelledby="location-title">
-          <div className="section-title">
-            <p>VISÍTANOS</p>
-            <h2 id="location-title">
-              Encuentra <span>nuestro gimnasio.</span>
-            </h2>
-          </div>
-
-          <div className="location-content">
-            <div className="location-info">
-              <h3>¿Dónde estamos?</h3>
-
-              <p>
-                Ven a conocernos y comienza tu entrenamiento con nosotros.
-              </p>
-
-              <address className="address">
-                <strong>Mundo Fitness Palermo</strong>
-                <span>Av. César Vallejo 690, Trujillo 13006</span>
-              </address>
-
-              <a
-                href="https://maps.app.goo.gl/StUWA2QRRnUzpuGN6"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-map"
-              >
-                Abrir en Google Maps
-              </a>
-            </div>
-
-          </div>
-        </section>
-
-        <section className="cta-section" aria-labelledby="cta-title">
-          <div className="cta-content">
-            <h2 id="cta-title">¿Listo para comenzar?</h2>
-            <p>Únete a Mundo Fitness y transforma tu rutina hoy mismo.</p>
-            <div className="cta-actions">
-              <Link to="/login" className="btn btn-primary">
-                Iniciar sesión
-              </Link>
-              <Link to="/registro" className="btn btn-outline">
-                Crear cuenta
-              </Link>
+            <div className="public-media-caption">
+              <span className="public-status-dot" aria-hidden="true" />
+              <span>Entrena hoy. Consulta tu cuenta cuando lo necesites.</span>
             </div>
           </div>
+        </section>
+
+        <section id="beneficios" className="public-features" aria-labelledby="features-title">
+          <div className="public-section-heading">
+            <p className="public-eyebrow">Tu espacio, más sencillo</p>
+            <h2 id="features-title">Lo esencial de tu membresía, en un solo lugar.</h2>
+          </div>
+          <div className="public-feature-grid">
+            {membershipFeatures.map((feature, index) => (
+              <article className="public-feature-card" key={feature.title}>
+                <span className="public-feature-number" aria-hidden="true">0{index + 1}</span>
+                <h3>{feature.title}</h3>
+                <p>{feature.description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="ubicacion" className="public-location" aria-labelledby="location-title">
+          <div>
+            <p className="public-eyebrow">Estamos cerca</p>
+            <h2 id="location-title">Ven a entrenar con nosotros.</h2>
+            <address>
+              <strong>Mundo Fitness Palermo</strong>
+              <span>Av. César Vallejo 690, Trujillo 13006</span>
+            </address>
+          </div>
+          <a
+            className="public-button public-button-secondary"
+            href="https://maps.app.goo.gl/StUWA2QRRnUzpuGN6"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Abrir ubicación en Google Maps <span aria-hidden="true">↗</span>
+          </a>
         </section>
       </main>
 
-      <footer className="footer" aria-label="Pie de página">
-        <p>© 2026 Mundo Fitness. Todos los derechos reservados.</p>
+      <footer className="public-footer">
+        <Link to="/" aria-label="Mundo Fitness, inicio">Mundo Fitness</Link>
+        <span>© 2026 Mundo Fitness</span>
+        <Link to="/login">Acceso a mi cuenta</Link>
       </footer>
     </div>
   )
