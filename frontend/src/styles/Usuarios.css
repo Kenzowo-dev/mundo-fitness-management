@@ -1,7 +1,6 @@
-.pagina-usuarios {
-  min-height: 100vh;
-  padding: 2.5rem;
-  background: #f7f8fa;
+.pagina-usuarios,
+.usuarios-panel {
+  width: 100%;
   box-sizing: border-box;
   color: #1e2327;
 }
@@ -48,10 +47,6 @@
   transform: translateY(-1px);
 }
 
-.pagina-usuarios main {
-  max-width: 1200px;
-  margin: 0 auto;
-}
 
 .usuarios-header {
   display: flex;
@@ -100,7 +95,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  min-width: 850px;
+  min-width: 900px;
 }
 
 .tabla-usuarios th,

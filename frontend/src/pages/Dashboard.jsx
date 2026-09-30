@@ -1,27 +1,99 @@
-import { useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
+import Users from './Users'
+import MembershipsPanel from '../components/dashboard/MembershipsPanel'
+import { getUsersForAdmin } from '../services/authService'
+import {
+  getMemberships,
+} from '../services/membresiaService'
 import '../styles/dashboard/Dashboard.css'
+import Plans from './Plans'
 
 function Dashboard() {
-  const [activeTab, setActiveTab] = useState('inicio')
+  const [activeTab, setActiveTab] =
+    useState('inicio')
 
+  const [totalUsers, setTotalUsers] =
+    useState(0)
+
+  const [activeMemberships, setActiveMemberships] =
+    useState(0)
+
+  const [totalMemberships, setTotalMemberships] =
+    useState(0)
+
+  const [membershipValue, setMembershipValue] =
+    useState(0)
+
+  useEffect(() => {
+    // Carga y calcula el resumen del dashboard.
+    async function loadSummary() {
+      const users = getUsersForAdmin()
+      const memberships =
+        await getMemberships()
+
+      setTotalUsers(users.length)
+
+      setTotalMemberships(
+        memberships.length,
+      )
+
+      setActiveMemberships(
+        memberships.filter(
+          (membership) =>
+            membership.status === 'activa',
+        ).length,
+      )
+
+      const total = memberships.reduce(
+        (accumulated, membership) =>
+          accumulated +
+          Number(membership.price),
+        0,
+      )
+
+      setMembershipValue(total)
+    }
+
+    loadSummary()
+  }, [])
+
+  // Renderiza el contenido correspondiente a la pestaña seleccionada.
   const renderContent = () => {
     switch (activeTab) {
       case 'usuarios':
-        return <h2>Usuarios</h2>
+        return <Users />
 
       case 'membresias':
-        return <h2>Membresías</h2>
+        return <MembershipsPanel />
 
       case 'planes':
-        return <h2>Planes</h2>
+        return <Plans />
 
       case 'pagos':
-        return <h2>Pagos</h2>
+        return (
+          <div>
+            <h2>Pagos</h2>
+
+            <p>
+              Aquí se gestionarán los pagos de
+              Mundo Fitness.
+            </p>
+          </div>
+        )
 
       case 'reportes':
-        return <h2>Reportes</h2>
+        return (
+          <div>
+            <h2>Reportes</h2>
+
+            <p>
+              Aquí se mostrarán los reportes del
+              gimnasio.
+            </p>
+          </div>
+        )
 
       default:
         return (
@@ -30,23 +102,43 @@ function Dashboard() {
 
             <div className="dashboard-cards">
               <div className="dashboard-card">
-                <span>Usuarios</span>
-                <strong>0</strong>
+                <span>
+                  Usuarios registrados
+                </span>
+
+                <strong>
+                  {totalUsers}
+                </strong>
               </div>
 
               <div className="dashboard-card">
-                <span>Membresías activas</span>
-                <strong>0</strong>
+                <span>
+                  Membresías activas
+                </span>
+
+                <strong>
+                  {activeMemberships}
+                </strong>
               </div>
 
               <div className="dashboard-card">
-                <span>Planes</span>
-                <strong>0</strong>
+                <span>
+                  Membresías totales
+                </span>
+
+                <strong>
+                  {totalMemberships}
+                </strong>
               </div>
 
               <div className="dashboard-card">
-                <span>Pagos</span>
-                <strong>S/ 0.00</strong>
+                <span>
+                  Valor de membresías
+                </span>
+
+                <strong>
+                  S/ {membershipValue.toFixed(2)}
+                </strong>
               </div>
             </div>
           </>

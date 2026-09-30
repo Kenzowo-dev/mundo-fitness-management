@@ -1,24 +1,24 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { obtenerUsuarioActual } from '../services/authService'
+import { getCurrentUser } from '../services/authService'
 
-interface RutaProtegidaProps {
+interface ProtectedRouteProps {
   roles?: ('admin' | 'lite')[]
 }
 
-function RutaProtegida({
+function ProtectedRoute({
   roles,
-}: RutaProtegidaProps) {
-  const usuario = obtenerUsuarioActual()
+}: ProtectedRouteProps) {
+  const currentUser = getCurrentUser()
 
-  if (!usuario) {
+  if (!currentUser) {
     return <Navigate to="/login" replace />
   }
 
   if (
     roles &&
-    !roles.includes(usuario.role)
+    !roles.includes(currentUser.role)
   ) {
-    if (usuario.role === 'lite') {
+    if (currentUser.role === 'lite') {
       return <Navigate to="/usuario" replace />
     }
 
@@ -28,4 +28,4 @@ function RutaProtegida({
   return <Outlet />
 }
 
-export default RutaProtegida
+export default ProtectedRoute

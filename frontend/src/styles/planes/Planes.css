@@ -1,0 +1,267 @@
+.planes-panel {
+  width: 100%;
+}
+
+.planes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.planes-header h2 {
+  margin: 0 0 0.4rem;
+  color: #222;
+  font-size: 28px;
+}
+
+.planes-header p {
+  margin: 0;
+  color: #777;
+  font-size: 15px;
+}
+
+.btn-plan-principal {
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.1rem;
+  background: #1e2327;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.btn-plan-principal:hover {
+  background: #343a40;
+  transform: translateY(-1px);
+}
+
+/* LISTA DE PLANES */
+
+.planes-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.plan-card {
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 22px;
+  box-sizing: border-box;
+  transition: 0.2s ease;
+}
+
+.plan-card:hover {
+  border-color: #d0d0d0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.plan-card.inactivo {
+  opacity: 0.7;
+}
+
+.plan-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.plan-codigo {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #777;
+  letter-spacing: 0.05em;
+}
+
+.plan-estado {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.plan-estado.activo {
+  background: #dff5e1;
+  color: #1e7e34;
+}
+
+.plan-estado.inactivo {
+  background: #eee;
+  color: #666;
+}
+
+.plan-card h3 {
+  margin: 0 0 0.8rem;
+  color: #222;
+  font-size: 21px;
+}
+
+.plan-duracion {
+  margin: 0.45rem 0;
+  color: #666;
+}
+
+.plan-precio {
+  margin: 1rem 0 0;
+  color: #222;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.plan-acciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.plan-acciones button {
+  min-height: 38px;
+  padding: 0.55rem 0.7rem;
+  border: none;
+  border-radius: 7px;
+  background: #1e2327;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.plan-acciones button:hover {
+  background: #343a40;
+}
+
+.plan-acciones .btn-eliminar {
+  grid-column: 1 / -1;
+  background: #b3261e;
+}
+
+.plan-acciones .btn-eliminar:hover {
+  background: #8f1d18;
+}
+
+/* FORMULARIO */
+
+.plan-form-container {
+  max-width: 650px;
+}
+
+.plan-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid #e2e5e8;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.plan-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: #343a40;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.plan-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #cfd4d9;
+  border-radius: 7px;
+  background: #fff;
+  color: #1e2327;
+  font-size: 1rem;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.plan-form input:focus {
+  border-color: #1e2327;
+  box-shadow: 0 0 0 3px rgba(30, 35, 39, 0.1);
+}
+
+.plan-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.plan-form-actions button {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 7px;
+  background: #1e2327;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.plan-form-actions button:hover {
+  background: #343a40;
+}
+
+.plan-form-actions .btn-secundario {
+  background: #e9ecef;
+  color: #343a40;
+}
+
+.plan-form-actions .btn-secundario:hover {
+  background: #dee2e6;
+}
+
+/* ESTADO VACÍO */
+
+.planes-vacio {
+  padding: 2.5rem;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.planes-vacio h3 {
+  margin: 0 0 0.5rem;
+  color: #222;
+}
+
+.planes-vacio p {
+  margin: 0;
+  color: #777;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1100px) {
+  .planes-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .planes-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .planes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-form-actions {
+    flex-direction: column;
+  }
+}

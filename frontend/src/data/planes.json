@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "codigo": "P0001",
+    "nombre": "Mensual",
+    "duracion": 1,
+    "unidadDuracion": "meses",
+    "precio": 50,
+    "activo": true
+  },
+  {
+    "id": 2,
+    "codigo": "P0002",
+    "nombre": "Trimestral",
+    "duracion": 3,
+    "unidadDuracion": "meses",
+    "precio": 135,
+    "activo": true
+  },
+  {
+    "id": 3,
+    "codigo": "P0003",
+    "nombre": "Semestral",
+    "duracion": 6,
+    "unidadDuracion": "meses",
+    "precio": 250,
+    "activo": true
+  },
+  {
+    "id": 4,
+    "codigo": "P0004",
+    "nombre": "Anual",
+    "duracion": 12,
+    "unidadDuracion": "meses",
+    "precio": 500,
+    "activo": true
+  }
+]

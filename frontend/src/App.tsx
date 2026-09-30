@@ -1,15 +1,17 @@
-import { Link, Route, Routes } from 'react-router-dom'
+﻿import { Link, Route, Routes } from 'react-router-dom'
 import Register from './componentes/auth/Register'
 import RutaProtegida from './componentes/RutaProtegida'
 import Login from './pages/auth/Login'
-import Membresias from './pages/membresias/Membresias'
-import RegistrarMembresia from './pages/membresias/RegistrarMembresia'
-import EditarMembresia from './pages/membresias/EditarMembresia'
-import DetalleMembresia from './pages/membresias/DetalleMembresia'
-import Usuario from './pages/Usuario'
-import Usuarios from './pages/Usuarios'
+import Memberships from './pages/membresias/Memberships'
+import MembershipRegistration from './pages/membresias/MembershipRegistration'
+import MembershipEdit from './pages/membresias/MembershipEdit'
+import MembershipDetails from './pages/membresias/MembershipDetails'
+import User from './pages/User'
+import Users from './pages/Users'
 import Dashboard from './pages/Dashboard'
 import './App.css'
+
+
 
 function LandingPage() {
   return (
@@ -196,48 +198,48 @@ function App() {
       >
         <Route
           path="/usuario"
-          element={<Usuario />}
+          element={<User />}
         />
       </Route>
 
       {/* Rutas exclusivas para administradores */}
       <Route
-  element={
-    <RutaProtegida roles={['admin']} />
-  }>
-      <Route
-        path="/dashboard"
-        element={<Dashboard />}
-      />
+        element={
+          <RutaProtegida roles={['admin']} />
+        }
+      >
+        <Route
+          path="/dashboard"
+          element={<Dashboard />}
+        />
 
-      <Route
-        path="/membresias"
-        element={<Membresias />}
-      />
+        <Route
+          path="/membresias"
+          element={<Memberships />}
+        />
 
-      <Route
-        path="/membresias/nueva"
-        element={<RegistrarMembresia />}
-      />
+        <Route
+          path="/membresias/nueva"
+          element={<MembershipRegistration />} />
+        
 
-      <Route
-        path="/membresias/:id"
-        element={<DetalleMembresia />}
-      />
+        <Route
+          path="/membresias/:id"
+          element={<MembershipDetails />}
+        />
 
-     <Route
-        path="/membresias/:id/editar"
-        element={<EditarMembresia />}
-      />
+        <Route
+          path="/membresias/:id/editar"
+          element={<MembershipEdit />}
+        />
 
-     <Route
-        path="/usuarios"
-        element={<Usuarios />}
-      />
+        <Route
+          path="/usuarios"
+          element={<Users />}
+        />
       </Route>
     </Routes>
   )
 }
 
 export default App
-

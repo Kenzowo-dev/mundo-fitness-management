@@ -1,31 +1,43 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LoginInput from './LoginInput'
-import { iniciarSesion } from '../../services/authService'
+import { STRINGS } from '../../constants/strings'
+import { login } from '../../services/authService'
 import '../../styles/auth/LoginForm.css'
 
 function LoginForm() {
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [password, setPassword] =
+    useState('')
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  const [error, setError] =
+    useState('')
+
+  // Valida las credenciales e inicia la sesión del usuario.
+  function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
 
     if (!email || !password) {
-      setError('Ingresa tu correo y contraseña.')
+      setError(
+        STRINGS.auth.loginRequiredFields,
+      )
       return
     }
 
     try {
-      const usuario = iniciarSesion(email, password)
+      const user = login(
+        email,
+        password,
+      )
 
       setError('')
 
-      if (usuario.role === 'admin') {
-        navigate('/membresias')
+      if (user.role === 'admin') {
+        navigate('/dashboard')
       } else {
         navigate('/usuario')
       }
@@ -33,13 +45,18 @@ function LoginForm() {
       if (error instanceof Error) {
         setError(error.message)
       } else {
-        setError('No se pudo iniciar sesión.')
+        setError(
+          STRINGS.auth.loginError,
+        )
       }
     }
   }
 
   return (
-    <form className="login-form" onSubmit={handleSubmit}>
+    <form
+      className="login-form"
+      onSubmit={handleSubmit}
+    >
       <LoginInput
         label="Correo electrónico"
         type="email"
@@ -58,7 +75,11 @@ function LoginForm() {
         onChange={setPassword}
       />
 
-      {error && <p className="form-error">{error}</p>}
+      {error && (
+        <p className="form-error">
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"
