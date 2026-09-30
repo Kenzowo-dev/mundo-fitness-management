@@ -177,11 +177,12 @@ describe('ClientsPage - Integration Tests', () => {
 
   const openCreateModal = async () => {
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Registrar nuevo cliente' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar nuevo socio' }))
     })
     await waitFor(() => {
       expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
     }, { timeout: 3000 })
+    fireEvent.click(within(screen.getByRole('dialog', { hidden: true })).getByText(/Datos adicionales/))
   }
 
   const openEditModal = async (clientName: string) => {
@@ -192,11 +193,12 @@ describe('ClientsPage - Integration Tests', () => {
     await waitFor(() => {
       expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
     }, { timeout: 3000 })
+    fireEvent.click(within(screen.getByRole('dialog', { hidden: true })).getByText(/Datos adicionales/))
   }
 
   const openViewModal = async (clientName: string) => {
     await act(async () => {
-      const buttons = screen.getAllByRole('button', { name: new RegExp(`Ver detalle de ${clientName}`) })
+      const buttons = screen.getAllByRole('button', { name: new RegExp(`Ver ficha de ${clientName}`) })
       fireEvent.click(buttons[0])
     })
     await waitFor(() => {
@@ -207,27 +209,25 @@ describe('ClientsPage - Integration Tests', () => {
   describe('Listado', () => {
     it('renders page title', () => {
       renderClientsPage()
-      expect(screen.getByText('Gestión de Clientes')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Socios' })).toBeInTheDocument()
     })
 
     it('renders table with correct columns', () => {
       renderClientsPage()
-      expect(screen.getByText('DNI')).toBeInTheDocument()
-      expect(screen.getByText('Nombre')).toBeInTheDocument()
-      expect(screen.getByText('Email')).toBeInTheDocument()
-      expect(screen.getByText('Teléfono')).toBeInTheDocument()
+      expect(screen.getByText('Socio')).toBeInTheDocument()
+      expect(screen.getByText('Contacto')).toBeInTheDocument()
       expect(screen.getByText('Estado')).toBeInTheDocument()
-      expect(screen.getByText('Fecha registro')).toBeInTheDocument()
+      expect(screen.getByText('Desde')).toBeInTheDocument()
       expect(screen.getByText('Acciones')).toBeInTheDocument()
     })
 
     it('renders all clients in table', () => {
       renderClientsPage()
-      expect(screen.getByText('71234567')).toBeInTheDocument()
+      expect(screen.getByText(/DNI 71234567/)).toBeInTheDocument()
       expect(screen.getByText('Juan Pérez')).toBeInTheDocument()
-      expect(screen.getByText('72345678')).toBeInTheDocument()
+      expect(screen.getByText(/DNI 72345678/)).toBeInTheDocument()
       expect(screen.getByText('María García')).toBeInTheDocument()
-      expect(screen.getByText('73456789')).toBeInTheDocument()
+      expect(screen.getByText(/DNI 73456789/)).toBeInTheDocument()
       expect(screen.getByText('Carlos López')).toBeInTheDocument()
     })
 
@@ -250,8 +250,8 @@ describe('ClientsPage - Integration Tests', () => {
           status: 'success',
         }),
       })
-      expect(screen.getByText('No se encontraron clientes')).toBeInTheDocument()
-      expect(screen.getByText('Registra el primer cliente')).toBeInTheDocument()
+      expect(screen.getByText('Aún no hay socios registrados')).toBeInTheDocument()
+      expect(screen.getByText(/Registra al primer socio/)).toBeInTheDocument()
     })
 
     it('shows error state when query fails', () => {
@@ -267,12 +267,12 @@ describe('ClientsPage - Integration Tests', () => {
     it('renders search input', () => {
       renderClientsPage()
       expect(screen.getByRole('search')).toBeInTheDocument()
-      expect(screen.getByPlaceholderText('Buscar por nombre, DNI, email...')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Nombre, DNI o correo')).toBeInTheDocument()
     })
 
     it('renders status filter select', () => {
       renderClientsPage()
-      expect(screen.getByLabelText('Filtrar por estado')).toBeInTheDocument()
+      expect(screen.getByLabelText('Estado del socio')).toBeInTheDocument()
       expect(screen.getByRole('option', { name: 'Todos los estados' })).toBeInTheDocument()
       expect(screen.getByRole('option', { name: 'Activo' })).toBeInTheDocument()
       expect(screen.getByRole('option', { name: 'Inactivo' })).toBeInTheDocument()
@@ -281,16 +281,27 @@ describe('ClientsPage - Integration Tests', () => {
 
     it('search input accepts input', async () => {
       renderClientsPage()
-      const searchInput = screen.getByPlaceholderText('Buscar por nombre, DNI, email...')
+      const searchInput = screen.getByPlaceholderText('Nombre, DNI o correo')
       await act(async () => {
         fireEvent.change(searchInput, { target: { value: 'Juan' } })
       })
       expect(searchInput).toHaveValue('Juan')
     })
 
+    it('applies text search only after submission', async () => {
+      renderClientsPage()
+      const searchInput = screen.getByPlaceholderText('Nombre, DNI o correo')
+
+      fireEvent.change(searchInput, { target: { value: 'Juan' } })
+      expect(useApiModule.useClients).toHaveBeenLastCalledWith(1, 20, { search: undefined, status: undefined })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+      expect(useApiModule.useClients).toHaveBeenLastCalledWith(1, 20, { search: 'Juan', status: undefined })
+    })
+
     it('status filter accepts selection', async () => {
       renderClientsPage()
-      const statusSelect = screen.getByLabelText('Filtrar por estado')
+      const statusSelect = screen.getByLabelText('Estado del socio')
       await act(async () => {
         fireEvent.change(statusSelect, { target: { value: 'active' } })
       })
@@ -299,7 +310,7 @@ describe('ClientsPage - Integration Tests', () => {
 
     it('clear filters button appears when filters active', async () => {
       renderClientsPage()
-      const searchInput = screen.getByPlaceholderText('Buscar por nombre, DNI, email...')
+      const searchInput = screen.getByPlaceholderText('Nombre, DNI o correo')
       await act(async () => {
         fireEvent.change(searchInput, { target: { value: 'Juan' } })
       })
@@ -318,7 +329,7 @@ describe('ClientsPage - Integration Tests', () => {
 
       await openCreateModal()
       expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
-      expect(screen.getByText('Registrar Nuevo Cliente')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Registrar socio' })).toBeInTheDocument()
     })
 
     it('renders create form with required fields', async () => {
@@ -343,7 +354,7 @@ describe('ClientsPage - Integration Tests', () => {
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
@@ -366,7 +377,7 @@ describe('ClientsPage - Integration Tests', () => {
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
@@ -388,7 +399,7 @@ describe('ClientsPage - Integration Tests', () => {
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
@@ -446,7 +457,7 @@ describe('ClientsPage - Integration Tests', () => {
       await openEditModal('Juan')
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
@@ -464,7 +475,7 @@ describe('ClientsPage - Integration Tests', () => {
       await openEditModal('Juan')
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
@@ -481,7 +492,7 @@ describe('ClientsPage - Integration Tests', () => {
       await openEditModal('Juan')
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
@@ -575,8 +586,8 @@ describe('ClientsPage - Integration Tests', () => {
           status: 'success',
         }),
       })
-      expect(screen.getByText('No se encontraron clientes')).toBeInTheDocument()
-      expect(screen.getByText('Registra el primer cliente')).toBeInTheDocument()
+      expect(screen.getByText('Aún no hay socios registrados')).toBeInTheDocument()
+      expect(screen.getByText(/Registra al primer socio/)).toBeInTheDocument()
     })
 
     it('shows empty state with register action when no filters', () => {
@@ -589,7 +600,7 @@ describe('ClientsPage - Integration Tests', () => {
           status: 'success',
         }),
       })
-      expect(screen.getByRole('button', { name: 'Registrar primer cliente' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Registrar primer socio' })).toBeInTheDocument()
     })
   })
 
@@ -606,9 +617,9 @@ describe('ClientsPage - Integration Tests', () => {
       renderClientsPage({
         clients: createMockErrorQuery('Error de red'),
       })
-      expect(screen.getByText('Gestión de Clientes')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Socios' })).toBeInTheDocument()
       expect(screen.getByRole('search')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Registrar nuevo cliente' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Registrar nuevo socio' })).toBeInTheDocument()
     })
 
     it('error alert has dismiss button', () => {

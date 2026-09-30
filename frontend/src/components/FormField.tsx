@@ -1,11 +1,11 @@
 import { Input, Select, Textarea } from './Input'
 import '@/styles/components/FormField.css'
 
-export type FieldType = 'text' | 'email' | 'password' | 'tel' | 'number' | 'date' | 'select' | 'textarea'
+export type FieldType = 'text' | 'search' | 'email' | 'password' | 'tel' | 'number' | 'date' | 'select' | 'textarea'
 
 interface FormFieldProps {
   label: string
-  type?: 'text' | 'email' | 'password' | 'tel' | 'number' | 'date' | 'select' | 'textarea'
+  type?: FieldType
   id: string
   name?: string
   value?: string
@@ -85,7 +85,7 @@ export default function FormField({
       </div>
 
       {error && (
-        <p id={`${id}-error`} className="form-field-error-message" role="alert" aria-live="polite">
+        <p id={`${id}-error`} className="form-field-error-message" aria-live="polite" aria-atomic="true">
           {error}
         </p>
       )}

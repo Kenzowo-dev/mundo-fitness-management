@@ -60,7 +60,7 @@ const createWrapper = () => {
 
 const openEditModal = async (clientId: number) => {
   // Find the edit button for the specific client
-  const editButton = screen.getByRole('button', { name: `Editar ${clientId === 1 ? 'Juan' : 'María'}` })
+  const editButton = screen.getByRole('button', { name: new RegExp(`Editar ${clientId === 1 ? 'Juan' : 'María'}`) })
   await act(async () => {
     fireEvent.click(editButton)
   })
@@ -68,6 +68,7 @@ const openEditModal = async (clientId: number) => {
   await waitFor(() => {
     expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
   }, { timeout: 3000 })
+  fireEvent.click(within(screen.getByRole('dialog', { hidden: true })).getByText(/Datos adicionales/))
 }
 
 const getDialog = () => {
@@ -170,11 +171,11 @@ describe('ClientsPage - Edit Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: '' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios: DNI, Nombre y Apellido.')
+        expect(screen.getByRole('alert')).toHaveTextContent('Corrige los campos señalados antes de guardar.')
       })
     })
 
@@ -188,11 +189,11 @@ describe('ClientsPage - Edit Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Pérez' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios: DNI, Nombre y Apellido.')
+        expect(within(getDialog()).getByText('Ingresa un DNI de 8 dígitos.')).toBeInTheDocument()
       })
     })
 
@@ -206,11 +207,11 @@ describe('ClientsPage - Edit Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Pérez' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios: DNI, Nombre y Apellido.')
+        expect(within(getDialog()).getByText('Ingresa los nombres del socio.')).toBeInTheDocument()
       })
     })
 
@@ -224,11 +225,11 @@ describe('ClientsPage - Edit Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: '' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios: DNI, Nombre y Apellido.')
+        expect(within(getDialog()).getByText('Ingresa los apellidos del socio.')).toBeInTheDocument()
       })
     })
   })
@@ -245,7 +246,7 @@ describe('ClientsPage - Edit Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@test.com' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
@@ -275,7 +276,7 @@ describe('ClientsPage - Edit Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Ana' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
@@ -291,7 +292,7 @@ describe('ClientsPage - Edit Client', () => {
       await openEditModal(1)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {
@@ -305,7 +306,7 @@ describe('ClientsPage - Edit Client', () => {
       await openEditModal(1)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
       })
 
       await waitFor(() => {

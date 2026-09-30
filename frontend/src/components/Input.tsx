@@ -34,16 +34,6 @@ const Input = ((props: InputProps, ref: React.Ref<HTMLInputElement>) => {
         className={`input input-${size} ${error ? 'input-error' : ''}`}
         {...rest}
       />
-      {error && (
-        <p id={errorId} className="input-error-message" role="alert" aria-live="polite">
-          {error}
-        </p>
-      )}
-      {helperText && !error && (
-        <p id={helperId} className="input-helper-text">
-          {helperText}
-        </p>
-      )}
     </div>
   )
 }) as ForwardRefExoticComponent<InputProps & RefAttributes<HTMLInputElement>>
@@ -70,16 +60,6 @@ const Select = ((props: SelectProps, ref: React.Ref<HTMLSelectElement>) => {
       >
         {children}
       </select>
-      {error && (
-        <p id={errorId} className="input-error-message" role="alert" aria-live="polite">
-          {error}
-        </p>
-      )}
-      {helperText && !error && (
-        <p id={helperId} className="input-helper-text">
-          {helperText}
-        </p>
-      )}
     </div>
   )
 }) as ForwardRefExoticComponent<SelectProps & RefAttributes<HTMLSelectElement>>
@@ -104,16 +84,6 @@ const Textarea = ((props: TextareaProps, ref: React.Ref<HTMLTextAreaElement>) =>
         className={`input input-${size} input-textarea ${error ? 'input-error' : ''}`}
         {...rest}
       />
-      {error && (
-        <p id={errorId} className="input-error-message" role="alert" aria-live="polite">
-          {error}
-        </p>
-      )}
-      {helperText && !error && (
-        <p id={helperId} className="input-helper-text">
-          {helperText}
-        </p>
-      )}
     </div>
   )
 }) as ForwardRefExoticComponent<TextareaProps & RefAttributes<HTMLTextAreaElement>>

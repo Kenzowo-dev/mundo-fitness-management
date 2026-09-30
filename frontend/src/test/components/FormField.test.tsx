@@ -38,18 +38,17 @@ describe('FormField', () => {
 
   it('shows error message', () => {
     render(<FormField {...defaultProps} error="This field is required" />)
-    expect(screen.getAllByText('This field is required')).toHaveLength(2) // Input + FormField
+    expect(screen.getAllByText('This field is required')).toHaveLength(1)
   })
 
   it('shows helper text', () => {
     render(<FormField {...defaultProps} helperText="Helper text" />)
-    expect(screen.getAllByText('Helper text')).toHaveLength(2) // Input + FormField
+    expect(screen.getAllByText('Helper text')).toHaveLength(1)
   })
 
   it('hides helper text when error is present', () => {
     render(<FormField {...defaultProps} error="Error" helperText="Helper" />)
-    expect(screen.getAllByText('Error')).toHaveLength(2)
-    // FormField's helper text should not be rendered when error is present
+    expect(screen.getAllByText('Error')).toHaveLength(1)
     expect(screen.queryByText('Helper')).not.toBeInTheDocument()
   })
 

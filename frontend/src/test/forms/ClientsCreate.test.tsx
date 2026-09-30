@@ -60,12 +60,13 @@ const createWrapper = () => {
 
 const openCreateModal = async () => {
   await act(async () => {
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar nuevo cliente' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar nuevo socio' }))
   })
   // Wait for state update and modal render (modal uses portal)
   await waitFor(() => {
     expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
   }, { timeout: 3000 })
+  fireEvent.click(within(screen.getByRole('dialog', { hidden: true })).getByText(/Datos adicionales/))
 }
 
 const getDialog = () => {
@@ -152,28 +153,29 @@ describe('ClientsPage - Create Client', () => {
       await openCreateModal()
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios')
+        expect(screen.getByRole('alert')).toHaveTextContent('Corrige los campos señalados')
       })
     })
 
-    it('shows error for missing DNI', async () => {
+    it('rejects a DNI that does not have eight digits', async () => {
       renderPage()
       await openCreateModal()
       const dialog = within(getDialog())
 
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '1234' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Pérez' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios')
+        expect(within(getDialog()).getByText('Ingresa un DNI de 8 dígitos.')).toBeInTheDocument()
       })
     })
 
@@ -182,15 +184,14 @@ describe('ClientsPage - Create Client', () => {
       await openCreateModal()
       const dialog = within(getDialog())
 
-      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '71234567' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Pérez' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios')
+        expect(within(getDialog()).getByText('Ingresa los nombres del socio.')).toBeInTheDocument()
       })
     })
 
@@ -203,11 +204,11 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Por favor complete los campos obligatorios')
+        expect(within(getDialog()).getByText('Ingresa los apellidos del socio.')).toBeInTheDocument()
       })
     })
   })
@@ -228,7 +229,7 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByLabelText('Género'), { target: { value: 'masculino' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
@@ -255,7 +256,7 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
@@ -274,7 +275,7 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Registrar Cliente', hidden: true }))
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
       })
 
       await waitFor(() => {
