@@ -151,14 +151,16 @@
   text-transform: uppercase;
 }
 
-.rol-admin {
-  background: #e9ecef;
-  color: #1e2327;
-}
+
 
 .rol-lite {
   background: #f1f3f5;
   color: #495057;
+}
+
+.rol-admin {
+  background: #e9ecef;
+  color: #1e2327;
 }
 
 .tabla-usuarios td button {
