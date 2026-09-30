@@ -1,274 +1,133 @@
-import { useState } from 'react'
-import { useAuth } from '../../context/useAuth'
-import { useUpdateCurrentUser, useChangePassword } from '../../hooks/useApi'
-import Button from '../../components/Button'
-import FormField from '../../components/FormField'
-import Alert from '../../components/Alert'
-import PageHeader from '../../components/PageHeader'
-import '../../styles/dashboard/SettingsPage.css'
+import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/context/useAuth'
+import { useChangePassword, useUpdateCurrentUser } from '@/hooks/useApi'
+import type { User } from '@/types/api'
+import Alert from '@/components/Alert'
+import Button from '@/components/Button'
+import FormField from '@/components/FormField'
+import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
+import Tabs, { TabPanel } from '@/components/Tabs'
+import '@/styles/dashboard/SettingsPage.css'
+
+type TabId = 'profile' | 'security'
+type Profile = Pick<User, 'firstName' | 'lastName'> & { phone: string; birthDate: string; gender: string }
+
+const fromUser = (user: User): Profile => ({
+  firstName: user.firstName ?? '',
+  lastName: user.lastName ?? '',
+  phone: user.phone ?? '',
+  birthDate: user.birthDate?.slice(0, 10) ?? '',
+  gender: user.gender ?? '',
+})
+
+const roleLabel = (role: string) => ({ admin: 'Administrador', receptionist: 'Recepción', member: 'Socio' }[role] ?? role)
 
 export default function SettingsPage() {
-  const { user, refreshUser } = useAuth()
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences'>('profile')
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const { user, isLoading } = useAuth()
+  const navigate = useNavigate()
+  const updateUser = useUpdateCurrentUser()
+  const changePassword = useChangePassword()
+  const [activeTab, setActiveTab] = useState<TabId>('profile')
+  const [profile, setProfile] = useState<Profile>(() => user ? fromUser(user) : { firstName: '', lastName: '', phone: '', birthDate: '', gender: '' })
+  const [profileUserId, setProfileUserId] = useState<number | null>(user?.id ?? null)
+  const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
+  const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
 
-  const [profileData, setProfileData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    phone: '',
-    birthDate: '',
-    gender: '',
-  })
-
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  })
-
-  const updateUserMutation = useUpdateCurrentUser()
-  const changePasswordMutation = useChangePassword()
-
-  const showMessage = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text })
-    setTimeout(() => setMessage(null), 5000)
+  if (user && profileUserId !== user.id) {
+    setProfile(fromUser(user))
+    setProfileUserId(user.id)
   }
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const updateProfile = (key: keyof Profile) => (value: string) => {
+    setProfile((current) => ({ ...current, [key]: value }))
+    setProfileMessage(null)
+  }
+
+  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const payload: Partial<User> = {
+      firstName: profile.firstName.trim(),
+      lastName: profile.lastName.trim(),
+      phone: profile.phone.trim(),
+      gender: profile.gender,
+      ...(profile.birthDate ? { birthDate: profile.birthDate } : {}),
+    }
     try {
-      await updateUserMutation.mutateAsync(profileData)
-      showMessage('success', 'Perfil actualizado correctamente')
-      refreshUser()
-    } catch (err) {
-      showMessage('error', err instanceof Error ? err.message : 'Error al actualizar perfil')
+      await updateUser.mutateAsync(payload)
+      setProfileMessage({ type: 'success', text: 'Perfil actualizado correctamente.' })
+    } catch {
+      setProfileMessage({ type: 'error', text: 'No se pudieron guardar los cambios. Revisa tu conexión e inténtalo de nuevo.' })
     }
   }
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      showMessage('error', 'Las contraseñas no coinciden')
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setPasswordMessage(null)
+    if (passwords.next !== passwords.confirm) {
+      setPasswordMessage('Las contraseñas nuevas no coinciden.')
       return
     }
-    if (passwordData.newPassword.length < 8) {
-      showMessage('error', 'La contraseña debe tener al menos 8 caracteres')
+    if (passwords.next.length < 8 || passwords.next.length > 128) {
+      setPasswordMessage('La nueva contraseña debe tener entre 8 y 128 caracteres.')
       return
     }
     try {
-      await changePasswordMutation.mutateAsync({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      })
-      showMessage('success', 'Contraseña cambiada correctamente')
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
-    } catch (err) {
-      showMessage('error', err instanceof Error ? err.message : 'Error al cambiar contraseña')
+      await changePassword.mutateAsync({ currentPassword: passwords.current, newPassword: passwords.next })
+      setPasswords({ current: '', next: '', confirm: '' })
+      navigate('/login', { replace: true, state: { notice: 'Contraseña actualizada. Inicia sesión con tu nueva contraseña.' } })
+    } catch {
+      setPasswordMessage('No se pudo cambiar la contraseña. Comprueba la contraseña actual e inténtalo de nuevo.')
     }
   }
 
   return (
     <div className="settings-page">
-      <PageHeader title="Configuración" />
-
-      {message && <Alert type={message.type} message={message.text} onDismiss={() => setMessage(null)} dismissible />}
-
-      <div className="settings-layout">
-        <nav className="settings-nav" role="tablist" aria-label="Secciones de configuración">
-          <button
-            role="tab"
-            aria-selected={activeTab === 'profile'}
-            id="tab-profile"
-            aria-controls="panel-profile"
-            className={activeTab === 'profile' ? 'active' : ''}
-            onClick={() => setActiveTab('profile')}
-          >
-            Perfil
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'security'}
-            id="tab-security"
-            aria-controls="panel-security"
-            className={activeTab === 'security' ? 'active' : ''}
-            onClick={() => setActiveTab('security')}
-          >
-            Seguridad
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'preferences'}
-            id="tab-preferences"
-            aria-controls="panel-preferences"
-            className={activeTab === 'preferences' ? 'active' : ''}
-            onClick={() => setActiveTab('preferences')}
-          >
-            Preferencias
-          </button>
-        </nav>
-
-        <div className="settings-content">
-          {activeTab === 'profile' && (
-            <form onSubmit={handleProfileSubmit} className="settings-form" role="tabpanel" id="panel-profile" aria-labelledby="tab-profile">
-              <div className="form-section">
-                <h3>Información personal</h3>
-                <div className="form-row">
-                  <FormField
-                    label="Nombre"
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={profileData.firstName}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, firstName: value }))}
-                    placeholder="Ingresa tu nombre"
-                    required
-                  />
-                  <FormField
-                    label="Apellido"
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={profileData.lastName}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, lastName: value }))}
-                    placeholder="Ingresa tu apellido"
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <FormField
-                    label="Email"
-                    type="email"
-                    id="email-profile"
-                    value={user?.email || ''}
-                    disabled
-                  />
-                  <FormField
-                    label="Rol"
-                    type="text"
-                    id="role-profile"
-                    value={user?.role || ''}
-                    disabled
-                  />
-                </div>
-                <div className="form-row">
-                  <FormField
-                    label="Teléfono"
-                    type="tel"
-                    id="phone-profile"
-                    value={profileData.phone}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, phone: value }))}
-                    placeholder="Ej. 987654321"
-                  />
-                  <FormField
-                    label="Fecha de nacimiento"
-                    type="date"
-                    id="birthDate-profile"
-                    value={profileData.birthDate}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, birthDate: value }))}
-                  />
-                </div>
-                <div className="form-row">
-                  <FormField
-                    label="Género"
-                    type="select"
-                    id="gender-profile"
-                    value={profileData.gender}
-                    onChange={(value) => setProfileData(prev => ({ ...prev, gender: value }))}
-                    options={[
-                      { value: '', label: 'Seleccionar' },
-                      { value: 'masculino', label: 'Masculino' },
-                      { value: 'femenino', label: 'Femenino' },
-                      { value: 'otro', label: 'Otro' },
-                    ]}
-                  />
-                </div>
+      <PageHeader title="Configuración" description="Administra los datos de tu cuenta y protege tu acceso." />
+      {isLoading ? (
+        <section className="settings-content settings-loading" aria-label="Cargando configuración" aria-busy="true">
+          <Skeleton height="40px" />
+          <Skeleton height="28px" width="35%" />
+          <Skeleton height="48px" />
+          <Skeleton height="48px" />
+        </section>
+      ) : !user ? (
+        <Alert type="error" message="No se pudo cargar tu cuenta. Vuelve a iniciar sesión." />
+      ) : (
+        <section className="settings-content">
+          <Tabs tabs={[{ id: 'profile', label: 'Perfil' }, { id: 'security', label: 'Seguridad' }]} activeTab={activeTab} onChange={(id) => setActiveTab(id as TabId)} ariaLabel="Configuración de cuenta" />
+          <TabPanel id="profile" activeTab={activeTab} className="settings-panel">
+            <div className="settings-section-heading"><h2>Datos del perfil</h2><p>Actualiza la información que identifica tu cuenta.</p></div>
+            <dl className="account-facts">
+              <div><dt>Correo electrónico</dt><dd>{user.email}</dd></div>
+              <div><dt>Tipo de cuenta</dt><dd>{roleLabel(user.role)}</dd></div>
+            </dl>
+            {profileMessage && <Alert type={profileMessage.type} message={profileMessage.text} dismissible onDismiss={() => setProfileMessage(null)} />}
+            <form className="settings-form" onSubmit={handleProfileSubmit}>
+              <div className="form-row">
+                <FormField id="firstName" label="Nombre" value={profile.firstName} onChange={updateProfile('firstName')} required autoComplete="given-name" />
+                <FormField id="lastName" label="Apellido" value={profile.lastName} onChange={updateProfile('lastName')} required autoComplete="family-name" />
+                <FormField id="phone" label="Teléfono" type="tel" value={profile.phone} onChange={updateProfile('phone')} autoComplete="tel" />
+                <FormField id="birthDate" label="Fecha de nacimiento" type="date" value={profile.birthDate} onChange={updateProfile('birthDate')} />
+                <FormField id="gender" label="Género" type="select" value={profile.gender} onChange={updateProfile('gender')} emptyOptionLabel="Sin especificar" options={[{ value: 'masculino', label: 'Masculino' }, { value: 'femenino', label: 'Femenino' }, { value: 'otro', label: 'Otro' }]} />
               </div>
-
-              <Button type="submit" variant="primary" disabled={updateUserMutation.isPending}>
-                {updateUserMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
-              </Button>
+              <div className="settings-actions"><Button type="submit" loading={updateUser.isPending}>Guardar cambios</Button></div>
             </form>
-          )}
-
-          {activeTab === 'security' && (
-            <form onSubmit={handlePasswordSubmit} className="settings-form" role="tabpanel" id="panel-security" aria-labelledby="tab-security">
-              <div className="form-section">
-                <h3>Cambiar contraseña</h3>
-                <FormField
-                  label="Contraseña actual"
-                  type="password"
-                  id="current-password"
-                  value={passwordData.currentPassword}
-                  onChange={(value) => setPasswordData(prev => ({ ...prev, currentPassword: value }))}
-                  required
-                />
-                <FormField
-                  label="Nueva contraseña"
-                  type="password"
-                  id="new-password"
-                  value={passwordData.newPassword}
-                  onChange={(value) => setPasswordData(prev => ({ ...prev, newPassword: value }))}
-                  required
-                />
-                <FormField
-                  label="Confirmar nueva contraseña"
-                  type="password"
-                  id="confirm-new-password"
-                  value={passwordData.confirmPassword}
-                  onChange={(value) => setPasswordData(prev => ({ ...prev, confirmPassword: value }))}
-                  required
-                />
-              </div>
-
-              <Button type="submit" variant="primary" disabled={changePasswordMutation.isPending}>
-                {changePasswordMutation.isPending ? 'Cambiando...' : 'Cambiar contraseña'}
-              </Button>
+          </TabPanel>
+          <TabPanel id="security" activeTab={activeTab} className="settings-panel">
+            <div className="settings-section-heading"><h2>Cambiar contraseña</h2><p>Al guardar, tendrás que iniciar sesión nuevamente.</p></div>
+            {passwordMessage && <Alert type="error" message={passwordMessage} dismissible onDismiss={() => setPasswordMessage(null)} />}
+            <form className="settings-form security-form" onSubmit={handlePasswordSubmit}>
+              <FormField id="currentPassword" label="Contraseña actual" type="password" value={passwords.current} onChange={(current) => setPasswords((value) => ({ ...value, current }))} required autoComplete="current-password" />
+              <FormField id="newPassword" label="Nueva contraseña" type="password" value={passwords.next} onChange={(next) => setPasswords((value) => ({ ...value, next }))} required autoComplete="new-password" helperText="Usa entre 8 y 128 caracteres." />
+              <FormField id="confirmPassword" label="Confirmar nueva contraseña" type="password" value={passwords.confirm} onChange={(confirm) => setPasswords((value) => ({ ...value, confirm }))} required autoComplete="new-password" />
+              <div className="settings-actions"><Button type="submit" loading={changePassword.isPending}>Cambiar contraseña</Button></div>
             </form>
-          )}
-
-          {activeTab === 'preferences' && (
-            <div className="settings-form" id="panel-preferences" role="tabpanel" aria-labelledby="tab-preferences">
-              <div className="form-section">
-                <h3>Preferencias de notificaciones</h3>
-                <div className="preference-item">
-                  <label>
-                    <input type="checkbox" defaultChecked /> Notificaciones por email
-                  </label>
-                </div>
-                <div className="preference-item">
-                  <label>
-                    <input type="checkbox" defaultChecked /> Recordatorios de pagos
-                  </label>
-                </div>
-                <div className="preference-item">
-                  <label>
-                    <input type="checkbox" defaultChecked /> Renovaciones de membresía
-                  </label>
-                </div>
-                <div className="preference-item">
-                  <label>
-                    <input type="checkbox" /> Promociones y ofertas
-                  </label>
-                </div>
-              </div>
-
-              <div className="form-section">
-                <h3>Apariencia</h3>
-                <div className="preference-item">
-                  <label>
-                    Tema:
-                    <select className="form-input" style={{ width: 'auto', marginLeft: '12px' }}>
-                      <option value="dark">Oscuro</option>
-                      <option value="light">Claro</option>
-                      <option value="system">Sistema</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+          </TabPanel>
+        </section>
+      )}
     </div>
   )
 }

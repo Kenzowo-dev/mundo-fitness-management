@@ -1,8 +1,12 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import Alert from '../../components/Alert'
 import LoginForm from '../../componentes/auth/LoginForm'
 import '@/styles/auth/Login.css'
 
 export default function Login() {
+  const location = useLocation()
+  const notice = (location.state as { notice?: string } | null)?.notice
+
   return (
     <main className="auth-container" role="main">
       <div className="auth-card">
@@ -18,6 +22,8 @@ export default function Login() {
             Ingresa a tu cuenta para acceder al panel de control.
           </p>
         </header>
+
+        {notice && <Alert type="success" message={notice} />}
 
         <LoginForm />
 
