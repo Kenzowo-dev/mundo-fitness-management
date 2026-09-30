@@ -36,7 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         user: user ?? null,
-        isLoading: isLoading || loginMutation.isPending || registerMutation.isPending,
+        // Keep public routes mounted during auth submissions so forms can preserve
+        // field values and show a failed login/registration message.
+        isLoading,
         isAuthenticated,
         login,
         register,

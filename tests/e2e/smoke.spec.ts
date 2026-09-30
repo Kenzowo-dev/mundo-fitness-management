@@ -2,11 +2,8 @@ import { expect, test } from '@playwright/test';
 import { loginAsReception } from './helpers';
 
 test('public home stays public and seeded admin can reach the dashboard', async ({ page }) => {
-  const browserErrors: string[] = [];
-  page.on('pageerror', (error) => browserErrors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error') browserErrors.push(message.text());
-  });
+  const runtimeErrors: string[] = [];
+  page.on('pageerror', (error) => runtimeErrors.push(error.message));
 
   await page.goto('/');
   await expect(page).toHaveURL(/\/$/);
@@ -14,7 +11,19 @@ test('public home stays public and seeded admin can reach the dashboard', async 
   await expect(page.getByRole('link', { name: 'Iniciar sesión' }).first()).toHaveAttribute('href', '/login');
   await expect(page.getByLabel('Navegación principal')).toBeVisible();
 
+  await page.route('**/api/auth/login', (route) => route.fulfill({
+    status: 401,
+    contentType: 'application/json',
+    body: JSON.stringify({ error: { message: 'Invalid credentials', code: 'INVALID_CREDENTIALS' } }),
+  }));
+  await page.goto('/login');
+  await page.getByLabel('Correo electrónico').fill('admin@mundofitness.com');
+  await page.getByRole('textbox', { name: 'Contraseña' }).fill('wrong-password');
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  await expect(page.getByRole('alert')).toHaveText('El correo electrónico o la contraseña no son correctos.');
+  await page.unroute('**/api/auth/login');
+
   await loginAsReception(page);
 
-  expect(browserErrors).toEqual([]);
+  expect(runtimeErrors).toEqual([]);
 });

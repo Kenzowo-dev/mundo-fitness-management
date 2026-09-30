@@ -38,7 +38,7 @@ describe('ApiClient', () => {
         createMockResponse(false, 400, { error: { message: 'Bad Request', code: 'BAD_REQUEST' } })
       )
 
-      await expect(api.getCurrentUser()).rejects.toThrow('Bad Request')
+      await expect(api.getCurrentUser()).rejects.toThrow('Revisa la información ingresada e inténtalo de nuevo.')
     })
 
     it('should throw error for 403 response', async () => {
@@ -46,7 +46,7 @@ describe('ApiClient', () => {
         createMockResponse(false, 403, { error: { message: 'Forbidden', code: 'FORBIDDEN' } })
       )
 
-      await expect(api.getCurrentUser()).rejects.toThrow('Forbidden')
+      await expect(api.getCurrentUser()).rejects.toThrow('Tu cuenta no tiene permiso para realizar esta acción.')
     })
 
     it('should throw error for 404 response', async () => {
@@ -54,7 +54,7 @@ describe('ApiClient', () => {
         createMockResponse(false, 404, { error: { message: 'Not Found', code: 'NOT_FOUND' } })
       )
 
-      await expect(api.getCurrentUser()).rejects.toThrow('Not Found')
+      await expect(api.getCurrentUser()).rejects.toThrow('No encontramos la información solicitada.')
     })
 
     it('should throw error for 500 response', async () => {
@@ -62,7 +62,27 @@ describe('ApiClient', () => {
         createMockResponse(false, 500, { error: { message: 'Internal Server Error', code: 'SERVER_ERROR' } })
       )
 
-      await expect(api.getCurrentUser()).rejects.toThrow('Internal Server Error')
+      await expect(api.getCurrentUser()).rejects.toThrow('Ocurrió un problema en el servidor.')
+    })
+
+    it.each([
+      [401, 'INVALID_CREDENTIALS', 'El correo electrónico o la contraseña no son correctos.'],
+      [409, 'CONFLICT', 'La operación entra en conflicto con un registro existente.'],
+      [422, 'VALIDATION_ERROR', 'Hay datos que no se pudieron procesar. Revisa la información ingresada.'],
+    ])('shows a useful message for HTTP %i', async (status, code, expectedMessage) => {
+      global.fetch = vi.fn().mockResolvedValue(
+        createMockResponse(false, status, { error: { message: 'Internal details', code } })
+      )
+
+      await expect(api.getCurrentUser()).rejects.toThrow(expectedMessage)
+    })
+
+    it('explains connection failures without exposing browser network errors', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+
+      await expect(api.getCurrentUser()).rejects.toThrow(
+        'No se pudo conectar con Mundo Fitness. Comprueba tu conexión e inténtalo de nuevo.'
+      )
     })
   })
 
@@ -99,7 +119,9 @@ describe('ApiClient', () => {
         json: vi.fn().mockResolvedValue({ error: { message: 'Invalid credentials', code: 'INVALID_CREDENTIALS' } }),
       })
 
-      await expect(api.login('test@example.com', 'wrongpassword')).rejects.toThrow('Invalid credentials')
+      await expect(api.login('test@example.com', 'wrongpassword')).rejects.toThrow(
+        'El correo electrónico o la contraseña no son correctos.'
+      )
     })
   })
 
@@ -198,7 +220,7 @@ describe('ApiClient', () => {
         password: 'password123',
         firstName: 'New',
         lastName: 'User',
-      })).rejects.toThrow('Email already exists')
+      })).rejects.toThrow('Ya existe una cuenta con ese correo electrónico.')
     })
   })
 
@@ -232,7 +254,9 @@ describe('ApiClient', () => {
         error: { message: 'Invalid email', code: 'VALIDATION_ERROR' },
       }))
 
-      await expect(api.forgotPassword('not-an-email')).rejects.toThrow('Invalid email')
+      await expect(api.forgotPassword('not-an-email')).rejects.toThrow(
+        'Revisa la información ingresada e inténtalo de nuevo.'
+      )
     })
   })
 
@@ -253,7 +277,9 @@ describe('ApiClient', () => {
         error: { message: 'Invalid or expired reset token', code: 'INVALID_TOKEN' },
       }))
 
-      await expect(api.resetPassword('bad-token', 'newpassword123')).rejects.toThrow('Invalid or expired reset token')
+      await expect(api.resetPassword('bad-token', 'newpassword123')).rejects.toThrow(
+        'El enlace no es válido o venció. Solicita uno nuevo para continuar.'
+      )
     })
   })
 

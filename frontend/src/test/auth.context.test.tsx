@@ -173,7 +173,7 @@ describe('AuthContext', () => {
       })
     })
 
-    it('should disable buttons during login', async () => {
+    it('keeps route loading false while the login form handles its own pending state', async () => {
       let resolveLogin: (value: void) => void
       const loginPromise = new Promise<void>((resolve) => {
         resolveLogin = resolve
@@ -187,11 +187,8 @@ describe('AuthContext', () => {
         screen.getByTestId('login-btn').click()
       })
 
-      expect(screen.getByTestId('login-btn')).toBeDisabled()
-      expect(screen.getByTestId('register-btn')).toBeDisabled()
-      expect(screen.getByTestId('logout-btn')).toBeDisabled()
-      expect(screen.getByTestId('refresh-btn')).toBeDisabled()
-      expect(screen.getByTestId('update-btn')).toBeDisabled()
+      expect(screen.getByTestId('loading')).toHaveTextContent('false')
+      expect(screen.getByTestId('login-btn')).toBeEnabled()
 
       await act(async () => {
         resolveLogin!()
@@ -227,7 +224,7 @@ describe('AuthContext', () => {
       })
     })
 
-    it('should disable buttons during registration', async () => {
+    it('keeps route loading false while the registration form handles its own pending state', async () => {
       let resolveRegister: (value: void) => void
       const registerPromise = new Promise<void>((resolve) => {
         resolveRegister = resolve
@@ -241,8 +238,8 @@ describe('AuthContext', () => {
         screen.getByTestId('register-btn').click()
       })
 
-      expect(screen.getByTestId('login-btn')).toBeDisabled()
-      expect(screen.getByTestId('register-btn')).toBeDisabled()
+      expect(screen.getByTestId('loading')).toHaveTextContent('false')
+      expect(screen.getByTestId('register-btn')).toBeEnabled()
 
       await act(async () => {
         resolveRegister!()

@@ -158,7 +158,7 @@ describe('LoginForm', () => {
     })
 
     it('shows error message on login failure', async () => {
-      mockLogin.mockRejectedValue(new Error('Credenciales inválidas'))
+      mockLogin.mockRejectedValue(new Error('El correo electrónico o la contraseña no son correctos.'))
       renderForm()
 
       fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'test@example.com' } })
@@ -169,14 +169,16 @@ describe('LoginForm', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Credenciales inválidas')
+        expect(screen.getByRole('alert')).toHaveTextContent('El correo electrónico o la contraseña no son correctos.')
       })
+      expect(screen.getByLabelText('Correo electrónico')).toHaveValue('test@example.com')
+      expect(screen.getByLabelText('Contraseña')).toHaveValue('password123')
       expect(screen.getByRole('button', { name: 'Ingresar' })).toBeInTheDocument()
     })
 
     it('clears error on new submit attempt', async () => {
       mockLogin
-        .mockRejectedValueOnce(new Error('Credenciales inválidas'))
+        .mockRejectedValueOnce(new Error('El correo electrónico o la contraseña no son correctos.'))
         .mockResolvedValueOnce(undefined)
 
       renderForm()
@@ -189,7 +191,7 @@ describe('LoginForm', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByRole('alert')).toHaveTextContent('Credenciales inválidas')
+        expect(screen.getByRole('alert')).toHaveTextContent('El correo electrónico o la contraseña no son correctos.')
       })
 
       await act(async () => {

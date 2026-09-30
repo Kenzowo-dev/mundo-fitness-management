@@ -24,6 +24,33 @@ import type {
 // URL base de la API obtenida de las variables de entorno de Vite
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+const API_ERROR_MESSAGES: Record<number, string> = {
+  400: 'Revisa la información ingresada e inténtalo de nuevo.',
+  401: 'No pudimos validar tus credenciales o tu sesión venció. Vuelve a intentarlo.',
+  403: 'Tu cuenta no tiene permiso para realizar esta acción.',
+  404: 'No encontramos la información solicitada. Actualiza la página e inténtalo de nuevo.',
+  409: 'La operación entra en conflicto con un registro existente. Revisa los datos e inténtalo de nuevo.',
+  422: 'Hay datos que no se pudieron procesar. Revisa la información ingresada.',
+  429: 'Se hicieron demasiadas solicitudes. Espera un momento e inténtalo de nuevo.',
+  500: 'Ocurrió un problema en el servidor. Inténtalo de nuevo en unos minutos.',
+};
+
+const API_ERROR_MESSAGES_BY_CODE: Record<string, string> = {
+  INVALID_CREDENTIALS: 'El correo electrónico o la contraseña no son correctos.',
+  EMAIL_EXISTS: 'Ya existe una cuenta con ese correo electrónico.',
+  EMAIL_ALREADY_REGISTERED: 'Ya existe una cuenta con ese correo electrónico.',
+  INVALID_TOKEN: 'El enlace no es válido o venció. Solicita uno nuevo para continuar.',
+  INVALID_RESET_TOKEN: 'El enlace no es válido o venció. Solicita uno nuevo para continuar.',
+  VALIDATION_ERROR: API_ERROR_MESSAGES[400],
+  FORBIDDEN: API_ERROR_MESSAGES[403],
+  NOT_FOUND: API_ERROR_MESSAGES[404],
+  CONFLICT: API_ERROR_MESSAGES[409],
+  RATE_LIMIT_EXCEEDED: API_ERROR_MESSAGES[429],
+  INTERNAL_ERROR: API_ERROR_MESSAGES[500],
+};
+
+const CONNECTION_ERROR_MESSAGE = 'No se pudo conectar con Mundo Fitness. Comprueba tu conexión e inténtalo de nuevo.';
+
 /**
  * Cliente API singleton para gestionar peticiones HTTP al backend.
  * Maneja tokens de acceso, refresco automático de tokens y peticiones
@@ -40,6 +67,26 @@ class ApiClient {
    */
   constructor() {
     this.loadTokens();
+  }
+
+  private async fetchResponse(url: string, options: RequestInit): Promise<Response> {
+    try {
+      return await fetch(url, options);
+    } catch {
+      throw new Error(CONNECTION_ERROR_MESSAGE);
+    }
+  }
+
+  private async throwApiError(response: Response): Promise<never> {
+    const payload = await response.json().catch(() => null) as ApiError | null;
+    const code = payload?.error?.code;
+    const message = response.status === 422
+      ? API_ERROR_MESSAGES[422]
+      : (code && API_ERROR_MESSAGES_BY_CODE[code])
+        || API_ERROR_MESSAGES[response.status]
+        || 'No se pudo completar la solicitud. Inténtalo de nuevo.';
+
+    throw new Error(message);
   }
 
   /**
@@ -93,7 +140,7 @@ class ApiClient {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${this.accessToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await this.fetchResponse(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
     });
@@ -107,10 +154,7 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      const error: ApiError = await response.json().catch(() => ({
-        error: { message: 'Request failed', code: 'REQUEST_FAILED' },
-      }));
-      throw new Error(error.error.message);
+      await this.throwApiError(response);
     }
 
     // Respuesta sin contenido (ej. DELETE exitoso)
@@ -171,15 +215,14 @@ class ApiClient {
    * @returns Promesa con los datos del usuario y los tokens JWT
    */
   async login(email: string, password: string): Promise<{ user: User; tokens: TokenPair }> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const response = await this.fetchResponse(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
 
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.error.message);
+      await this.throwApiError(response);
     }
 
     const { user, tokens } = await response.json();
@@ -194,15 +237,14 @@ class ApiClient {
    * @returns Promesa con los datos del usuario creado y los tokens JWT
    */
   async register(data: RegisterData): Promise<{ user: User; tokens: TokenPair }> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const response = await this.fetchResponse(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
 
     if (!response.ok) {
-      const error: ApiError = await response.json();
-      throw new Error(error.error.message);
+      await this.throwApiError(response);
     }
 
     const { user, tokens } = await response.json();
