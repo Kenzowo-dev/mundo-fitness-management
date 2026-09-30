@@ -29,7 +29,7 @@ test('a member can register, log in, request a renewal, and log out', async ({ p
   await expect(page).toHaveURL(/\/portal$/);
   await expect(page.getByRole('heading', { name: 'Mis datos' })).toBeVisible({ timeout: 15000 });
 
-  const renewalPlan = page.locator('label', { hasText: 'Plan solicitado' }).locator('select');
+  const renewalPlan = page.getByLabel(/Plan solicitado/);
   await expect(renewalPlan.locator('option').nth(1)).toBeAttached();
   await renewalPlan.selectOption({ index: 1 });
   await page.getByLabel('Comentario para recepción (opcional)').fill('Solicito renovar mi membresía.');

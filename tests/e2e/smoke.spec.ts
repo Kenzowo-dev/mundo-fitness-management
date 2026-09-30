@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { loginAsReception } from './helpers';
+import { loginAsAdmin } from './helpers';
 
 test('public home stays public and seeded admin can reach the dashboard', async ({ page }) => {
   const runtimeErrors: string[] = [];
@@ -8,7 +8,7 @@ test('public home stays public and seeded admin can reach the dashboard', async 
 
   await page.goto('/');
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { level: 1, name: /TRANSFORMA TU/ })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /Tu entrenamiento sigue/ })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Iniciar sesión' }).first()).toHaveAttribute('href', '/login');
   await expect(page.getByLabel('Navegación principal')).toBeVisible();
 
@@ -24,7 +24,7 @@ test('public home stays public and seeded admin can reach the dashboard', async 
   await expect(page.getByRole('alert')).toHaveText('El correo electrónico o la contraseña no son correctos.');
   await page.unroute('**/api/auth/login');
 
-  await loginAsReception(page);
+  await loginAsAdmin(page);
 
   expect(runtimeErrors).toEqual([]);
 });

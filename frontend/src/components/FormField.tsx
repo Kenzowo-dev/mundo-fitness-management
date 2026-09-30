@@ -52,7 +52,7 @@ export default function FormField({
       placeholder,
       disabled,
       error,
-      helperText,
+      helperText: error ? undefined : helperText,
       className: 'form-field-input',
     }
 

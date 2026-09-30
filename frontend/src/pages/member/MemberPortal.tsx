@@ -63,12 +63,12 @@ export default function MemberPortal() {
   const updateProfileMutation = useUpdateOwnClientProfile(user?.id)
   const membershipsQuery = useQuery<ClientMembership[]>({
     queryKey: ['member-portal', 'memberships', clientId],
-    queryFn: () => api.getClientMemberships(clientId!) as Promise<ClientMembership[]>,
+    queryFn: () => api.getClientMemberships(clientId!),
     enabled: !!clientId,
   })
   const plansQuery = useQuery<MembershipPlan[]>({
     queryKey: ['member-portal', 'plans'],
-    queryFn: () => api.getMembershipPlans(true) as Promise<MembershipPlan[]>,
+    queryFn: () => api.getMembershipPlans(true),
   })
   const renewalRequestsQuery = useMyMembershipRenewalRequests()
   const createRenewalRequest = useCreateMembershipRenewalRequest()

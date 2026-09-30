@@ -38,7 +38,11 @@ export default function Tabs({
 }: TabsProps) {
   const isControlled = controlledActiveTab !== undefined
   const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState(defaultActiveTab || tabs[0]?.id || '')
-  const activeTab = isControlled ? controlledActiveTab : uncontrolledActiveTab
+  const firstEnabledTab = tabs.find(tab => !tab.disabled)?.id ?? ''
+  const requestedActiveTab = isControlled ? controlledActiveTab : uncontrolledActiveTab
+  const activeTab = tabs.some(tab => tab.id === requestedActiveTab && !tab.disabled)
+    ? requestedActiveTab
+    : firstEnabledTab
   const tabRefs = useRef(new Map<string, HTMLButtonElement>())
 
   const handleTabClick = (tabId: string) => {

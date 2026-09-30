@@ -275,7 +275,7 @@ export async function updateClient(id: number, data: UpdateClientData): Promise<
     const value = data[key as keyof UpdateClientData];
     if (value !== undefined) {
       fields.push(`${dbField} = $${paramIndex++}`);
-      values.push(value);
+      values.push(key === 'email' && value === '' ? null : value);
     }
   }
 

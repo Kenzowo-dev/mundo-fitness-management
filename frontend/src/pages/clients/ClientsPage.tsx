@@ -41,6 +41,20 @@ function cleanFormValues<T extends object>(values: T): Partial<T> {
   ) as Partial<T>
 }
 
+function serializeClientUpdate(values: Partial<Client>): Partial<Client> {
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined) continue
+    if (typeof value !== 'string') {
+      result[key] = value
+      continue
+    }
+    const trimmed = value.trim()
+    if (key !== 'birthDate' || trimmed) result[key] = trimmed
+  }
+  return result as Partial<Client>
+}
+
 function validateClientForm(values: ClientFormValues): ClientFormErrors {
   const errors: ClientFormErrors = {}
   const dni = values.dni?.trim() ?? ''
@@ -185,7 +199,7 @@ export default function ClientsPage() {
     try {
       await updateClientMutation.mutateAsync({
         id: editClient.id,
-        data: cleanFormValues(editForm) as Partial<Client>,
+        data: serializeClientUpdate(editForm),
       })
       setEditClient(null)
       setEditForm({})

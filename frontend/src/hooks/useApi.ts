@@ -235,7 +235,7 @@ export function useDeleteClient() {
 export function useMembershipPlans(activeOnly = true) {
   return useQuery<MembershipPlan[], Error, MembershipPlan[]>({
     queryKey: QUERY_KEYS.membershipPlans(activeOnly),
-    queryFn: () => api.getMembershipPlans(activeOnly) as Promise<MembershipPlan[]>,
+    queryFn: () => api.getMembershipPlans(activeOnly),
   });
 }
 
@@ -258,7 +258,7 @@ export function useUpdateMembershipPlan() {
 export function useMembership(id: number, enabled = true) {
   return useQuery<ClientMembership, Error, ClientMembership>({
     queryKey: QUERY_KEYS.membership(id),
-    queryFn: () => api.getMembership(id) as Promise<ClientMembership>,
+    queryFn: () => api.getMembership(id),
     enabled: enabled && id > 0,
   });
 }
@@ -266,7 +266,7 @@ export function useMembership(id: number, enabled = true) {
 export function useClientMemberships(clientId: number, enabled = true) {
   return useQuery<ClientMembership[], Error, ClientMembership[]>({
     queryKey: QUERY_KEYS.clientMemberships(clientId),
-    queryFn: () => api.getClientMemberships(clientId) as Promise<ClientMembership[]>,
+    queryFn: () => api.getClientMemberships(clientId),
     enabled: enabled && clientId > 0,
   });
 }
@@ -428,7 +428,7 @@ export function usePaymentsSummary(clientId: number, enabled = true) {
 export function useAllMemberships(enabled = true) {
   return useQuery<ClientMembership[], Error>({
     queryKey: QUERY_KEYS.allMemberships,
-    queryFn: () => api.getAllMemberships() as Promise<ClientMembership[]>,
+    queryFn: () => api.getAllMemberships(),
     enabled,
   });
 }

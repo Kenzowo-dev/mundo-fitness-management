@@ -8,6 +8,7 @@ import type {
   CreateClientData,
   RegisterData,
   ClientMembership,
+  MembershipPlan,
   Payment,
   Invoice,
   CreatePaymentInput,
@@ -444,8 +445,8 @@ class ApiClient {
    * @param activeOnly - Si es true, solo retorna planes activos
    * @returns Promesa con la lista de planes de membresía
    */
-  async getMembershipPlans(activeOnly = true) {
-    return this.request(`/api/memberships/plans?activeOnly=${activeOnly}`);
+  async getMembershipPlans(activeOnly = true): Promise<MembershipPlan[]> {
+    return this.request<MembershipPlan[]>(`/api/memberships/plans?activeOnly=${activeOnly}`);
   }
 
   async getMembershipDashboardStats() {
@@ -469,12 +470,12 @@ class ApiClient {
    * @param id - ID de la membresía
    * @returns Promesa con los datos de la membresía
    */
-  async getMembership(id: number) {
-    return this.request(`/api/memberships/${id}`);
+  async getMembership(id: number): Promise<ClientMembership> {
+    return this.request<ClientMembership>(`/api/memberships/${id}`);
   }
 
-  async getAllMemberships() {
-    return this.request('/api/memberships');
+  async getAllMemberships(): Promise<ClientMembership[]> {
+    return this.request<ClientMembership[]>('/api/memberships');
   }
 
   /**
@@ -482,8 +483,8 @@ class ApiClient {
    * @param clientId - ID del cliente
    * @returns Promesa con la lista de membresías del cliente
    */
-  async getClientMemberships(clientId: number) {
-    return this.request(`/api/memberships/client/${clientId}`);
+  async getClientMemberships(clientId: number): Promise<ClientMembership[]> {
+    return this.request<ClientMembership[]>(`/api/memberships/client/${clientId}`);
   }
 
   async createMembershipRenewalRequest(data: { planId: number; memberNote?: string }) {

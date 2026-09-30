@@ -261,6 +261,10 @@ describe('ClientsPage - Edit Client', () => {
             birthDate: '1990-01-01',
             gender: 'masculino',
             address: 'Av. Las Camelias 450',
+            emergencyContactName: '',
+            emergencyContactPhone: '',
+            medicalConditions: '',
+            notes: '',
             status: 'active',
           },
         })

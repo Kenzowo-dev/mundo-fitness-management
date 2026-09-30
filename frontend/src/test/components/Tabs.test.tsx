@@ -75,6 +75,16 @@ describe('Tabs', () => {
     expect(screen.getByRole('tab', { name: 'Tab 2' })).toHaveAttribute('aria-selected', 'true')
   })
 
+  it('keeps one enabled tab reachable when the requested tab is missing or disabled', () => {
+    const { rerender } = render(<Tabs tabs={defaultTabs} defaultActiveTab="missing" ariaLabel="Test" />)
+    expect(screen.getByRole('tab', { name: 'Tab 1' })).toHaveAttribute('tabindex', '0')
+    expect(screen.getByRole('tab', { name: 'Tab 3' })).toHaveAttribute('tabindex', '-1')
+
+    rerender(<Tabs tabs={defaultTabs} activeTab="tab3" ariaLabel="Test" />)
+    expect(screen.getByRole('tab', { name: 'Tab 1' })).toHaveAttribute('tabindex', '0')
+    expect(screen.getByRole('tab', { name: 'Tab 1' })).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('calls onChange in uncontrolled mode', () => {
     const handleChange = vi.fn()
     render(<Tabs tabs={defaultTabs} defaultActiveTab="tab1" onChange={handleChange} ariaLabel="Test" />)

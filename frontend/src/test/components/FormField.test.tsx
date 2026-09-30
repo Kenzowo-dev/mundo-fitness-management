@@ -50,6 +50,7 @@ describe('FormField', () => {
     render(<FormField {...defaultProps} error="Error" helperText="Helper" />)
     expect(screen.getAllByText('Error')).toHaveLength(1)
     expect(screen.queryByText('Helper')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Test Label')).toHaveAttribute('aria-describedby', 'test-field-error')
   })
 
   it('calls onChange with value', () => {

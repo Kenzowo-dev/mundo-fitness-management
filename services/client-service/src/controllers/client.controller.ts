@@ -46,7 +46,7 @@ const updateClientSchema = z.object({
   dni: z.string().length(8).optional(),
   firstName: z.string().min(1).max(100).optional(),
   lastName: z.string().min(1).max(100).optional(),
-  email: z.string().email().optional(),
+  email: z.union([z.string().email(), z.literal('')]).optional(),
   phone: z.string().max(20).optional(),
   birthDate: z.string().date().optional(),
   gender: z.string().max(20).optional(),
