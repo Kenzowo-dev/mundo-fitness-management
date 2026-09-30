@@ -31,7 +31,7 @@ describe('ReportsPage', () => {
 
   it('shows factual reports for clients, membership status, attendance and each currency', () => {
     renderPage()
-    expect(screen.getByRole('heading', { name: 'Informes operativos' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Informes' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Nuevos socios por mes' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Socios por estado' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Membresías por estado' })).toBeInTheDocument()
@@ -45,19 +45,32 @@ describe('ReportsPage', () => {
     expect(screen.getByRole('img', { name: /Nuevos socios por mes.*4.*7/i })).toBeInTheDocument()
     fireEvent.click(screen.getAllByText('Ver datos en tabla')[0])
     const table = screen.getAllByRole('table')[0]
-    expect(within(table).getByText('Ago.')).toBeInTheDocument()
-    expect(within(table).getByText('Set.')).toBeInTheDocument()
+    expect(within(table).getByText('ago. 26')).toBeInTheDocument()
+    expect(within(table).getByText('set. 26')).toBeInTheDocument()
   })
 
   it('shows loading placeholders while reports are loading', () => {
     renderPage({ clients: query(undefined, { isLoading: true }), memberships: query(undefined, { isLoading: true }), payments: query(undefined, { isLoading: true }) })
-    expect(screen.getByLabelText('Cargando informes')).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByLabelText('Cargando informes de socios')).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByLabelText('Cargando informes de membresías')).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByLabelText('Cargando informes de ingresos')).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('shows loaded sections while another section is still loading', () => {
+    renderPage({ clients: query(undefined, { isLoading: true }) })
+    expect(screen.getByLabelText('Cargando informes de socios')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Check-ins por día' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Ingresos por mes (PEN)' })).toBeInTheDocument()
   })
 
   it('shows the service error and retains reports that loaded successfully', () => {
-    renderPage({ clients: query(undefined, { isError: true, error: new Error('Error de clientes') }) })
+    const clientsQuery = query(undefined, { isError: true, error: new Error('Error de clientes'), refetch: vi.fn() })
+    renderPage({ clients: clientsQuery })
     expect(screen.getByRole('alert')).toHaveTextContent('Error de clientes')
     expect(screen.getByRole('heading', { name: 'Check-ins por día' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Socios por estado' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar informes de socios' }))
+    expect(clientsQuery.refetch).toHaveBeenCalledTimes(1)
   })
 
   it('explains when there are no completed payments in the selected period', () => {
