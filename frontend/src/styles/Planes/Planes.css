@@ -1,0 +1,215 @@
+.planes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.planes-header h2 {
+  margin: 0 !important;
+}
+
+.planes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.planes-card {
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.planes-card-inactivo {
+  opacity: 0.6;
+}
+
+.planes-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.planes-card-top h3 {
+  margin: 0;
+  color: #222;
+}
+
+.planes-estado {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.planes-estado-activo {
+  background: #e6f4ea;
+  color: #1e7a3c;
+}
+
+.planes-estado-inactivo {
+  background: #eee;
+  color: #666;
+}
+
+.planes-precio {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #222;
+}
+
+.planes-precio small {
+  font-size: 13px;
+  font-weight: 400;
+  color: #777;
+}
+
+.planes-permes {
+  margin: 0;
+  font-size: 13px;
+  color: #777;
+}
+
+.planes-descripcion {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.planes-beneficios {
+  margin: 0;
+  padding-left: 18px;
+  color: #444;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.planes-uso {
+  margin: 0;
+  font-size: 13px;
+  color: #777;
+}
+
+.planes-acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.planes-btn {
+  border: 1px solid #ccc;
+  background: white;
+  color: #222;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.planes-btn:hover {
+  background: #f0f0f0;
+}
+
+.planes-btn:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 2px;
+}
+
+.planes-btn-primario {
+  background: #111;
+  border-color: #111;
+  color: white;
+}
+
+.planes-btn-primario:hover {
+  background: #333;
+}
+
+.planes-btn-peligro {
+  color: #b42318;
+  border-color: #f0c4c0;
+}
+
+.planes-btn-peligro:hover {
+  background: #fdecea;
+}
+
+.planes-vacio {
+  color: #777;
+}
+
+.planes-error {
+  color: #b42318;
+  font-size: 14px;
+}
+
+/* Modal */
+.planes-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.planes-modal {
+  background: white;
+  border-radius: 10px;
+  padding: 26px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.planes-modal h3 {
+  margin: 0;
+  color: #222;
+}
+
+.planes-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #444;
+}
+
+.planes-modal input[type='text'],
+.planes-modal input[type='number'],
+.planes-modal textarea {
+  padding: 9px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.planes-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.planes-check {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+.planes-modal .planes-acciones {
+  justify-content: flex-end;
+  margin-top: 6px;
+}

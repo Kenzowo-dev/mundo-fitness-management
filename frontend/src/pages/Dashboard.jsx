@@ -2,14 +2,15 @@ import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
 import '../styles/dashboard/Dashboard.css'
+import Planes from './Planes'
 
 function Dashboard() {
   const [activeTab, setActiveTab] = useState('inicio')
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'usuarios':
-        return <h2>Usuarios</h2>
+      case 'planes':
+        return <Planes />
 
       case 'membresias':
         return <h2>Membresías</h2>
