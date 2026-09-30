@@ -326,34 +326,6 @@ a:focus-visible,
   box-shadow: var(--shadow-lg);
 }
 
-.image-placeholder {
-  min-height: 500px;
-  width: 100%;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--bg-elevated-1), var(--bg-app));
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  color: var(--text-muted);
-  text-align: center;
-  padding: var(--space-8);
-}
-
-.image-placeholder span {
-  margin-bottom: 10px;
-  color: var(--text-muted);
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 2px;
-}
-
-.image-placeholder small {
-  color: var(--text-muted);
-}
-
 /* ========================= ABOUT ========================= */
 
 .about-section {
@@ -432,10 +404,8 @@ a:focus-visible,
 }
 
 .location-content {
-  display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
-  gap: 50px;
-  align-items: center;
+  max-width: 680px;
+  margin: 0 auto;
 }
 
 .location-info h3 {
@@ -650,11 +620,6 @@ a:focus-visible,
     max-width: 100%;
   }
 
-  .image-placeholder {
-    min-height: 350px;
-    max-width: 100%;
-  }
-
   .about-section,
   .location-section {
     padding-left: 5%;
@@ -668,11 +633,6 @@ a:focus-visible,
 
   .about-card {
     padding: 28px;
-  }
-
-  .location-content {
-    grid-template-columns: 1fr;
-    gap: 32px;
   }
 
   .location-info {
@@ -745,10 +705,6 @@ a:focus-visible,
     max-width: 320px;
   }
 
-  .image-placeholder {
-    min-height: 300px;
-  }
-
   .about-section,
   .location-section {
     padding: 70px 20px;
@@ -764,10 +720,6 @@ a:focus-visible,
 
   .location-info h3 {
     font-size: 24px;
-  }
-
-  .map-placeholder {
-    min-height: 300px;
   }
 
   .cta-section {
@@ -894,12 +846,4 @@ a:focus-visible,
     padding: 18px;
   }
 
-  .map-placeholder {
-    min-height: 250px;
-  }
-
-  .image-placeholder {
-    min-height: 250px;
-    padding: var(--space-6);
-  }
 }

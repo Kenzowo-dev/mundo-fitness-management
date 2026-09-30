@@ -157,14 +157,6 @@ export default function LandingPage() {
               </a>
             </div>
 
-            <div className="map-container">
-              <div className="map-placeholder">
-                <span>GOOGLE MAPS</span>
-                <small>
-                  Aquí colocaremos la ubicación del gimnasio
-                </small>
-              </div>
-            </div>
           </div>
         </section>
 

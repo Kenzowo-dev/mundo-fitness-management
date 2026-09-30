@@ -25,6 +25,7 @@ export class NoopEmailProvider implements EmailProvider {
 
 export class DevLogEmailProvider implements EmailProvider {
   async sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
+    // Deliberate local-only output: manual password-reset testing needs the reset link/token.
     console.log('┌─────────────────────────────────────────────────────────────────');
     console.log('│ 📧 DEV EMAIL (no enviado realmente)');
     console.log('├─────────────────────────────────────────────────────────────────');
