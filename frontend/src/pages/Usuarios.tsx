@@ -42,6 +42,16 @@ function Usuarios() {
     )
   }
 
+  function obtenerIniciales(nombre: string) {
+    return nombre
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((parte) => parte[0])
+      .join('')
+      .toUpperCase()
+  }
+
   function handleEliminar(usuario: Usuario) {
     const confirmar = window.confirm(
       `¿Seguro que deseas eliminar a ${usuario.fullName}?`,
@@ -66,120 +76,261 @@ function Usuarios() {
     }
   }
 
+  const administradores = usuarios.filter(
+    (usuario) => usuario.role === 'admin',
+  ).length
+
+  const usuariosActivos = usuarios.filter(
+    (usuario) => usuario.role !== 'admin',
+  ).length
+
+  const usuariosConMembresia = usuarios.filter((usuario) => {
+    if (usuario.role === 'admin') return false
+
+    return Boolean(obtenerMembresiaUsuario(usuario.id))
+  }).length
+
   return (
     <div className="pagina-usuarios">
-      <header>
-        <div>
-          <h1>Mundo Fitness</h1>
-          <p>Administración de usuarios</p>
+      <header className="usuarios-topbar">
+        <div className="marca">
+          <div className="marca-icono">MF</div>
+
+          <div>
+            <h1>Mundo Fitness</h1>
+            <span>Panel administrativo</span>
+          </div>
         </div>
 
-        <Link to="/membresias">
-          Administrar membresías
-        </Link>
+        <div className="topbar-acciones">
+          <Link
+            className="btn-membresias"
+            to="/membresias"
+          >
+            <span>💳</span>
+            Administrar membresías
+          </Link>
+
+          <Link
+            className="btn-inicio"
+            to="/"
+          >
+            Inicio
+          </Link>
+        </div>
       </header>
 
-      <main>
-        <div className="usuarios-header">
+      <main className="usuarios-main">
+        <section className="usuarios-intro">
           <div>
+            <span className="seccion-label">
+              ADMINISTRACIÓN
+            </span>
+
             <h2>Usuarios</h2>
 
             <p>
-              Gestiona los usuarios registrados en Mundo Fitness.
+              Gestiona los usuarios registrados en
+              <strong> Mundo Fitness</strong>.
             </p>
           </div>
+        </section>
 
-          <Link to="/">
-            Volver al inicio
-          </Link>
-        </div>
+        <section className="usuarios-stats">
+          <div className="stat-card">
+            <div className="stat-icon usuarios-icon">
+              👥
+            </div>
 
-        {loading ? (
-          <section className="usuarios-vacio">
-            <p>Cargando información...</p>
-          </section>
-        ) : usuarios.length === 0 ? (
-          <section className="usuarios-vacio">
-            <h3>No hay usuarios registrados</h3>
+            <div>
+              <span>Total usuarios</span>
+              <strong>{usuarios.length}</strong>
+            </div>
+          </div>
 
-            <p>
-              Cuando un usuario se registre aparecerá aquí.
-            </p>
-          </section>
-        ) : (
-          <section className="tabla-usuarios">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Correo</th>
-                  <th>Teléfono</th>
-                  <th>Rol</th>
-                  <th>Membresía</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
+          <div className="stat-card">
+            <div className="stat-icon activos-icon">
+              ✓
+            </div>
 
-              <tbody>
-                {usuarios.map((usuario) => {
-                  const membresia = obtenerMembresiaUsuario(
-                    usuario.id,
-                  )
+            <div>
+              <span>Usuarios registrados</span>
+              <strong>{usuariosActivos}</strong>
+            </div>
+          </div>
 
-                  return (
-                    <tr key={usuario.id}>
-                      <td>{usuario.id}</td>
+          <div className="stat-card">
+            <div className="stat-icon membresia-icon">
+              💳
+            </div>
 
-                      <td>{usuario.fullName}</td>
+            <div>
+              <span>Con membresía</span>
+              <strong>{usuariosConMembresia}</strong>
+            </div>
+          </div>
 
-                      <td>{usuario.email}</td>
+          <div className="stat-card">
+            <div className="stat-icon admin-icon">
+              🛡
+            </div>
 
-                      <td>{usuario.phone}</td>
+            <div>
+              <span>Administradores</span>
+              <strong>{administradores}</strong>
+            </div>
+          </div>
+        </section>
 
-                      <td>
-                        <span
-                          className={`rol rol-${usuario.role}`}
-                        >
-                          {usuario.role}
-                        </span>
-                      </td>
+        <section className="usuarios-panel">
+          <div className="panel-header">
+            <div>
+              <h3>Usuarios registrados</h3>
 
-                      <td>
-                        {usuario.role === 'admin' ? (
-                          <span>Administrador</span>
-                        ) : membresia ? (
-                          <span>
-                            {membresia.plan}
+              <p>
+                Consulta y administra las cuentas de
+                Mundo Fitness.
+              </p>
+            </div>
+
+            <span className="contador-usuarios">
+              {usuarios.length}{' '}
+              {usuarios.length === 1
+                ? 'usuario'
+                : 'usuarios'}
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="usuarios-vacio">
+              <div className="loading-spinner"></div>
+
+              <h3>Cargando usuarios</h3>
+
+              <p>
+                Estamos obteniendo la información...
+              </p>
+            </div>
+          ) : usuarios.length === 0 ? (
+            <div className="usuarios-vacio">
+              <div className="vacio-icon">👥</div>
+
+              <h3>No hay usuarios registrados</h3>
+
+              <p>
+                Cuando un usuario se registre
+                aparecerá aquí.
+              </p>
+            </div>
+          ) : (
+            <div className="tabla-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Correo</th>
+                    <th>Teléfono</th>
+                    <th>Rol</th>
+                    <th>Membresía</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {usuarios.map((usuario) => {
+                    const membresia =
+                      obtenerMembresiaUsuario(usuario.id)
+
+                    return (
+                      <tr key={usuario.id}>
+                        <td>
+                          <div className="usuario-info">
+                            <div className="usuario-avatar">
+                              {obtenerIniciales(
+                                usuario.fullName,
+                              )}
+                            </div>
+
+                            <div>
+                              <strong>
+                                {usuario.fullName}
+                              </strong>
+
+                              <span>
+                                ID #{usuario.id}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td>
+                          <span className="dato-correo">
+                            {usuario.email}
                           </span>
-                        ) : (
-                          <span>
-                            Sin membresía
-                          </span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td>
-                        {usuario.role === 'admin' ? (
-                          <span>Administrador</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleEliminar(usuario)
-                            }
+                        <td>
+                          <span className="dato-telefono">
+                            {usuario.phone || 'No registrado'}
+                          </span>
+                        </td>
+
+                        <td>
+                          <span
+                            className={`rol-badge rol-${usuario.role}`}
                           >
-                            Eliminar
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </section>
-        )}
+                            <span className="badge-dot"></span>
+
+                            {usuario.role === 'admin'
+                              ? 'Administrador'
+                              : 'Usuario'}
+                          </span>
+                        </td>
+
+                        <td>
+                          {usuario.role === 'admin' ? (
+                            <span className="membresia-admin">
+                              🛡 Administrador
+                            </span>
+                          ) : membresia ? (
+                            <span className="membresia-activa">
+                              <span className="badge-dot"></span>
+                              {membresia.plan}
+                            </span>
+                          ) : (
+                            <span className="membresia-vacia">
+                              Sin membresía
+                            </span>
+                          )}
+                        </td>
+
+                        <td>
+                          {usuario.role === 'admin' ? (
+                            <span className="accion-protegida">
+                              🔒 Protegido
+                            </span>
+                          ) : (
+                            <button
+                              className="btn-eliminar"
+                              type="button"
+                              onClick={() =>
+                                handleEliminar(usuario)
+                              }
+                              title="Eliminar usuario"
+                            >
+                              🗑
+                              <span>Eliminar</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   )
