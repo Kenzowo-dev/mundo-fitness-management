@@ -121,6 +121,8 @@ cp .env.local.example .env.local
 cp .env.docker.example .env.docker
 ```
 
+Los valores incluidos en las plantillas son **LOCAL ONLY**. El stack Docker publica sus puertos únicamente en `127.0.0.1`; no está preparado para exponerse a otros equipos. `JWT_SECRET`, contraseñas de PostgreSQL y Redis deben reemplazarse antes de usar datos reales. En modo `production`, la configuración rechaza el secreto demo, contraseñas débiles/ausentes, CORS sin HTTPS y orígenes comodín.
+
 ### 5. Instala e inicia
 
 #### Opción A: Node local + PostgreSQL/Redis en Docker
@@ -153,6 +155,8 @@ No ejecutes `pnpm dev` y el stack completo de Compose a la vez porque usan los m
 #### Usuario demo local
 
 La base inicial incluye `admin@mundofitness.com` con contraseña `Admin1234!`, además de usuarios de recepción y socio con la misma contraseña. Son cuentas **LOCAL ONLY**.
+
+La autenticación actual entrega JWT Bearer y el cliente los guarda en `localStorage`; no utiliza cookies de sesión. Mantén esta configuración limitada al entorno local. Antes de publicar el sistema habrá que migrar la sesión a cookies `HttpOnly`, `Secure` y `SameSite` con protección CSRF.
 
 ---
 

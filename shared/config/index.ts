@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
+import { validateSecuritySettings } from './security.js';
 
 /**
  * Busca el archivo .env más cercano al módulo actual.
@@ -89,32 +90,43 @@ function getRequiredEnv(key: string): string {
  * Todas las variables se validan al importar este módulo (fail-fast).
  * Valores con defaults son opcionales; los required usan getRequiredEnv().
  */
+const nodeEnv = process.env.NODE_ENV || 'development';
+const jwtSecret = getRequiredEnv('JWT_SECRET');
+const postgresPassword = getRequiredEnv('POSTGRES_PASSWORD');
+const redisPassword = process.env.REDIS_PASSWORD || undefined;
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+validateSecuritySettings({ nodeEnv, jwtSecret, postgresPassword, redisPassword, corsOrigins });
+
 export const config: Config = {
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   port: parseInt(process.env.PORT || '3000', 10),
   postgres: {
     host: getRequiredEnv('POSTGRES_HOST'),
     port: parseInt(getRequiredEnv('POSTGRES_PORT'), 10),
     database: getRequiredEnv('POSTGRES_DB'),
     user: getRequiredEnv('POSTGRES_USER'),
-    password: getRequiredEnv('POSTGRES_PASSWORD'),
+    password: postgresPassword,
     ssl: process.env.POSTGRES_SSL === 'true',
     maxConnections: parseInt(process.env.POSTGRES_MAX_CONNECTIONS || '20', 10),
   },
   redis: {
     host: getRequiredEnv('REDIS_HOST'),
     port: parseInt(getRequiredEnv('REDIS_PORT'), 10),
-    password: process.env.REDIS_PASSWORD,
+    password: redisPassword,
     db: parseInt(process.env.REDIS_DB || '0', 10),
   },
   jwt: {
-    secret: getRequiredEnv('JWT_SECRET'),
+    secret: jwtSecret,
     expiresIn: process.env.JWT_EXPIRES_IN || '15m',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
   cors: {
-    origin: (process.env.CORS_ORIGIN || 'http://localhost:5173').split(','),
-    credentials: true,
+    origin: corsOrigins,
+    credentials: false,
   },
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),

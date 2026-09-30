@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-gym_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./shared/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -24,12 +24,15 @@ services:
     image: redis:7-alpine
     container_name: gym-redis
     restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    command: ["sh", "-c", "if [ -n \"$${REDIS_PASSWORD}\" ]; then exec redis-server --requirepass \"$${REDIS_PASSWORD}\"; else exec redis-server; fi"]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "if [ -n \"$${REDIS_PASSWORD}\" ]; then REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping; else redis-cli ping; fi"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,6 +53,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
@@ -58,7 +62,7 @@ services:
       RATE_LIMIT_MAX_REQUESTS: 100
       SERVICE_NAME: auth-service
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,13 +90,14 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
       SERVICE_NAME: client-service
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     depends_on:
       postgres:
         condition: service_healthy
@@ -120,13 +125,14 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
       SERVICE_NAME: membership-service
     ports:
-      - "3003:3003"
+      - "127.0.0.1:3003:3003"
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,13 +160,14 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       RATE_LIMIT_WINDOW_MS: 900000
       RATE_LIMIT_MAX_REQUESTS: 100
       SERVICE_NAME: payment-service
     ports:
-      - "3004:3004"
+      - "127.0.0.1:3004:3004"
     depends_on:
       postgres:
         condition: service_healthy
@@ -188,6 +195,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym_password}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       RATE_LIMIT_WINDOW_MS: 900000
@@ -198,7 +206,7 @@ services:
       MEMBERSHIP_SERVICE_URL: http://membership-service:3003
       PAYMENT_SERVICE_URL: http://payment-service:3004
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       auth-service:
         condition: service_healthy
@@ -223,7 +231,7 @@ services:
     environment:
       VITE_API_URL: http://localhost:3000
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     depends_on:
       api-gateway:
         condition: service_healthy
