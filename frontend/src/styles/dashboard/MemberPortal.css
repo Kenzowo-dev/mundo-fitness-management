@@ -1,0 +1,93 @@
+.member-portal {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+  padding: clamp(var(--space-5), 4vw, var(--space-10));
+  display: grid;
+  gap: var(--space-5);
+}
+
+.member-portal-header,
+.member-section-header,
+.membership-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.member-portal-header { align-items: center; }
+.member-portal-header h1 { margin: var(--space-1) 0; font-size: clamp(2rem, 5vw, 3rem); }
+.member-portal-header p:last-child { margin-bottom: 0; color: var(--text-secondary); }
+.member-eyebrow { margin: 0; color: var(--text-secondary); font-size: .75rem; font-weight: 700; letter-spacing: .08em; }
+
+.member-card {
+  min-width: 0;
+  padding: clamp(var(--space-5), 3vw, var(--space-8));
+  display: grid;
+  gap: var(--space-4);
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+.member-section-header { align-items: center; }
+.member-section-header h2,
+.membership-status h2 { margin: 0; font-size: 1.25rem; }
+.membership-status { align-items: center; background: var(--bg-elevated-2); }
+.membership-summary { min-width: 0; }
+.membership-summary h2 { margin-block: var(--space-2); overflow-wrap: anywhere; }
+.membership-summary p:last-child { margin: 0; color: var(--text-secondary); }
+.membership-status-skeleton { margin-top: var(--space-2); }
+
+.membership-badge {
+  flex: none;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-secondary);
+  background: var(--bg-elevated-3);
+  border-radius: var(--radius-full);
+  font-size: .85rem;
+  font-weight: 700;
+}
+.membership-badge.is-active { color: var(--state-success); }
+.membership-badge.is-loading { color: var(--text-secondary); }
+
+.member-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+.member-details div { min-width: 0; padding: var(--space-3); background: var(--bg-elevated-2); border-radius: var(--radius-md); }
+.member-details dt { color: var(--text-secondary); font-size: .875rem; }
+.member-details dd { margin: var(--space-1) 0 0; color: var(--text-primary); font-weight: 600; overflow-wrap: anywhere; }
+
+.member-membership-list { list-style: none; padding: 0; margin: 0; }
+.member-membership-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border-default);
+}
+.member-membership-list li:first-child { border-top: 0; }
+.member-membership-list strong { color: var(--text-primary); }
+.member-membership-list span { color: var(--text-secondary); overflow-wrap: anywhere; }
+.member-muted { margin: 0; color: var(--text-secondary); }
+.member-request-status { margin: 0; padding: var(--space-3) var(--space-4); color: var(--text-primary); background: var(--bg-elevated-2); border-left: 3px solid var(--accent-primary); border-radius: var(--radius-sm); }
+.member-request-history { margin-top: var(--space-3); }
+
+.member-profile-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.member-profile-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: var(--space-3); padding-top: var(--space-2); }
+.member-skeleton-list { display: grid; gap: var(--space-3); }
+
+.member-portal :is(button, input, select, textarea):focus-visible { outline: 3px solid var(--accent-primary); outline-offset: 3px; }
+
+@media (max-width: 700px) {
+  .member-portal { gap: var(--space-4); }
+  .member-portal-header { align-items: flex-start; flex-direction: column; }
+  .member-section-header { align-items: flex-start; flex-direction: column; }
+  .member-details, .member-profile-form { grid-template-columns: 1fr; }
+  .member-membership-list li { grid-template-columns: 1fr; gap: var(--space-1); }
+  .member-profile-actions { flex-direction: column-reverse; }
+  .member-profile-actions .btn { width: 100%; }
+}

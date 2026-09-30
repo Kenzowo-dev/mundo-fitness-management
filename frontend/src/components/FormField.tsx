@@ -19,6 +19,7 @@ interface FormFieldProps {
   options?: Array<{ value: string; label: string }>
   emptyOptionLabel?: string
   autoComplete?: string
+  maxLength?: number
   className?: string
 }
 
@@ -38,6 +39,7 @@ export default function FormField({
   options,
   emptyOptionLabel,
   autoComplete,
+  maxLength,
   className = '',
 }: FormFieldProps) {
   const renderInput = () => {
@@ -58,18 +60,18 @@ export default function FormField({
       case 'select':
         return (
           <Select {...commonProps} error={error} helperText={helperText}>
+            {emptyOptionLabel && <option value="">{emptyOptionLabel}</option>}
             {options?.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-            {emptyOptionLabel && <option value="">{emptyOptionLabel}</option>}
           </Select>
         )
       case 'textarea':
-        return <Textarea {...commonProps} />
+        return <Textarea {...commonProps} maxLength={maxLength} />
       default:
-        return <Input {...commonProps} type={type} autoComplete={autoComplete} />
+        return <Input {...commonProps} type={type} autoComplete={autoComplete} maxLength={maxLength} />
     }
   }
 

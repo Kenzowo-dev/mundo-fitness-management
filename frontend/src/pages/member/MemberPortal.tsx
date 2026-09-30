@@ -1,100 +1,129 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/client';
-import { useAuth } from '../../context/useAuth';
-import { useCreateMembershipRenewalRequest, useMyMembershipRenewalRequests, useUpdateOwnClientProfile } from '../../hooks/useApi';
-import type { Client, ClientMembership, MembershipPlan, Payment } from '../../types/api';
-import './MemberPortal.css';
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
+import { api } from '../../api/client'
+import { useAuth } from '../../context/useAuth'
+import { useCreateMembershipRenewalRequest, useMyMembershipRenewalRequests, useUpdateOwnClientProfile } from '../../hooks/useApi'
+import type { Client, ClientMembership, MembershipPlan, Payment } from '../../types/api'
+import Alert from '../../components/Alert'
+import Button from '../../components/Button'
+import FormField from '../../components/FormField'
+import Skeleton from '../../components/Skeleton'
+import '@/styles/dashboard/MemberPortal.css'
 
-type ContactDetails = Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>;
+type ContactDetails = Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>
 
-function date(value?: string) {
-  if (!value) return 'Sin fecha';
-  return new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(new Date(value));
+function formatDate(value?: string) {
+  if (!value) return 'Sin fecha'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return 'Fecha no disponible'
+  return new Intl.DateTimeFormat('es-PE', { dateStyle: 'long' }).format(parsed)
+}
+
+function formatMoney(amount: number, currency: string) {
+  try { return new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(amount) }
+  catch { return `${currency} ${amount.toFixed(2)}` }
+}
+
+function statusLabel(status: string) {
+  const labels: Record<string, string> = {
+    active: 'Activa', expired: 'Vencida', cancelled: 'Cancelada', completed: 'Pagado', pending: 'Pendiente',
+    failed: 'Fallido', refunded: 'Reembolsado', contacted: 'En atención', closed: 'Cerrada',
+  }
+  return labels[status] ?? status
+}
+
+function SectionSkeleton({ rows = 2 }: { rows?: number }) {
+  return <div className="member-skeleton-list" aria-hidden="true">{Array.from({ length: rows }, (_, index) => <Skeleton key={index} height="44px" />)}</div>
+}
+
+function PortalSection({ id, title, children, action }: { id: string; title: string; children: ReactNode; action?: ReactNode }) {
+  return <section className="member-card" aria-labelledby={id}><header className="member-section-header"><h2 id={id}>{title}</h2>{action}</header>{children}</section>
 }
 
 export default function MemberPortal() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState<ContactDetails>({ phone: '', address: '', emergencyContactName: '', emergencyContactPhone: '' });
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [profileForm, setProfileForm] = useState<ContactDetails>({ phone: '', address: '', emergencyContactName: '', emergencyContactPhone: '' })
+  const [profileMessage, setProfileMessage] = useState<string | null>(null)
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const [renewalPlanId, setRenewalPlanId] = useState('')
+  const [renewalNote, setRenewalNote] = useState('')
+  const [renewalMessage, setRenewalMessage] = useState<string | null>(null)
+  const [renewalError, setRenewalError] = useState<string | null>(null)
+
   const clientQuery = useQuery<Client>({
     queryKey: ['member-portal', 'client', user?.id],
     queryFn: () => api.getClientByUserId(user!.id),
     enabled: !!user?.id,
     retry: false,
-  });
-  const clientId = clientQuery.data?.id;
-  const updateProfileMutation = useUpdateOwnClientProfile(user?.id);
+  })
+  const clientId = clientQuery.data?.id
+  const updateProfileMutation = useUpdateOwnClientProfile(user?.id)
   const membershipsQuery = useQuery<ClientMembership[]>({
     queryKey: ['member-portal', 'memberships', clientId],
     queryFn: () => api.getClientMemberships(clientId!) as Promise<ClientMembership[]>,
     enabled: !!clientId,
-  });
+  })
   const plansQuery = useQuery<MembershipPlan[]>({
     queryKey: ['member-portal', 'plans'],
     queryFn: () => api.getMembershipPlans(true) as Promise<MembershipPlan[]>,
-  });
-  const renewalRequestsQuery = useMyMembershipRenewalRequests();
-  const createRenewalRequest = useCreateMembershipRenewalRequest();
-  const [renewalPlanId, setRenewalPlanId] = useState('');
-  const [renewalNote, setRenewalNote] = useState('');
-  const [renewalMessage, setRenewalMessage] = useState<string | null>(null);
-  const [renewalError, setRenewalError] = useState<string | null>(null);
+  })
+  const renewalRequestsQuery = useMyMembershipRenewalRequests()
+  const createRenewalRequest = useCreateMembershipRenewalRequest()
   const paymentsQuery = useQuery<{ data: Payment[] }>({
     queryKey: ['member-portal', 'payments', clientId],
     queryFn: () => api.getClientPayments(clientId!),
     enabled: !!clientId,
-  });
-  const activeMembership = membershipsQuery.data?.find((membership) => {
-    const today = new Date().toISOString().slice(0, 10);
-    return membership.status === 'active' && membership.startDate.slice(0, 10) <= today && membership.endDate.slice(0, 10) >= today;
-  });
-  const openRenewalRequest = renewalRequestsQuery.data?.find((request) => request.status !== 'closed');
+  })
 
-  const submitRenewalRequest = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setRenewalError(null);
-    setRenewalMessage(null);
-    if (!renewalPlanId) { setRenewalError('Selecciona un plan para continuar.'); return; }
+  const today = new Date().toISOString().slice(0, 10)
+  const activeMembership = membershipsQuery.data?.find((membership) =>
+    membership.status === 'active' && membership.startDate.slice(0, 10) <= today && membership.endDate.slice(0, 10) >= today,
+  )
+  const openRenewalRequest = renewalRequestsQuery.data?.find((request) => request.status !== 'closed')
+
+  const submitRenewalRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setRenewalError(null)
+    setRenewalMessage(null)
+    if (!renewalPlanId) { setRenewalError('Selecciona un plan para continuar.'); return }
     try {
-      await createRenewalRequest.mutateAsync({ planId: Number(renewalPlanId), memberNote: renewalNote.trim() || undefined });
-      setRenewalPlanId('');
-      setRenewalNote('');
-      setRenewalMessage('Solicitud enviada. Recepción se pondrá en contacto contigo.');
-    } catch (error) {
-      setRenewalError(error instanceof Error ? error.message : 'No pudimos enviar la solicitud. Inténtalo de nuevo.');
+      await createRenewalRequest.mutateAsync({ planId: Number(renewalPlanId), memberNote: renewalNote.trim() || undefined })
+      setRenewalPlanId('')
+      setRenewalNote('')
+      setRenewalMessage('Solicitud enviada. Recepción se pondrá en contacto contigo.')
+    } catch {
+      setRenewalError('No pudimos enviar la solicitud. Comprueba tu conexión e inténtalo de nuevo.')
     }
-  };
+  }
 
   const beginProfileEdit = () => {
-    if (!clientQuery.data) return;
+    if (!clientQuery.data) return
     setProfileForm({
       phone: clientQuery.data.phone ?? '',
       address: clientQuery.data.address ?? '',
       emergencyContactName: clientQuery.data.emergencyContactName ?? '',
       emergencyContactPhone: clientQuery.data.emergencyContactPhone ?? '',
-    });
-    setProfileMessage(null);
-    setProfileError(null);
-    setIsEditingProfile(true);
-  };
+    })
+    setProfileMessage(null)
+    setProfileError(null)
+    setIsEditingProfile(true)
+  }
 
-  const saveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setProfileError(null);
-    setProfileMessage(null);
+  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setProfileError(null)
+    setProfileMessage(null)
     try {
-      await updateProfileMutation.mutateAsync(profileForm);
-      setIsEditingProfile(false);
-      setProfileMessage('Tus datos de contacto se actualizaron.');
-    } catch (error) {
-      setProfileError(error instanceof Error ? error.message : 'No pudimos actualizar tus datos. Inténtalo de nuevo.');
+      await updateProfileMutation.mutateAsync(profileForm)
+      setIsEditingProfile(false)
+      setProfileMessage('Tus datos de contacto se actualizaron.')
+    } catch {
+      setProfileError('No pudimos actualizar tus datos. Comprueba tu conexión e inténtalo de nuevo.')
     }
-  };
+  }
 
   return (
     <main className="member-portal">
@@ -104,48 +133,44 @@ export default function MemberPortal() {
           <h1>Hola, {user?.firstName}</h1>
           <p>Consulta tu membresía y mantén tus datos al día.</p>
         </div>
-        <button type="button" className="member-logout" onClick={() => { logout(); navigate('/'); }}>Cerrar sesión</button>
+        <Button type="button" variant="secondary" onClick={() => { logout(); navigate('/') }}>Cerrar sesión</Button>
       </header>
 
-      {clientQuery.isLoading && <p role="status">Cargando tu información…</p>}
+      {clientQuery.isLoading && <section className="member-card" aria-label="Cargando tu perfil" aria-busy="true"><SectionSkeleton rows={3} /></section>}
       {clientQuery.isError && (
-        <section className="member-card" role="alert">
-          <h2>No encontramos tu perfil de socio</h2>
-          <p>Tu cuenta está activa, pero todavía no tiene un perfil asociado. Contacta con recepción para completar el registro.</p>
+        <section className="member-card" aria-label="Error al cargar el perfil">
+          <Alert type="error" title="No pudimos cargar tu perfil" message="Vuelve a intentarlo. Si el problema continúa, contacta con recepción para revisar tu cuenta." />
+          <Button variant="secondary" onClick={() => void clientQuery.refetch()}>Volver a intentar</Button>
         </section>
       )}
+
       {clientQuery.data && (
         <>
-          <section className="member-card membership-status" aria-labelledby="membership-heading">
-            <div>
+          <section className="member-card membership-status" aria-labelledby="membership-heading" aria-busy={membershipsQuery.isLoading}>
+            <div className="membership-summary">
               <p className="member-eyebrow">TU MEMBRESÍA</p>
-              <h2 id="membership-heading">
-                {membershipsQuery.isLoading ? 'Consultando vigencia…' : activeMembership?.plan?.name ?? 'Sin membresía vigente'}
-              </h2>
-              {activeMembership && <p>Válida hasta el {date(activeMembership.endDate)}</p>}
-              {!activeMembership && !membershipsQuery.isLoading && <p>Acércate a recepción para consultar los planes y activar tu membresía.</p>}
+              <h2 id="membership-heading">{membershipsQuery.isLoading ? 'Consultando vigencia…' : activeMembership?.plan?.name ?? 'Sin membresía vigente'}</h2>
+              {membershipsQuery.isLoading && <Skeleton className="membership-status-skeleton" height="18px" width="55%" />}
+              {activeMembership && <p>Válida hasta el {formatDate(activeMembership.endDate)}</p>}
+              {!activeMembership && !membershipsQuery.isLoading && <p>Solicita una renovación y recepción te ayudará a activarla.</p>}
             </div>
-            <span className={`membership-badge ${activeMembership ? 'is-active' : 'is-inactive'}`}>
-              {activeMembership ? 'Vigente' : 'Pendiente'}
+            <span className={`membership-badge ${membershipsQuery.isLoading ? 'is-loading' : activeMembership ? 'is-active' : 'is-inactive'}`}>
+              {membershipsQuery.isLoading ? 'Consultando' : activeMembership ? 'Vigente' : 'Sin vigencia'}
             </span>
           </section>
 
-          <section className="member-card" aria-labelledby="profile-heading">
-            <div className="member-profile-heading">
-              <h2 id="profile-heading">Mis datos</h2>
-              {!isEditingProfile && <button type="button" className="member-secondary-button" onClick={beginProfileEdit}>Actualizar datos</button>}
-            </div>
-            {profileMessage && <p role="status" className="member-success-message">{profileMessage}</p>}
-            {profileError && <p role="alert" className="member-error-message">{profileError}</p>}
+          <PortalSection id="profile-heading" title="Mis datos" action={!isEditingProfile && <Button type="button" variant="secondary" onClick={beginProfileEdit}>Actualizar datos</Button>}>
+            {profileMessage && <Alert type="success" message={profileMessage} dismissible onDismiss={() => setProfileMessage(null)} />}
+            {profileError && <Alert type="error" message={profileError} dismissible onDismiss={() => setProfileError(null)} />}
             {isEditingProfile ? (
               <form className="member-profile-form" onSubmit={saveProfile}>
-                <label>Teléfono<input type="tel" maxLength={20} value={profileForm.phone ?? ''} onChange={(event) => setProfileForm((current) => ({ ...current, phone: event.target.value }))} /></label>
-                <label>Dirección<input type="text" value={profileForm.address ?? ''} onChange={(event) => setProfileForm((current) => ({ ...current, address: event.target.value }))} /></label>
-                <label>Nombre de contacto de emergencia<input type="text" maxLength={100} value={profileForm.emergencyContactName ?? ''} onChange={(event) => setProfileForm((current) => ({ ...current, emergencyContactName: event.target.value }))} /></label>
-                <label>Teléfono de contacto de emergencia<input type="tel" maxLength={20} value={profileForm.emergencyContactPhone ?? ''} onChange={(event) => setProfileForm((current) => ({ ...current, emergencyContactPhone: event.target.value }))} /></label>
+                <FormField id="member-phone" name="phone" label="Teléfono" type="tel" maxLength={20} value={profileForm.phone ?? ''} onChange={(phone) => setProfileForm((current) => ({ ...current, phone }))} autoComplete="tel" />
+                <FormField id="member-address" name="address" label="Dirección" value={profileForm.address ?? ''} onChange={(address) => setProfileForm((current) => ({ ...current, address }))} autoComplete="street-address" />
+                <FormField id="emergency-name" name="emergencyContactName" label="Nombre de contacto de emergencia" maxLength={100} value={profileForm.emergencyContactName ?? ''} onChange={(emergencyContactName) => setProfileForm((current) => ({ ...current, emergencyContactName }))} />
+                <FormField id="emergency-phone" name="emergencyContactPhone" label="Teléfono de contacto de emergencia" type="tel" maxLength={20} value={profileForm.emergencyContactPhone ?? ''} onChange={(emergencyContactPhone) => setProfileForm((current) => ({ ...current, emergencyContactPhone }))} />
                 <div className="member-profile-actions">
-                  <button type="button" className="member-secondary-button" onClick={() => setIsEditingProfile(false)}>Cancelar</button>
-                  <button type="submit" className="member-primary-button" disabled={updateProfileMutation.isPending}>{updateProfileMutation.isPending ? 'Guardando…' : 'Guardar datos'}</button>
+                  <Button type="button" variant="secondary" onClick={() => setIsEditingProfile(false)}>Cancelar</Button>
+                  <Button type="submit" loading={updateProfileMutation.isPending}>Guardar datos</Button>
                 </div>
               </form>
             ) : (
@@ -159,80 +184,56 @@ export default function MemberPortal() {
                 <div><dt>Teléfono de emergencia</dt><dd>{clientQuery.data.emergencyContactPhone || 'No registrado'}</dd></div>
               </dl>
             )}
-          </section>
+          </PortalSection>
 
-          <section className="member-card" aria-labelledby="history-heading">
-            <h2 id="history-heading">Historial de membresías</h2>
-            {membershipsQuery.isLoading && <p role="status">Cargando historial…</p>}
-            {membershipsQuery.isError && <p role="alert">No pudimos cargar tu historial. Inténtalo más tarde.</p>}
-            {!membershipsQuery.isLoading && !membershipsQuery.isError && membershipsQuery.data?.length === 0 && <p>Aún no tienes membresías registradas.</p>}
-            {!!membershipsQuery.data?.length && (
-              <ul className="member-membership-list">
-                {membershipsQuery.data.map((membership) => (
-                  <li key={membership.id}>
-                    <strong>{membership.plan?.name ?? 'Plan de membresía'}</strong>
-                    <span>{date(membership.startDate)} – {date(membership.endDate)}</span>
-                    <span>{membership.status === 'active' ? 'Activa' : membership.status}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          <section className="member-card" aria-labelledby="plans-heading">
-            <h2 id="plans-heading">Planes disponibles</h2>
-            {plansQuery.isLoading && <p role="status">Cargando planes…</p>}
-            {plansQuery.isError && <p role="alert">No pudimos cargar los planes. Inténtalo más tarde.</p>}
-            {!plansQuery.isLoading && !plansQuery.isError && plansQuery.data?.length === 0 && <p>No hay planes disponibles en este momento.</p>}
-            {!!plansQuery.data?.length && (
-              <ul className="member-membership-list">
-                {plansQuery.data.map((plan) => (
-                  <li key={plan.id}>
-                    <strong>{plan.name}</strong>
-                    <span>{plan.durationDays} días · {new Intl.NumberFormat('es-PE', { style: 'currency', currency: plan.currency }).format(plan.price)}</span>
-                    <span>{plan.description || 'Consulta condiciones en recepción'}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p>Envía tu solicitud desde aquí. Recepción confirmará los detalles; este formulario no procesa pagos ni activa membresías.</p>
-            {renewalMessage && <p role="status" className="member-success-message">{renewalMessage}</p>}
-            {renewalError && <p role="alert" className="member-error-message">{renewalError}</p>}
-            {renewalRequestsQuery.isError && <p role="alert">No pudimos cargar tus solicitudes.</p>}
-            {openRenewalRequest ? (
-              <p role="status">Solicitud de {openRenewalRequest.planName}: {openRenewalRequest.status === 'pending' ? 'pendiente de revisión' : 'recepción ya la está atendiendo'}.</p>
+          <PortalSection id="history-heading" title="Historial de membresías">
+            {membershipsQuery.isLoading && <SectionSkeleton rows={2} />}
+            {membershipsQuery.isError && <Alert type="error" message="No pudimos cargar tu historial." />}
+            {membershipsQuery.isError && <Button variant="secondary" onClick={() => void membershipsQuery.refetch()}>Reintentar</Button>}
+            {!membershipsQuery.isLoading && !membershipsQuery.isError && !membershipsQuery.data?.length && <p className="member-muted">Aún no tienes membresías registradas.</p>}
+            {!!membershipsQuery.data?.length && <ul className="member-membership-list">{membershipsQuery.data.map((membership) => (
+              <li key={membership.id}><strong>{membership.plan?.name ?? 'Plan de membresía'}</strong><span>{formatDate(membership.startDate)} – {formatDate(membership.endDate)}</span><span>{statusLabel(membership.status)}</span></li>
+            ))}</ul>}
+          </PortalSection>
+
+          <PortalSection id="plans-heading" title="Planes y renovaciones">
+            {plansQuery.isLoading && <SectionSkeleton rows={2} />}
+            {plansQuery.isError && <Alert type="error" message="No pudimos cargar los planes." />}
+            {plansQuery.isError && <Button variant="secondary" onClick={() => void plansQuery.refetch()}>Reintentar</Button>}
+            {!plansQuery.isLoading && !plansQuery.isError && !plansQuery.data?.length && <p className="member-muted">No hay planes disponibles en este momento. Consulta en recepción.</p>}
+            {!!plansQuery.data?.length && <ul className="member-membership-list">{plansQuery.data.map((plan) => (
+              <li key={plan.id}><strong>{plan.name}</strong><span>{plan.durationDays} días · {formatMoney(plan.price, plan.currency)}</span><span>{plan.description || 'Consulta condiciones en recepción'}</span></li>
+            ))}</ul>}
+            <p className="member-muted">La solicitud no procesa pagos ni activa la membresía. Recepción confirmará los detalles.</p>
+            {renewalMessage && <Alert type="success" message={renewalMessage} dismissible onDismiss={() => setRenewalMessage(null)} />}
+            {renewalError && <Alert type="error" message={renewalError} dismissible onDismiss={() => setRenewalError(null)} />}
+            {renewalRequestsQuery.isError && <Alert type="error" message="No pudimos cargar tus solicitudes." />}
+            {renewalRequestsQuery.isError && <Button variant="secondary" onClick={() => void renewalRequestsQuery.refetch()}>Reintentar solicitudes</Button>}
+            {renewalRequestsQuery.isLoading ? <SectionSkeleton rows={1} /> : openRenewalRequest ? (
+              <p className="member-request-status" role="status">Solicitud de {openRenewalRequest.planName}: {statusLabel(openRenewalRequest.status)}.</p>
             ) : (
               <form className="member-profile-form renewal-request-form" onSubmit={submitRenewalRequest}>
-                <label>Plan solicitado<select required value={renewalPlanId} onChange={(event) => setRenewalPlanId(event.target.value)}>
-                  <option value="">Selecciona un plan</option>
-                  {(plansQuery.data ?? []).map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {new Intl.NumberFormat('es-PE', { style: 'currency', currency: plan.currency }).format(plan.price)}</option>)}
-                </select></label>
-                <label>Comentario para recepción (opcional)<input maxLength={500} value={renewalNote} onChange={(event) => setRenewalNote(event.target.value)} /></label>
-                <div className="member-profile-actions"><button className="member-primary-button" type="submit" disabled={createRenewalRequest.isPending || !plansQuery.data?.length}>{createRenewalRequest.isPending ? 'Enviando…' : 'Solicitar renovación'}</button></div>
+                <FormField id="renewal-plan" name="planId" label="Plan solicitado" type="select" value={renewalPlanId} onChange={setRenewalPlanId} required emptyOptionLabel="Selecciona un plan" options={(plansQuery.data ?? []).map((plan) => ({ value: String(plan.id), label: `${plan.name} · ${formatMoney(plan.price, plan.currency)}` }))} />
+                <FormField id="renewal-note" name="memberNote" label="Comentario para recepción (opcional)" maxLength={500} value={renewalNote} onChange={setRenewalNote} />
+                <div className="member-profile-actions"><Button type="submit" loading={createRenewalRequest.isPending} disabled={!plansQuery.data?.length || plansQuery.isLoading || renewalRequestsQuery.isError}>Solicitar renovación</Button></div>
               </form>
             )}
-            {!!renewalRequestsQuery.data?.length && <ul className="member-membership-list" aria-label="Historial de solicitudes">
-              {renewalRequestsQuery.data.map((request) => <li key={request.id}><strong>{request.planName}</strong><span>{date(request.requestedAt)}</span><span>{request.status === 'pending' ? 'Pendiente' : request.status === 'contacted' ? 'En atención' : 'Cerrada'}</span></li>)}
-            </ul>}
-          </section>
-          <section className="member-card" aria-labelledby="payments-heading">
-            <h2 id="payments-heading">Mis pagos</h2>
-            {paymentsQuery.isLoading && <p role="status">Cargando pagos…</p>}
-            {paymentsQuery.isError && <p role="alert">No pudimos cargar tus pagos. Inténtalo más tarde.</p>}
-            {!paymentsQuery.isLoading && !paymentsQuery.isError && paymentsQuery.data?.data.length === 0 && <p>Aún no tienes pagos registrados.</p>}
-            {!!paymentsQuery.data?.data.length && (
-              <ul className="member-membership-list">
-                {paymentsQuery.data.data.map((payment) => (
-                  <li key={payment.id}>
-                    <strong>{new Intl.NumberFormat('es-PE', { style: 'currency', currency: payment.currency }).format(payment.amount)}</strong>
-                    <span>{date(payment.paidAt || payment.createdAt)}</span>
-                    <span>{payment.status === 'completed' ? 'Pagado' : payment.status === 'pending' ? 'Pendiente' : payment.status}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+            {!!renewalRequestsQuery.data?.length && <ul className="member-membership-list member-request-history" aria-label="Historial de solicitudes">{renewalRequestsQuery.data.map((request) => (
+              <li key={request.id}><strong>{request.planName}</strong><span>{formatDate(request.requestedAt)}</span><span>{statusLabel(request.status)}</span></li>
+            ))}</ul>}
+          </PortalSection>
+
+          <PortalSection id="payments-heading" title="Mis pagos">
+            {paymentsQuery.isLoading && <SectionSkeleton rows={2} />}
+            {paymentsQuery.isError && <Alert type="error" message="No pudimos cargar tus pagos." />}
+            {paymentsQuery.isError && <Button variant="secondary" onClick={() => void paymentsQuery.refetch()}>Reintentar</Button>}
+            {!paymentsQuery.isLoading && !paymentsQuery.isError && !paymentsQuery.data?.data.length && <p className="member-muted">Aún no tienes pagos registrados.</p>}
+            {!!paymentsQuery.data?.data.length && <ul className="member-membership-list">{paymentsQuery.data.data.map((payment) => (
+              <li key={payment.id}><strong>{formatMoney(payment.amount, payment.currency)}</strong><span>{formatDate(payment.paidAt || payment.createdAt)}</span><span>{statusLabel(payment.status)}</span></li>
+            ))}</ul>}
+          </PortalSection>
         </>
       )}
     </main>
-  );
+  )
 }

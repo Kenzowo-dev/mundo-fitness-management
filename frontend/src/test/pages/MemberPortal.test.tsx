@@ -89,7 +89,7 @@ describe('MemberPortal', () => {
     const createMembershipSpy = vi.spyOn(api, 'createMembership');
     renderPortal();
 
-    fireEvent.change(await screen.findByLabelText('Plan solicitado'), { target: { value: '3' } });
+    fireEvent.change(await screen.findByLabelText(/Plan solicitado/), { target: { value: '3' } });
     fireEvent.change(screen.getByLabelText('Comentario para recepción (opcional)'), { target: { value: 'Prefiero pagar en recepción' } });
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar renovación' }));
 
