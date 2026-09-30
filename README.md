@@ -38,14 +38,14 @@ Navegador → Frontend (:5173) → API Gateway (:3000)
 ## Pila tecnológica
 
 ### Backend
-- **Entorno de ejecución**: Node.js 20+ con módulos ES
+- **Entorno de ejecución**: Node.js 22 con módulos ES
 - **Framework**: Express.js
 - **Lenguaje**: TypeScript 6.0.x (modo estricto)
 - **Base de datos**: PostgreSQL 17 (en Docker) con grupo de conexiones pg
 - **Caché/cola**: Redis 7+ (redis@5, no ioredis)
 - **Validación**: Zod
 - **Autenticación**: JWT (jsonwebtoken), bcryptjs
-- **Documentación**: OpenAPI/Swagger (planificada)
+- **Documentación de API**: ejemplos curl en este README (OpenAPI/Swagger aún no está implementada)
 
 ### Frontend
 - **Framework**: React 19.2.x con TypeScript
@@ -53,8 +53,8 @@ Navegador → Frontend (:5173) → API Gateway (:3000)
 - **Enrutamiento**: React Router 7.18.x
 - **Gestión de estado**: **TanStack Query (React Query) v5** para estado del servidor + React Context para autenticación
 - **Formularios**: Validación con **Zod** (esquemas compartidos en `@gym/shared`), manejo manual de estado (sin React Hook Form)
-- **Componentes de IU**: **TailwindCSS + shadcn/ui (Radix UI primitives)**
-- **Iconos**: Emoji
+- **Estilos**: CSS modular propio (sin TailwindCSS ni shadcn/ui)
+- **Iconos y motion**: Morphicons y Motion; Howler.js está disponible para audio
 - **Gráficos**: visualizaciones SVG y CSS para tendencias, barras, distribución y mapas de calor
 
 ### DevOps
@@ -66,169 +66,87 @@ Navegador → Frontend (:5173) → API Gateway (:3000)
 
 ## Requisitos previos
 
-- **Node.js** 20.0.0 o superior
-- **pnpm** 11.0.0 o superior (`npm install -g pnpm`)
-- **PostgreSQL** 17.0 o superior (o usar Docker)
-- **Redis** 7.0 o superior (o usar Docker)
-- **Docker** 24.0+ y **Docker Compose** 2.0+ (opcional, para una implementación en contenedores)
+- Node.js 22 (usado por las imágenes Docker del proyecto).
+- Corepack y pnpm 11.24.0, versión fijada en `package.json`.
+- Docker Engine con Docker Compose v2, para ejecutar la configuración local recomendada.
+- Git para clonar el repositorio.
 
-## Instalación
+No necesitas instalar PostgreSQL ni Redis en el host para el flujo con Docker.
 
-### 1. Verifica que tu computadora cumple los requisitos
+## Instalación local con Docker
 
-Antes de instalar cualquier cosa, comprueba que tienes lo siguiente. Si alguno falta, instálalo primero.
-
-| Herramienta | Versión mínima | Cómo verificarla |
-|---|---|---|
-| **Node.js** | 20.0.0 o superior | Abre una terminal y escribe `node -v` |
-| **pnpm** | 9.0.0 o superior (el proyecto usa pnpm 11) | Escribe `pnpm -v` |
-| **PostgreSQL** | 16.0 o superior | Escribe `psql --version` |
-| **Redis** | 7.0 o superior | Escribe `redis-cli --version` |
-| **Docker** (opcional) | 24.0+ | Escribe `docker --version` |
-
-> Activa Corepack con `corepack enable` para que pnpm use la versión fijada en `package.json`.
-
-### 2. Clona el repositorio a tu computadora
-
-Abre una terminal (PowerShell, CMD, Terminal de macOS o consola de Linux) y copia este comando tal cual:
+Desde la raíz del repositorio, crea los archivos de configuración locales y descarga las dependencias:
 
 ```bash
-# Descarga el código del proyecto a tu computadora
-git clone https://github.com/Kenzowo-dev/GYM_Proyect.git
-
-# Entra a la carpeta que se acaba de crear
-cd GYM_Proyect
-```
-
-> **Consejo:** si `git clone` no funciona, instala Git desde https://git-scm.com y luego repite el comando.
-
-### 3. Instala todas las dependencias con pnpm
-
-El proyecto está dividido en varias partes (frontend, backend y servicios). pnpm las instala todas de una sola vez:
-
-```bash
-# Instala las dependencias de TODAS las partes del proyecto
-```
-
-La instalación se ejecuta en el paso siguiente para evitar duplicarla.
-
-### 4. Configura el entorno local
-
-Los archivos `.env.local` y `.env.docker` separan las direcciones de conexión del host y de la red Compose. Son archivos locales ignorados por Git; las plantillas contienen credenciales exclusivamente para desarrollo.
-
-```bash
-cp .env.local.example .env.local
-cp .env.docker.example .env.docker
-```
-
-Los valores incluidos en las plantillas son **LOCAL ONLY**. El stack Docker publica sus puertos únicamente en `127.0.0.1`; no está preparado para exponerse a otros equipos. `JWT_SECRET`, contraseñas de PostgreSQL y Redis deben reemplazarse antes de usar datos reales. En modo `production`, la configuración rechaza el secreto demo, contraseñas débiles/ausentes, CORS sin HTTPS y orígenes comodín.
-
-### 5. Instala e inicia
-
-#### Opción A: Node local + PostgreSQL/Redis en Docker
-
-```bash
+corepack enable
 pnpm install
+cp .env.docker.example .env.docker
+cp .env.local.example .env.local
+```
+
+Los `.env` son ignorados por Git y las plantillas son exclusivamente para desarrollo local. No publiques el stack en una red: Compose enlaza los puertos a `127.0.0.1`. Cambia `JWT_SECRET` y las credenciales antes de manejar datos reales.
+
+Construye y arranca la aplicación:
+
+```bash
+docker compose --env-file .env.docker build
+docker compose --env-file .env.docker up -d
+docker compose --env-file .env.docker ps
+```
+
+Compose inicia PostgreSQL, Redis, los cuatro servicios, el gateway y el frontend. En un volumen de PostgreSQL nuevo, los scripts montados aplican el esquema, la migración local de solicitudes de renovación y los datos iniciales. El arranque puede tardar mientras Docker descarga las imágenes. Espera a que los contenedores indiquen `healthy`.
+
+Abre http://localhost:5173. El API Gateway escucha en http://localhost:3000; `http://localhost:3000/health` presenta la salud de los servicios y `/services` su configuración.
+
+### Variables de entorno
+
+- `.env.docker` configura credenciales para PostgreSQL/Redis, `JWT_SECRET` y el origen CORS. En la red Compose, los nombres de host y URLs de los servicios se inyectan desde `compose.yaml`.
+- `.env.local` configura las conexiones desde procesos ejecutados en el host (`localhost`), el gateway y `VITE_API_URL`. La configuración de backend busca `.env.local` en los directorios padres; también acepta `ENV_FILE`.
+- Mantén los valores de ejemplo en uso local solamente. La configuración de producción requiere secretos robustos y orígenes HTTPS.
+
+### Base de datos, seed y usuarios de prueba
+
+El esquema compartido está en `shared/database/schema.sql`; las cuentas y datos iniciales están en `shared/database/seed.sql`. PostgreSQL solo ejecuta los scripts de inicialización de Compose automáticamente cuando el volumen se crea por primera vez; en ese caso Compose también aplica `003-membership-renewal-requests.sql`. `pnpm db:init` aplica el esquema y, por defecto, el seed; el seed es idempotente y puede restablecer las contraseñas demo conservando las demás filas.
+
+Las cuentas son **solo para pruebas locales** y usan la contraseña `Admin1234!`:
+
+| Rol | Correo |
+|---|---|
+| Administración | `admin@mundofitness.com` |
+| Recepción | `recepcion@mundofitness.com` |
+| Socio | `socio@mundofitness.com` |
+
+Las cuentas solo existen después de inicializar el esquema con el seed. Para reiniciar toda la base local, lo que elimina sus datos, usa `docker compose --env-file .env.docker down -v` y vuelve a ejecutar los comandos de arranque.
+
+### Ejecutar procesos Node en el host
+
+Como alternativa para depurar, deja PostgreSQL y Redis en Docker y ejecuta estos comandos desde la raíz:
+
+```bash
 docker compose --env-file .env.docker up -d postgres redis
 pnpm db:init
 pnpm dev
 ```
 
-El backend carga `.env.local`; el primer inicio del volumen crea el esquema y las cuentas demo. `pnpm db:init` vuelve a aplicar el esquema y restablece las contraseñas demo indicadas abajo sin borrar los demás datos.
+Asegúrate de que `.env.local` exista. No ejecutes `pnpm dev` al mismo tiempo que los contenedores de aplicación completos: comparten los puertos 3000–3004 y 5173.
 
-#### Opción B: Todo en Docker
+Para actualizar los contenedores de aplicación luego de editar el código, usa `pnpm docker:dev`; compila en el host y reinicia los servicios de aplicación sin borrar los datos de PostgreSQL/Redis.
 
-```bash
-pnpm install
-docker compose --env-file .env.docker build
-docker compose --env-file .env.docker up -d
-pnpm db:init
-docker compose --env-file .env.docker ps
-```
+### Comprobación manual
 
-Para iterar con cambios locales sin reconstruir imágenes ni descargar paquetes, ejecuta `pnpm docker:dev`. Este comando compila en el host, monta los artefactos compilados y reinicia los servicios de aplicación para que los procesos carguen los cambios; PostgreSQL y Redis conservan sus datos y no se reinician. Para instalar el proyecto desde cero o validar imágenes de despliegue, utiliza la compilación normal de Docker con acceso a Docker Hub y npm.
+1. Inicia sesión como recepción y revisa clientes, membresías, planes y pagos.
+2. Inicia sesión como socio y comprueba su portal y su información de membresía.
+3. Inicia sesión como administrador y revisa el panel y Configuración.
 
-El frontend queda en http://localhost:5173 y el gateway en http://localhost:3000. Para recrear la base local desde cero y borrar sus datos, ejecuta `docker compose --env-file .env.docker down -v` antes de levantarla de nuevo.
+Los cambios confirmados por los formularios persisten en la base local. El sistema registra pagos manuales; no procesa pagos electrónicos.
 
-No ejecutes `pnpm dev` y el stack completo de Compose a la vez porque usan los mismos puertos.
+### Solución de problemas
 
-#### Usuario demo local
-
-La base inicial incluye `admin@mundofitness.com` con contraseña `Admin1234!`, además de usuarios de recepción y socio con la misma contraseña. Son cuentas **LOCAL ONLY**.
-
-La autenticación actual entrega JWT Bearer y el cliente los guarda en `localStorage`; no utiliza cookies de sesión. Mantén esta configuración limitada al entorno local. Antes de publicar el sistema habrá que migrar la sesión a cookies `HttpOnly`, `Secure` y `SameSite` con protección CSRF.
-
----
-
-#### Modo C: Servicios por separado (control granular)
-
-Si necesitas depurar un servicio específico, abre terminales separadas:
-
-```bash
-# Terminal 1 — API Gateway
-pnpm --filter=api-gateway dev
-
-# Terminal 2 — Servicio de autenticación
-pnpm --filter=auth-service dev
-
-# Terminal 3 — Servicio de clientes
-pnpm --filter=client-service dev
-
-# Terminal 4 — Servicio de membresías
-pnpm --filter=membership-service dev
-
-# Terminal 5 — Servicio de pagos
-pnpm --filter=payment-service dev
-
-# Terminal 6 — Frontend (React)
-pnpm --filter=frontend dev
-```
-
-### 7. Verifica que todo funcione
-
-Abre tu navegador y visita estas direcciones:
-
-| Dirección | Qué esperas ver |
-|---|---|
-| **Frontend** `http://localhost:5173` | La página principal de Mundo Fitness |
-| **Health check** `http://localhost:3000/health` | Health check del gateway + estado de todos los servicios |
-| **Lista de servicios** `http://localhost:3000/services` | JSON listando los microservicios conectados |
-
-Si una dirección no carga en Docker, revisa `docker compose --env-file .env.docker ps` y `docker compose --env-file .env.docker logs`.
-
-Cada solicitud HTTP recibe un `X-Request-ID` seguro (o conserva uno válido enviado por el gateway). La respuesta devuelve ese identificador, y los logs de acceso de cada servicio permiten buscar el mismo ID con `docker compose --env-file .env.docker logs -f`.
-
-### 8. Prueba los recorridos principales
-
-En el navegador, abre `http://localhost:5173`. Para el stack Docker completo, inicia sesión con estas cuentas locales, incluidas en `shared/database/seed.sql`:
-
-| Grupo | Correo | Contraseña |
-|---|---|---|
-| Administración | `admin@mundofitness.com` | `Admin1234!` |
-| Recepción | `recepcion@mundofitness.com` | `Admin1234!` |
-| Socio | `socio@mundofitness.com` | `Admin1234!` |
-
-Comprueba los recorridos de cada rol:
-
-1. **Recepción:** abre Socios, busca por nombre, DNI o correo y consulta la ficha. En Membresías, revisa planes y suscripciones; abre Asignar Membresía y Registrar Check-In para revisar sus campos. En Pagos, revisa el historial y abre Registrar nuevo cobro.
-2. **Socio:** inicia sesión con la cuenta de socio. Comprueba el perfil, la vigencia de la membresía, los planes disponibles y el historial de pagos. El socio solo debe ver su propia información y volver a `/portal` si intenta abrir una ruta de recepción.
-3. **Administración:** comprueba el panel y Configuración. La navegación debe mantener las tareas operativas separadas de la configuración.
-
-Los formularios solo guardan datos al confirmar. Las operaciones que confirmes quedan en la base local y pueden afectar las siguientes pruebas. Las solicitudes web no procesan pagos electrónicos; recepción debe confirmar las operaciones manuales.
-
-Para compilar y actualizar los servicios de aplicación con los contenedores locales existentes, ejecuta `pnpm docker:dev`. Comprueba su estado con:
-
-```bash
-docker compose --env-file .env.docker -f compose.yaml -f compose.local.yaml ps
-```
-
-### 8. Solución de problemas comunes (para principiantes)
-
-- **"Error de conexión a la base de datos":** para Node local comprueba `POSTGRES_HOST=localhost` en `.env.local`; Compose configura el host de contenedor automáticamente.
-- **"Error de conexión a Redis":** verifica que Redis esté corriendo con `redis-cli ping` (debe responder `PONG`).
-- **"No se encuentra pnpm":** ejecuta `corepack enable` con Node instalado y vuelve a abrir la terminal.
-- **"El puerto 3000 ya está en uso":** cierra la terminal donde corriste `pnpm dev` o ejecuta `pnpm dev` en otra máquina.
-- **"No se encuentra .env.docker":** vuelve a copiar `.env.docker.example` como `.env.docker`. Node local lee `.env.local`.
+- **Contenedor no saludable:** consulta `docker compose --env-file .env.docker ps` y los logs con `docker compose --env-file .env.docker logs --tail=100 <servicio>`.
+- **No existe `.env.docker`:** copia `.env.docker.example` a `.env.docker` antes de los comandos Compose.
+- **Error de conexión desde Node local:** confirma que `.env.local` esté presente y que PostgreSQL/Redis publiquen los puertos 5432/6379.
+- **Puerto ocupado:** detén el proceso anterior o el otro modo de ejecución (Docker completo o `pnpm dev`).
+- **Cuenta demo no puede iniciar sesión:** verifica que el volumen inicializó `shared/database/seed.sql`; ejecuta `pnpm db:init` desde el host con `.env.local` para reaplicar esquema y seed.
 
 ## Ejemplos de uso
 
@@ -755,7 +673,7 @@ GYM_Proyect/
 ├── frontend/                   # Aplicación React + Vite
 │   ├── src/
 │   │   ├── api/               # Cliente de API y hooks de TanStack Query
-│   │   ├── components/        # Componentes de IU reutilizables (shadcn/ui)
+│   │   ├── components/        # Componentes React reutilizables
 │   │   ├── context/           # Proveedores de React Context (autenticación)
 │   │   ├── hooks/             # Hooks personalizados de React
 │   │   ├── pages/             # Componentes de páginas
@@ -794,17 +712,25 @@ GYM_Proyect/
 # Ejecuta todos los linters
 pnpm lint
 
-# Comprueba los tipos de todos los paquetes
-pnpm --filter=shared tsc --noEmit
-pnpm --filter=services/* tsc --noEmit
-pnpm --filter=frontend tsc --noEmit
+# Comprueba tipos y compila todos los paquetes
+pnpm build
 
 # Ejecuta las pruebas
 pnpm test
 
 # Compila todos los paquetes
 pnpm build
+
+# Ejecuta solo las pruebas unitarias
+pnpm test:unit
+
+# Ejecuta E2E en Chromium contra el stack local
+pnpm test:e2e:install
+pnpm docker:dev
+pnpm test:e2e
 ```
+
+`pnpm test` ejecuta las pruebas unitarias y luego las pruebas de integración con Docker/Testcontainers. `pnpm test:e2e` espera hasta dos minutos a que todos los servicios estén saludables.
 
 ### Añadir un servicio nuevo
 
@@ -813,35 +739,35 @@ pnpm build
 3. Configura `tsconfig.json` para que extienda la configuración raíz
 4. Implementa la aplicación Express con la infraestructura compartida
 5. Registra el servicio en la puerta de enlace de API (`services/api-gateway/src/index.ts`)
-6. Añade las variables de entorno a `.env.example`
+6. Documenta las variables necesarias en las plantillas `.env.*.example`
 7. Actualiza Docker Compose y CI/CD
 
 ### Migraciones de la base de datos
 
-Las migraciones se gestionan por servicio. Cada servicio es propietario de sus tablas.
+El esquema es compartido en `shared/database/schema.sql`; los servicios usan el mismo PostgreSQL. Compose ejecuta `003-membership-renewal-requests.sql` como script de inicio cuando se crea un volumen nuevo. `pnpm db:init` aplica el esquema y, por defecto, el seed; volver a ejecutarlo puede restablecer las contraseñas demo.
 
 ```bash
-# Ejemplo: crear una migración en un servicio
-cd services/client-service
-# Crea el archivo de migración
-# Ejecuta la migración
-pnpm db:migrate
+# Inicializa/aplica esquema compartido y seeds desde la raíz
+pnpm db:init
 ```
 
 ## Despliegue
 
-### Docker Compose (desarrollo/preproducción)
+### Docker Compose (solo desarrollo local)
 
 ```bash
 # Compila e inicia todos los servicios
-docker compose up -d --build
+docker compose --env-file .env.docker build
+docker compose --env-file .env.docker up -d
 
 # Consulta los registros
-docker compose logs -f
+docker compose --env-file .env.docker logs -f
 
 # Detén los servicios
-docker compose down
+docker compose --env-file .env.docker down
 ```
+
+Los puertos están enlazados a loopback y las variables de ejemplo son de desarrollo; este Compose no es una configuración de preproducción ni producción.
 
 ### Consideraciones para producción
 
@@ -854,11 +780,9 @@ docker compose down
 - Configura el registro centralizado (ELK, Datadog, etc.)
 - Implementa el rastreo distribuido (OpenTelemetry)
 
-### Configuraciones específicas del entorno
+### Estado de CI/CD y despliegue
 
-Crea archivos `.env.production` y `.env.staging` por servicio con los valores adecuados.
-
-> **Nota:** Los jobs de deployment en CI/CD son **placeholders** (no hay infraestructura real configurada). Ver sección CI/CD.
+GitHub Actions ejecuta lint, compilación y pruebas. Los jobs de deployment son placeholders: no hay infraestructura configurada. Aún no existe un procedimiento de producción listo para usar.
 
 ## Contribución
 
@@ -876,10 +800,9 @@ Crea archivos `.env.production` y `.env.staging` por servicio con los valores ad
 ### Directrices de estilo de código
 
 - **TypeScript**: modo estricto activado, sin tipos `any`, tipos de retorno explícitos para las API públicas
-- **ESLint**: sigue las reglas configuradas (se recomiendan Airbnb + TypeScript ESLint)
-- **Prettier**: formatear al guardar (configurado en el editor)
+- **ESLint**: sigue las reglas definidas por el repositorio
 - **Commits**: Commits convencionales (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
-- **Ramas**: `feature/*`, `fix/*`, `hotfix/*`, `release/*`
+- **Ramas**: usa nombres descriptivos acordes al cambio
 
 ### Requisitos para las Pull Request
 
@@ -891,9 +814,9 @@ Crea archivos `.env.production` y `.env.staging` por servicio con los valores ad
 
 ### Estrategia de pruebas
 
-- `pnpm test` ejecuta primero las pruebas unitarias y después las pruebas de integración.
-- `pnpm test:unit` ejecuta solo las pruebas unitarias del frontend y backend.
-- `pnpm test:integration` crea PostgreSQL y Redis desechables con Testcontainers, aplica el esquema y los datos iniciales, y verifica autenticación, clientes, membresías, pagos y el proxy del API Gateway. Requiere Docker activo.
+- `pnpm test` ejecuta primero `pnpm test:unit` y después `pnpm test:integration`.
+- `pnpm test:unit` ejecuta las pruebas unitarias de shared, servicios y frontend.
+- `pnpm test:integration` crea PostgreSQL y Redis desechables con Testcontainers, aplica el esquema y los datos iniciales, y verifica los recorridos de autenticación contra PostgreSQL/Redis. Requiere Docker activo.
 - Los planes se prueban a través del módulo de membresías, que es donde vive su API.
 - Playwright ejecuta los recorridos E2E del producto real en `tests/e2e`; requiere que todos los servicios Docker locales estén saludables. Levanta/actualiza el stack con `pnpm docker:dev`, instala Chromium una vez con `pnpm test:e2e:install` y ejecuta `pnpm test:e2e`.
 - La suite E2E cubre registro, inicio/cierre de sesión y renovación solicitada por web; alta, edición y búsqueda de clientes; planes, asignación de membresía y check-in; registro e historial de pagos; panel e informes. No utiliza servidores simulados.
@@ -902,7 +825,7 @@ Crea archivos `.env.production` y `.env.staging` por servicio con los valores ad
 
 ### Problemas comunes
 
-**Conflictos de puertos**: asegúrate de que los puertos 3000-3006, 5173, 5432 y 6379 estén disponibles
+**Conflictos de puertos**: asegúrate de que los puertos 3000-3004, 5173, 5432 y 6379 estén disponibles
 
 **Error de conexión a la base de datos**:
 ```bash
@@ -928,7 +851,7 @@ redis-cli ping
 
 ```bash
 # Consulta los registros de todos los servicios (al usar docker compose)
-docker compose logs -f
+docker compose --env-file .env.docker logs -f
 
 # Registros de un servicio individual (desarrollo)
 pnpm --filter=api-gateway dev 2>&1 | tail -f
@@ -940,14 +863,11 @@ Este proyecto está bajo la Licencia MIT; consulta el archivo [LICENSE](LICENSE)
 
 ## Soporte
 
-- **Incidencias**: [Incidencias de GitHub](https://github.com/<TU_USUARIO>/gym-project/issues)
-- **Debates**: [Debates de GitHub](https://github.com/<TU_USUARIO>/gym-project/discussions)
+- **Incidencias**: [Incidencias de GitHub](https://github.com/Kenzowo-dev/GYM_Proyect/issues)
 - **Correo electrónico**: support@mundofitness.com
 
 ## Agradecimientos
 
-- [shadcn/ui](https://ui.shadcn.com/) por sus componentes accesibles y bien diseñados
 - [TanStack Query](https://tanstack.com/query) para la gestión de estado del servidor
-- [Radix UI](https://www.radix-ui.com/) por sus primitivas de IU sin estilo
 - [Pino](https://getpino.io/) por su registro rápido y estructurado
 - [Zod](https://zod.dev/) para la validación de esquemas
