@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
-import { logger } from '@gym/shared/logger/index.js';
+import { getRequestLogger } from '@gym/shared/logger/index.js';
 import { isAppError } from '@gym/shared/errors/index.js';
 
-export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
+export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
+  const requestLogger = getRequestLogger(req);
   if (isAppError(err)) {
     const statusCode = err.statusCode;
     const errorResponse: { message: string; code?: string; details?: unknown } = {
@@ -15,16 +16,16 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     }
 
     if (statusCode >= 500) {
-      logger.error({ err, statusCode }, 'Server error');
+      requestLogger.error({ err, statusCode }, 'Server error');
     } else {
-      logger.warn({ err, statusCode }, 'Client error');
+      requestLogger.warn({ err, statusCode }, 'Client error');
     }
 
     res.status(statusCode).json({ error: errorResponse });
     return;
   }
 
-  logger.error({ err }, 'Unhandled error');
+  requestLogger.error({ err }, 'Unhandled error');
   res.status(500).json({
     error: {
       message: 'Internal server error',

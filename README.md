@@ -28,7 +28,7 @@ Navegador → Frontend (:5173) → API Gateway (:3000)
 ### Infraestructura compartida (`@gym/shared`)
 
 - **Config** - Configuración centralizada basada en el entorno con validación
-- **Logger** - Registro estructurado con Pino
+- **Logger** - Registro estructurado con Pino, IDs de solicitud compartidos entre gateway y microservicios, y censura de credenciales y datos personales
 - **Database** - Gestión de grupos de conexiones de PostgreSQL
 - **Messaging** - Pub/sub de Redis para comunicación entre servicios
 - **Errors** - Clases de error estandarizadas (AppError, ValidationError, AuthenticationError, etc.)
@@ -191,6 +191,8 @@ Abre tu navegador y visita estas direcciones:
 | **Lista de servicios** `http://localhost:3000/services` | JSON listando los microservicios conectados |
 
 Si una dirección no carga en Docker, revisa `docker compose --env-file .env.docker ps` y `docker compose --env-file .env.docker logs`.
+
+Cada solicitud HTTP recibe un `X-Request-ID` seguro (o conserva uno válido enviado por el gateway). La respuesta devuelve ese identificador, y los logs de acceso de cada servicio permiten buscar el mismo ID con `docker compose --env-file .env.docker logs -f`.
 
 ### 8. Prueba los recorridos principales
 

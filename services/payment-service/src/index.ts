@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from '@gym/shared/config/index.js';
 import { logger } from '@gym/shared/logger/index.js';
+import { requestLoggingMiddleware } from '@gym/shared/logger/index.js';
 import { connectRedis, disconnectRedis } from '@gym/shared/messaging/index.js';
 import { closePool } from '@gym/shared/database/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
@@ -26,6 +27,7 @@ process.env.SERVICE_NAME = SERVICE_NAME;
  */
 app.use(helmet());
 app.use(cors(config.cors));
+app.use(requestLoggingMiddleware(SERVICE_NAME));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

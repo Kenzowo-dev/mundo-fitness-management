@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import pino, { Logger } from 'pino';
 import { config } from '../config/index.js';
 
@@ -33,6 +34,21 @@ export const logger: Logger = pino({
     },
   },
   timestamp: pino.stdTimeFunctions.isoTime,
+  redact: {
+    paths: [
+      'password', '*.password',
+      'token', '*.token',
+      'accessToken', '*.accessToken',
+      'refreshToken', '*.refreshToken',
+      'authorization', '*.authorization',
+      'email', '*.email',
+      'cookie', '*.cookie', 'req.headers.cookie', 'req.headers.authorization',
+      'headers.cookie', 'headers.authorization',
+      'secret', '*.secret', 'apiKey', '*.apiKey',
+      'x-user-email', '*.x-user-email',
+    ],
+    censor: '[REDACTED]',
+  },
   base: {
     service: process.env.SERVICE_NAME || 'unknown',
     environment: config.nodeEnv,
@@ -55,4 +71,54 @@ export const logger: Logger = pino({
  */
 export function createChildLogger(bindings: Record<string, unknown>): Logger {
   return logger.child(bindings);
+}
+
+interface HttpRequest {
+  get(name: string): string | undefined;
+  method: string;
+  path: string;
+  log?: Logger;
+}
+
+interface HttpResponse {
+  setHeader(name: string, value: string): void;
+  statusCode: number;
+  once(event: 'finish', listener: () => void): this;
+}
+
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
+
+export interface RequestWithLogger extends HttpRequest {
+  requestId: string;
+  log: Logger;
+}
+
+export function getRequestLogger(req: HttpRequest): Logger {
+  return req.log ?? logger;
+}
+
+/** Assigns a safe correlation ID, returns it to the caller and logs request completion. */
+export function requestLoggingMiddleware(serviceName: string) {
+  return (req: HttpRequest, res: HttpResponse, next: () => void): void => {
+    const suppliedId = req.get('x-request-id');
+    const requestId = suppliedId && REQUEST_ID_PATTERN.test(suppliedId) ? suppliedId : randomUUID();
+    const request = req as RequestWithLogger;
+    const requestLogger = logger.child({ requestId, service: serviceName });
+    const startedAt = process.hrtime.bigint();
+
+    request.requestId = requestId;
+    request.log = requestLogger;
+    res.setHeader('x-request-id', requestId);
+
+    res.once('finish', () => {
+      requestLogger.info({
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        durationMs: Number(process.hrtime.bigint() - startedAt) / 1_000_000,
+      }, 'HTTP request completed');
+    });
+
+    next();
+  };
 }

@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { config } from '@gym/shared/config/index.js';
 import { logger } from '@gym/shared/logger/index.js';
+import { getRequestLogger, requestLoggingMiddleware } from '@gym/shared/logger/index.js';
 import { connectRedis, disconnectRedis } from '@gym/shared/messaging/index.js';
 import { extractTokenFromHeader, verifyAccessToken, TokenPayload } from '@gym/shared/utils/jwt.js';
 import { AuthenticationError, isAppError } from '@gym/shared/errors/index.js';
@@ -146,6 +147,8 @@ function createProxy(service: ServiceConfig) {
     },
     on: {
       proxyReq: (proxyReq: http.ClientRequest, req: AuthenticatedRequest, _res: Response) => {
+        const requestId = req.get('x-request-id');
+        if (requestId) proxyReq.setHeader('x-request-id', requestId);
         if (req.user) {
           proxyReq.setHeader('x-user-id', req.user.sub);
           proxyReq.setHeader('x-user-email', req.user.email);
@@ -185,6 +188,7 @@ export function createGatewayApp(services: ServiceConfig[] = configuredServices)
   const app = express();
   app.use(helmet());
   app.use(cors(config.cors));
+  app.use(requestLoggingMiddleware(SERVICE_NAME));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -233,8 +237,8 @@ export function createGatewayApp(services: ServiceConfig[] = configuredServices)
     res.status(404).json({ error: { message: 'Route not found', code: 'NOT_FOUND' } });
   });
 
-  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    logger.error({ err }, 'Gateway error');
+  app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    getRequestLogger(req).error({ err }, 'Gateway error');
     if (isAppError(err)) {
       return res.status(err.statusCode).json({
         error: { message: err.message, code: err.code, details: err.details },

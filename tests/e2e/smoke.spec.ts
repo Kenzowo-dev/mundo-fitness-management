@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { loginAsReception } from './helpers';
 
 test('public home stays public and seeded admin can reach the dashboard', async ({ page }) => {
@@ -26,4 +27,15 @@ test('public home stays public and seeded admin can reach the dashboard', async 
   await loginAsReception(page);
 
   expect(runtimeErrors).toEqual([]);
+});
+
+test('request ID passes through gateway and auth service', async ({ request }) => {
+  const requestId = `phase22-${randomUUID()}`;
+  const response = await request.post('http://localhost:3000/api/auth/login', {
+    headers: { 'x-request-id': requestId },
+    data: { email: 'phase22-invalid@example.com', password: 'invalid-password' },
+  });
+
+  expect(response.status()).toBe(401);
+  expect(response.headers()['x-request-id']).toBe(requestId);
 });
