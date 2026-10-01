@@ -64,89 +64,292 @@ Navegador → Frontend (:5173) → API Gateway (:3000)
 - **Linting**: ESLint 10.9.0 + TypeScript ESLint
 - **Comprobación de tipos**: TypeScript 6.0.x
 
-## Requisitos previos
+## Instalación y ejecución paso a paso
 
-- Node.js 22 (usado por las imágenes Docker del proyecto).
-- Corepack y pnpm 11.24.0, versión fijada en `package.json`.
-- Docker Engine con Docker Compose v2, para ejecutar la configuración local recomendada.
-- Git para clonar el repositorio.
+Esta guía te permite abrir Mundo Fitness en tu propia computadora y probarlo con cuentas de ejemplo. No necesitas saber programar para seguir el recorrido principal. Necesitas conexión a Internet para descargar el proyecto y sus componentes la primera vez.
 
-No necesitas instalar PostgreSQL ni Redis en el host para el flujo con Docker.
+### Antes de empezar: ¿qué vas a utilizar?
 
-## Instalación local con Docker
+| Concepto | Explicación sencilla | Para qué lo usamos |
+|---|---|---|
+| Terminal | Una ventana donde escribes instrucciones y pulsas Enter para ejecutarlas. | Descargar el proyecto, iniciarlo y detenerlo. |
+| Git | Una herramienta para descargar y llevar el historial de un proyecto. | Obtener una copia del código en tu computadora. |
+| Docker | Ejecuta las distintas partes del sistema en entornos separados llamados **contenedores**. | Preparar la aplicación y su base de datos sin instalar cada componente manualmente. |
+| Docker Compose | Lee el archivo `compose.yaml`, que describe las partes que deben funcionar juntas. | Iniciar todo el sistema con un comando. |
+| Base de datos | El lugar donde se guardan socios, membresías, pagos y cuentas. | Conservar la información que registras en la aplicación. |
+| `localhost` | Una dirección que significa «esta misma computadora». | Abrir la aplicación en tu navegador. |
+| Puerto | Un número que identifica un servicio dentro de tu computadora. | `5173` corresponde a la página web del sistema. |
 
-Desde la raíz del repositorio, crea los archivos de configuración locales y descarga las dependencias:
+### Paso 1. Instalar las herramientas
+
+1. Instala [Git desde su página oficial](https://git-scm.com/downloads/), eligiendo tu sistema operativo.
+2. Instala [Docker Desktop siguiendo la guía oficial](https://docs.docker.com/desktop/), eligiendo Windows, macOS o Linux. Docker Desktop incluye Docker Compose. Si el instalador pide reiniciar o habilitar algún componente, sigue sus instrucciones antes de continuar.
+3. Abre Docker Desktop y espera a que indique que su motor está funcionando. Déjalo abierto mientras uses el proyecto. En Windows, utiliza contenedores Linux.
+4. Abre una terminal:
+   - **Windows:** busca y abre **Git Bash**, instalado junto con Git. Los comandos de esta guía están escritos para esa terminal.
+   - **macOS:** busca y abre **Terminal**.
+   - **Linux:** abre la aplicación **Terminal** de tu distribución.
+
+Escribe los siguientes comandos **uno por uno**. Pulsa Enter después de cada línea y espera el resultado antes de seguir:
 
 ```bash
-corepack enable
-pnpm install
-cp .env.docker.example .env.docker
-cp .env.local.example .env.local
+git --version
+docker --version
+docker compose version
 ```
 
-Los `.env` son ignorados por Git y las plantillas son exclusivamente para desarrollo local. No publiques el stack en una red: Compose enlaza los puertos a `127.0.0.1`. Cambia `JWT_SECRET` y las credenciales antes de manejar datos reales.
+Cada comando debe mostrar el nombre de la herramienta y un número de versión. Compose debe ser de la versión 2. Si aparece «command not found» o «no se reconoce», revisa la instalación de esa herramienta y vuelve a abrir la terminal.
 
-Construye y arranca la aplicación:
+Para ejecutar todo con Docker no necesitas instalar Node.js, pnpm, PostgreSQL ni Redis en tu computadora: los archivos Docker del proyecto preparan esos componentes dentro de los contenedores. Node.js y pnpm se utilizan en la alternativa para desarrollar que se explica más abajo.
+
+### Paso 2. Descargar el proyecto y entrar en su carpeta
+
+En la terminal, entra primero en la carpeta donde quieres guardar el proyecto. Por ejemplo, para usar tu carpeta personal:
+
+```bash
+cd ~
+```
+
+`cd` significa «cambiar de carpeta» y `~` representa tu carpeta personal. Ahora descarga el proyecto:
+
+```bash
+git clone https://github.com/Kenzowo-dev/GYM_Proyect.git
+```
+
+Espera a que termine la descarga y entra en la carpeta creada:
+
+```bash
+cd GYM_Proyect
+```
+
+Si ya tienes el proyecto descargado, entra en su carpeta existente y continúa con el paso 3; no necesitas clonarlo otra vez.
+
+Comprueba que estás en el lugar correcto:
+
+```bash
+ls
+```
+
+Debes ver, entre otros archivos, `README.md`, `compose.yaml` y `package.json`. Esta carpeta se llama **raíz del proyecto**. Todos los comandos siguientes se ejecutan desde ahí. Si cierras la terminal, tendrás que volver a entrar en esa carpeta al abrirla de nuevo.
+
+### Paso 3. Crear el archivo de configuración
+
+El proyecto incluye una plantilla con valores para pruebas locales. Cópiala con este comando **solo si todavía no tienes `.env.docker`**:
+
+```bash
+cp .env.docker.example .env.docker
+```
+
+`cp` copia el archivo: conserva la plantilla y crea tu configuración personal. Si el comando termina sin mostrar texto, es normal. Puedes comprobar que el archivo existe con:
+
+```bash
+ls -a
+```
+
+La opción `-a` permite ver archivos cuyos nombres comienzan con un punto. Debe aparecer `.env.docker`.
+
+Un archivo `.env` contiene ajustes como el nombre y la contraseña de la base de datos. Para esta primera prueba con datos ficticios puedes mantener los valores de la plantilla. Git ignora estos archivos personales para evitar incluirlos en el repositorio. Usa estas credenciales únicamente en pruebas locales y cambia las contraseñas y `JWT_SECRET` antes de manejar datos reales. `JWT_SECRET` es la clave que usa el sistema para firmar las credenciales de sesión.
+
+### Paso 4. Preparar la aplicación
+
+Con Docker Desktop funcionando, ejecuta:
 
 ```bash
 docker compose --env-file .env.docker build
+```
+
+Este comando lee tu configuración, descarga los componentes necesarios y prepara las versiones ejecutables de la aplicación, llamadas **imágenes**. La primera vez puede tardar varios minutos y mostrar muchas líneas de texto; eso es normal. Espera a que vuelva a aparecer el lugar donde puedes escribir otro comando. Si termina con un error, revisa la tabla de solución de problemas antes de continuar.
+
+### Paso 5. Encender el sistema
+
+Ejecuta:
+
+```bash
 docker compose --env-file .env.docker up -d
+```
+
+`up` inicia los componentes del sistema. `-d` los deja funcionando en segundo plano, para que puedas seguir usando la terminal. Se inician la página web, los servicios que procesan las operaciones y las bases de infraestructura PostgreSQL y Redis.
+
+En la primera ejecución con un almacenamiento de base de datos nuevo, el proyecto crea automáticamente las tablas y carga las cuentas y datos de prueba. No necesitas crear esos datos manualmente.
+
+Comprueba el estado:
+
+```bash
 docker compose --env-file .env.docker ps
 ```
 
-Compose inicia PostgreSQL, Redis, los cuatro servicios, el gateway y el frontend. En un volumen de PostgreSQL nuevo, los scripts montados aplican el esquema, la migración local de solicitudes de renovación y los datos iniciales. El arranque puede tardar mientras Docker descarga las imágenes. Espera a que los contenedores indiquen `healthy`.
+En la columna de estado debes ver los servicios funcionando, con `Up` y `healthy`. `healthy` significa que la comprobación automática indica que ese componente responde. Si aparece `health: starting`, espera un poco y repite el comando. Si aparece `unhealthy` o `Exited`, consulta la solución de problemas.
 
-Abre http://localhost:5173. El API Gateway escucha en http://localhost:3000; `http://localhost:3000/health` presenta la salud de los servicios y `/services` su configuración.
+### Paso 6. Abrir la aplicación e iniciar sesión
 
-### Variables de entorno
+Abre tu navegador, escribe esta dirección en la barra de direcciones y pulsa Enter:
 
-- `.env.docker` configura credenciales para PostgreSQL/Redis, `JWT_SECRET` y el origen CORS. En la red Compose, los nombres de host y URLs de los servicios se inyectan desde `compose.yaml`.
-- `.env.local` configura las conexiones desde procesos ejecutados en el host (`localhost`), el gateway y `VITE_API_URL`. La configuración de backend busca `.env.local` en los directorios padres; también acepta `ENV_FILE`.
-- Mantén los valores de ejemplo en uso local solamente. La configuración de producción requiere secretos robustos y orígenes HTTPS.
+[http://localhost:5173](http://localhost:5173)
 
-### Base de datos, seed y usuarios de prueba
+`localhost` apunta a tu computadora; no es una página publicada en Internet. La configuración Docker del proyecto limita el acceso a esta computadora mediante `127.0.0.1`.
 
-El esquema compartido está en `shared/database/schema.sql`; las cuentas y datos iniciales están en `shared/database/seed.sql`. PostgreSQL solo ejecuta los scripts de inicialización de Compose automáticamente cuando el volumen se crea por primera vez; en ese caso Compose también aplica `003-membership-renewal-requests.sql`. `pnpm db:init` aplica el esquema y, por defecto, el seed; el seed es idempotente y puede restablecer las contraseñas demo conservando las demás filas.
+Entra en la opción de inicio de sesión y utiliza una de estas cuentas. **La contraseña de las tres es `Admin1234!`**, respetando las mayúsculas y el signo de exclamación:
 
-Las cuentas son **solo para pruebas locales** y usan la contraseña `Admin1234!`:
+| Quiero probar… | Correo | Qué revisar después de iniciar sesión |
+|---|---|---|
+| Administración del gimnasio | `admin@mundofitness.com` | Panel general y Configuración. |
+| Atención en recepción | `recepcion@mundofitness.com` | Clientes, membresías, planes y pagos. |
+| Experiencia de un socio | `socio@mundofitness.com` | Portal personal e información de su membresía. |
 
-| Rol | Correo |
-|---|---|
-| Administración | `admin@mundofitness.com` |
-| Recepción | `recepcion@mundofitness.com` |
-| Socio | `socio@mundofitness.com` |
+Para probar otro rol, cierra la sesión actual e inicia sesión con la otra cuenta. Los cambios que confirmes en los formularios se guardan en la base de datos local. El sistema registra pagos manuales; no realiza cobros electrónicos.
 
-Las cuentas solo existen después de inicializar el esquema con el seed. Para reiniciar toda la base local, lo que elimina sus datos, usa `docker compose --env-file .env.docker down -v` y vuelve a ejecutar los comandos de arranque.
+**Comprobación de que terminaste:** puedes abrir la página, iniciar sesión con una cuenta de prueba y navegar por las opciones de su rol.
 
-### Ejecutar procesos Node en el host
+Si necesitas comprobar los servicios internos, abre [http://localhost:3000/health](http://localhost:3000/health). Esa dirección muestra información técnica de su estado; la página para usar el gimnasio sigue siendo la del puerto `5173`.
 
-Como alternativa para depurar, deja PostgreSQL y Redis en Docker y ejecuta estos comandos desde la raíz:
+### Paso 7. Detener el sistema y volver a usarlo
+
+Cuando termines, ejecuta desde la raíz del proyecto:
+
+```bash
+docker compose --env-file .env.docker down
+```
+
+Este comando detiene y elimina los contenedores, pero **conserva los datos guardados** en el almacenamiento de PostgreSQL, llamado volumen.
+
+La próxima vez:
+
+1. Abre Docker Desktop y espera a que esté listo.
+2. Abre la terminal y entra en la carpeta `GYM_Proyect` que descargaste.
+3. Ejecuta `docker compose --env-file .env.docker up -d`.
+4. Comprueba el estado con `docker compose --env-file .env.docker ps`.
+5. Abre [http://localhost:5173](http://localhost:5173).
+
+No necesitas volver a clonar el proyecto ni copiar la configuración. Si modificaste el código, vuelve a ejecutar el comando `build` antes de `up -d` para preparar las imágenes actualizadas.
+
+### Si algo no funciona
+
+| Qué ocurre | Qué significa o qué comprobar | Cómo continuar |
+|---|---|---|
+| No se reconoce `git` o `docker` | Falta instalar la herramienta o la terminal no ha detectado su instalación. | Completa el paso 1 y cierra y vuelve a abrir la terminal. |
+| Docker indica que no puede conectar con el motor o daemon | Docker no está funcionando todavía. | Abre Docker Desktop, espera a que su motor esté listo y repite el comando. |
+| No encuentra `compose.yaml` | La terminal está en otra carpeta. | Entra en `GYM_Proyect` con `cd` y comprueba con `ls` que aparece el archivo. |
+| No encuentra `.env.docker` | Falta el archivo de configuración. | Desde la raíz del proyecto, realiza el paso 3. |
+| Falla la descarga durante `build` | Puede haber un problema de conexión o de acceso al registro de imágenes o paquetes. | Comprueba tu conexión, revisa el mensaje de error y vuelve a ejecutar `build`. |
+| Aparece `port is already allocated` o «puerto ocupado» | Otro programa está utilizando uno de los puertos que necesita el proyecto. | Detén la otra instancia del proyecto o el programa que ocupa el puerto; luego repite `up -d`. |
+| La página no abre | La aplicación puede estar arrancando, detenida o haber fallado. | Comprueba la dirección `http://localhost:5173` y ejecuta `ps` como en el paso 5. |
+| Un servicio aparece como `unhealthy` o `Exited` | Ese componente no responde o se detuvo por un error. | Consulta sus registros con el comando que aparece debajo de esta tabla. |
+| Las cuentas de prueba no permiten entrar | Comprueba el correo y la contraseña; si son correctos, puede faltar la carga de datos iniciales en una base existente. | Revisa los registros de PostgreSQL. Si necesitas conservar los datos, utiliza la preparación de Node y `pnpm db:init` explicadas más abajo. |
+
+Para ver los mensajes de todos los componentes, ejecuta:
+
+```bash
+docker compose --env-file .env.docker logs --tail=100
+```
+
+Para revisar uno concreto, añade su nombre. Por ejemplo, para la base de datos:
+
+```bash
+docker compose --env-file .env.docker logs --tail=100 postgres
+```
+
+Los **registros**, también llamados *logs*, son los mensajes que genera cada componente y ayudan a identificar el problema. Otros nombres de servicio son `frontend`, `api-gateway`, `auth-service`, `client-service`, `membership-service` y `payment-service`.
+
+### Alternativa para quienes quieren modificar el código
+
+Esta sección es opcional. Úsala para ejecutar el código directamente en tu computadora mientras PostgreSQL y Redis siguen funcionando en Docker. Al ejecutar `pnpm dev`, las herramientas de desarrollo observan los archivos para actualizar o reiniciar la aplicación cuando los editas.
+
+#### 1. Preparar Node.js y pnpm
+
+Instala **Node.js 22** desde la [página oficial de Node.js](https://nodejs.org/en/download), seleccionando una versión `22.x` y el instalador de tu sistema operativo. Node.js ejecuta el código JavaScript del proyecto. Vuelve a abrir la terminal, entra en la raíz del proyecto y comprueba:
+
+```bash
+node --version
+npm --version
+```
+
+El primer resultado debe comenzar con `v22.`. `npm` es una herramienta que viene con Node.js y permite instalar otras herramientas.
+
+El proyecto fija **pnpm 11.24.0** en `package.json`. pnpm descarga las bibliotecas que necesita el código, llamadas **dependencias**. Si dispones de Corepack, la herramienta que selecciona la versión de pnpm del proyecto, ejecuta:
+
+```bash
+corepack enable
+pnpm --version
+```
+
+Si `corepack` no existe en tu instalación, puedes instalar la versión fijada de pnpm con npm:
+
+```bash
+npm install --global pnpm@11.24.0
+pnpm --version
+```
+
+El resultado de `pnpm --version` debe ser `11.24.0`. Consulta la [documentación oficial de instalación de pnpm](https://pnpm.io/installation) si tu sistema muestra un error de instalación o permisos.
+
+Después descarga las dependencias del proyecto:
+
+```bash
+pnpm install
+```
+
+Espera a que termine antes de continuar.
+
+#### 2. Preparar la configuración local
+
+Si todavía no existe `.env.local`, crea una copia de la plantilla:
+
+```bash
+cp .env.local.example .env.local
+```
+
+`.env.docker` configura la ejecución dentro de Docker; `.env.local` configura los programas que ejecutas directamente en tu computadora. Este segundo archivo contiene las direcciones `localhost` de PostgreSQL, Redis y los servicios. Si cambiaste las credenciales de `.env.docker`, ajusta también las correspondientes en `.env.local`.
+
+#### 3. Iniciar solo PostgreSQL y Redis
+
+Si tenías la aplicación completa funcionando en Docker, detén primero sus contenedores para liberar los puertos:
+
+```bash
+docker compose --env-file .env.docker down
+```
+
+Después inicia únicamente los dos componentes de almacenamiento:
 
 ```bash
 docker compose --env-file .env.docker up -d postgres redis
+docker compose --env-file .env.docker ps
+```
+
+Espera a que ambos indiquen `healthy` antes de continuar.
+
+#### 4. Preparar los datos e iniciar la aplicación
+
+Ejecuta, uno por uno:
+
+```bash
 pnpm db:init
 pnpm dev
 ```
 
-Asegúrate de que `.env.local` exista. No ejecutes `pnpm dev` al mismo tiempo que los contenedores de aplicación completos: comparten los puertos 3000–3004 y 5173.
+`pnpm db:init` aplica la estructura de la base y los datos de prueba. Puede restablecer las contraseñas de las cuentas demo, conservando las demás filas. `pnpm dev` inicia la página web y los servicios desde tu computadora.
 
-Para actualizar los contenedores de aplicación luego de editar el código, usa `pnpm docker:dev`; compila en el host y reinicia los servicios de aplicación sin borrar los datos de PostgreSQL/Redis.
+Deja esa terminal abierta mientras uses este modo. Cuando los servicios estén listos, abre [http://localhost:5173](http://localhost:5173) y utiliza las mismas cuentas de prueba. Para detener los procesos de desarrollo, pulsa **Ctrl+C** en esa terminal. Para detener PostgreSQL y Redis, ejecuta después el comando `down` del paso 7.
 
-### Comprobación manual
+No inicies la aplicación completa en Docker y `pnpm dev` al mismo tiempo: utilizan los mismos puertos `3000`–`3004` y `5173`.
 
-1. Inicia sesión como recepción y revisa clientes, membresías, planes y pagos.
-2. Inicia sesión como socio y comprueba su portal y su información de membresía.
-3. Inicia sesión como administrador y revisa el panel y Configuración.
+Si prefieres aplicar cambios de código al modo Docker completo, con Node.js, pnpm y las dependencias ya preparados puedes usar `pnpm docker:dev`. Este comando compila en tu computadora y actualiza los contenedores de aplicación sin borrar los datos de PostgreSQL y Redis.
 
-Los cambios confirmados por los formularios persisten en la base local. El sistema registra pagos manuales; no procesa pagos electrónicos.
+### Información sobre la configuración y los datos
 
-### Solución de problemas
+- `.env.docker` define las credenciales de PostgreSQL y Redis, `JWT_SECRET` y el origen permitido para las solicitudes del navegador (`CORS_ORIGIN`). Compose proporciona las direcciones internas de los servicios.
+- `.env.local` define las conexiones desde tu computadora, la dirección del gateway y `VITE_API_URL`, que indica al frontend dónde consultar la API. La configuración del backend busca `.env.local` en las carpetas superiores; también acepta un archivo indicado mediante `ENV_FILE`.
+- `shared/database/schema.sql` define las tablas; `shared/database/seed.sql` incluye las cuentas y datos de prueba. La carga inicial, conocida como **seed**, y la migración `003-membership-renewal-requests.sql` se ejecutan automáticamente cuando Compose crea un volumen de PostgreSQL nuevo.
+- Estas plantillas sirven para desarrollo local. Un entorno de producción requiere secretos robustos y conexiones HTTPS.
 
-- **Contenedor no saludable:** consulta `docker compose --env-file .env.docker ps` y los logs con `docker compose --env-file .env.docker logs --tail=100 <servicio>`.
-- **No existe `.env.docker`:** copia `.env.docker.example` a `.env.docker` antes de los comandos Compose.
-- **Error de conexión desde Node local:** confirma que `.env.local` esté presente y que PostgreSQL/Redis publiquen los puertos 5432/6379.
-- **Puerto ocupado:** detén el proceso anterior o el otro modo de ejecución (Docker completo o `pnpm dev`).
-- **Cuenta demo no puede iniciar sesión:** verifica que el volumen inicializó `shared/database/seed.sql`; ejecuta `pnpm db:init` desde el host con `.env.local` para reaplicar esquema y seed.
+### Reiniciar todos los datos de prueba (opcional)
+
+**Este procedimiento elimina los datos locales del almacenamiento de Docker, incluidos socios, membresías y pagos que hayas registrado.** Úsalo únicamente si quieres empezar de cero con los datos de ejemplo:
+
+```bash
+docker compose --env-file .env.docker down -v
+docker compose --env-file .env.docker up -d
+```
+
+La diferencia con la detención habitual es `-v`: también elimina los volúmenes de almacenamiento. En el siguiente inicio, PostgreSQL crea de nuevo la base y carga los datos de prueba. Espera a que los servicios estén `healthy` antes de iniciar sesión.
 
 ## Ejemplos de uso
 
