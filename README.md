@@ -789,20 +789,95 @@ GitHub Actions ejecuta lint, compilación y pruebas. Los jobs de deployment son 
 ### Primeros pasos
 
 1. Crea un fork del repositorio
-2. Crea una rama de funcionalidad: `git checkout -b feature/amazing-feature`
+2. Crea una rama de funcionalidad: `git checkout -b feature/renovacion-membresias`
 3. Realiza los cambios
 4. Asegúrate de la calidad del código: `pnpm lint && pnpm build`
 5. Ejecuta las pruebas: `pnpm test`
-6. Confirma los cambios con Commits convencionales: `git commit -m "feat: add amazing feature"`
-7. Envía los cambios a tu fork: `git push origin feature/amazing-feature`
+6. Confirma los cambios con Commits convencionales: `git commit -m "feat(memberships): agregar renovacion de membresias"`
+7. Envía los cambios a tu fork: `git push origin feature/renovacion-membresias`
 8. Abre una solicitud de extracción (Pull Request)
+
+### Nomenclatura de ramas
+
+Las ramas de trabajo usan el formato `<tipo>/<descripcion>`. El tipo indica el propósito del trabajo y la descripción identifica el cambio concreto. Por ejemplo, en `fix/login-vacio`, `fix` indica una corrección y `login-vacio` identifica el problema.
+
+El job **Branch Name** de [CI/CD](.github/workflows/ci-cd.yml) valida el nombre de la rama de origen de las Pull Request dirigidas a `main` con esta expresión:
+
+```text
+^(feature|fix|refactor|docs|test|chore|hotfix)/[a-z0-9]+([._-][a-z0-9]+)*$
+```
+
+| Tipo de rama | Cuándo utilizarlo | Ejemplo válido | Qué expresa el ejemplo |
+|---|---|---|---|
+| `feature/` | Incorporar una funcionalidad o ampliar una existente. | `feature/renovacion-membresias` | Añadir el flujo de renovación de membresías. |
+| `fix/` | Corregir un fallo del comportamiento actual. | `fix/login-vacio` | Impedir que se envíe un inicio de sesión sin credenciales. |
+| `refactor/` | Reorganizar código sin cambiar su comportamiento observable. | `refactor/consultas-membresias` | Simplificar la implementación de las consultas de membresías. |
+| `docs/` | Actualizar documentación, instrucciones o ejemplos. | `docs/convenciones-git` | Documentar los nombres de ramas y mensajes de commits. |
+| `test/` | Añadir, corregir o reorganizar pruebas. | `test/flujo-pagos` | Cubrir el registro y la consulta de pagos con pruebas. |
+| `chore/` | Realizar mantenimiento, actualizar dependencias o ajustar herramientas y configuración. | `chore/actualizar-dependencias` | Actualizar paquetes del proyecto. |
+| `hotfix/` | Identificar una corrección urgente. El prefijo expresa la urgencia; no crea un proceso de despliegue automático. | `hotfix/error-autenticacion` | Corregir con prioridad un fallo de autenticación. |
+
+Reglas para la descripción:
+
+- Usa letras minúsculas de `a` a `z` y números; evita espacios, tildes y `ñ`.
+- Separa las palabras preferentemente con guiones: `registro-pagos`. El validador también permite puntos y guiones bajos entre grupos alfanuméricos.
+- Incluye una sola `/`, entre el tipo y la descripción. La descripción no puede estar vacía ni empezar o terminar con un separador; tampoco admite separadores consecutivos.
+- Elige un nombre concreto: `fix/login-vacio` explica mejor el cambio que `fix/arreglos`.
+- `main` y `develop` aparecen como ramas de destino de eventos `push` en CI. No siguen el formato de las ramas de trabajo; el validador anterior solo se ejecuta para la rama de origen de una Pull Request a `main`.
+
+| Nombre inválido para una rama de trabajo | Motivo | Alternativa válida |
+|---|---|---|
+| `feat/renovacion-membresias` | El prefijo de rama es `feature`, aunque el tipo de commit sea `feat`. | `feature/renovacion-membresias` |
+| `fix/Login Vacio` | Contiene mayúsculas y un espacio. | `fix/login-vacio` |
+| `docs/convenciones/git` | Contiene una segunda `/`. | `docs/convenciones-git` |
+| `chore/actualizar-` | La descripción termina con un separador. | `chore/actualizar-dependencias` |
+
+### Convención de commits
+
+El historial reciente utiliza **Commits convencionales**: un tipo en inglés seguido de `: ` y una descripción breve del cambio. También se puede incluir un ámbito opcional entre paréntesis para identificar el módulo afectado:
+
+```text
+<tipo>: <descripcion>
+<tipo>(<ambito>): <descripcion>
+```
+
+Por ejemplo, `fix(auth): impedir login con credenciales vacias` se descompone en tipo `fix`, ámbito `auth` y descripción `impedir login con credenciales vacias`. Los ejemplos siguientes usan descripciones en español, como los commits recientes del proyecto. Esta es una convención de colaboración; el workflow actual valida los nombres de ramas, pero no los mensajes de commits.
+
+| Tipo de commit | Cuándo utilizarlo | Ejemplo | Rama relacionada habitual |
+|---|---|---|---|
+| `feat` | Añadir o ampliar una funcionalidad. | `feat(memberships): agregar renovacion de membresias` | `feature/renovacion-membresias` |
+| `fix` | Corregir un error. | `fix(auth): impedir login con credenciales vacias` | `fix/login-vacio` o `hotfix/error-autenticacion` |
+| `docs` | Modificar exclusivamente documentación. | `docs: explicar convenciones de ramas y commits` | `docs/convenciones-git` |
+| `refactor` | Reestructurar código sin añadir funcionalidades ni corregir errores. | `refactor(memberships): simplificar consultas de membresias` | `refactor/consultas-membresias` |
+| `test` | Añadir o modificar pruebas. | `test(payments): cubrir registro de pagos` | `test/flujo-pagos` |
+| `chore` | Mantener dependencias, herramientas o configuración. | `chore: actualizar dependencias del proyecto` | `chore/actualizar-dependencias` |
+| `style` | Cambios de presentación o formato; el historial del proyecto también lo usa para ajustes visuales, como colores del login. | `style(frontend): ajustar paleta del login` | `feature/paleta-login` o `fix/colores-login`, según el propósito |
+
+La rama agrupa un objetivo de trabajo; el tipo de cada commit describe su cambio individual. Una rama `feature/renovacion-membresias` puede contener commits `feat`, `test` y `docs`. `feature` es un prefijo de rama y `feat` es un tipo de commit; una corrección urgente sigue usando `fix` en el commit, aunque la rama empiece con `hotfix/`. `style/` no está admitido por el validador de ramas.
+
+Para escribir mensajes claros:
+
+- Mantén el tipo en minúsculas y deja un espacio después de los dos puntos.
+- Usa un verbo que explique la acción, por ejemplo `agregar`, `corregir`, `actualizar` o `simplificar`; evita mensajes como `cambios` o `arreglos varios`.
+- El ámbito es opcional. Usa nombres consistentes como `auth`, `clients`, `memberships`, `payments`, `frontend`, `gateway` o `shared`.
+- Procura que cada commit reúna un cambio coherente. Si hace falta explicar el motivo o sus consecuencias, añade un cuerpo separado del título por una línea en blanco.
+- Para un cambio incompatible, usa `!` antes de `:` y explica la incompatibilidad en el cuerpo con `BREAKING CHANGE:`. Por ejemplo: `feat(api)!: cambiar formato de respuesta de pagos`. Esta marca documenta el cambio; no incrementa la versión ni publica una versión automáticamente.
+
+Ejemplo completo para una actualización de documentación, ejecutado desde una rama base actualizada y con los cambios guardados en `README.md`:
+
+```bash
+git switch -c docs/convenciones-git
+git add README.md
+git commit -m "docs: explicar convenciones de ramas y commits"
+git push -u origin docs/convenciones-git
+```
 
 ### Directrices de estilo de código
 
 - **TypeScript**: modo estricto activado, sin tipos `any`, tipos de retorno explícitos para las API públicas
 - **ESLint**: sigue las reglas definidas por el repositorio
-- **Commits**: Commits convencionales (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
-- **Ramas**: usa nombres descriptivos acordes al cambio
+- **Commits**: sigue los tipos y ejemplos de la sección [Convención de commits](#convención-de-commits).
+- **Ramas**: sigue el formato y los prefijos de la sección [Nomenclatura de ramas](#nomenclatura-de-ramas).
 
 ### Requisitos para las Pull Request
 

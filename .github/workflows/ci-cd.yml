@@ -11,6 +11,33 @@ env:
   PNPM_VERSION: '11.24.0'
 
 jobs:
+  branch-name:
+    name: Branch Name
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Validate branch name
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          echo "Validating branch: $BRANCH_NAME"
+
+          if [[ ! "$BRANCH_NAME" =~ ^(feature|fix|refactor|docs|test|chore|hotfix)/[a-z0-9]+([._-][a-z0-9]+)*$ ]]; then
+            echo "::error::Invalid branch name: $BRANCH_NAME"
+            echo ""
+            echo "Allowed formats:"
+            echo "  feature/*"
+            echo "  fix/*"
+            echo "  refactor/*"
+            echo "  docs/*"
+            echo "  test/*"
+            echo "  chore/*"
+            echo "  hotfix/*"
+            exit 1
+          fi
+
+          echo "Branch name is valid."
   lint-and-typecheck:
     name: Lint & TypeCheck
     runs-on: ubuntu-latest
