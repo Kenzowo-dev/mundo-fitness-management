@@ -113,8 +113,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests (unit only - integration tests require separate setup)
-        run: pnpm test
+      - name: Build shared
+        run: pnpm --filter=@gym/shared build
+
+      - name: Run tests (unit only)
+        run: pnpm test:unit
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
