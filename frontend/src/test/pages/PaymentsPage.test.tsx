@@ -220,7 +220,9 @@ describe('PaymentsPage - Integration Tests', () => {
     it('shows a skeleton while socios load in the payment form', async () => {
       renderPaymentsPage({ clients: createMockQuery() })
       await openPaymentModal()
-      expect(screen.getByLabelText('Cargando socios')).toBeInTheDocument()
+      const loadingField = screen.getByText('Socio', { selector: '.payment-field-skeleton > span' }).parentElement
+      expect(loadingField).toHaveAttribute('aria-busy', 'true')
+      expect(loadingField.querySelector('.skeleton')).toHaveAttribute('aria-hidden', 'true')
     })
 
     it('shows a skeleton while the selected socio memberships load', async () => {
@@ -228,7 +230,9 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage()
       await openPaymentModal()
       fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
-      expect(await screen.findByLabelText('Cargando membresías del socio')).toBeInTheDocument()
+      const label = await screen.findByText('Membresía asociada', { selector: '.payment-field-skeleton > span' })
+      expect(label.parentElement).toHaveAttribute('aria-busy', 'true')
+      expect(label.parentElement.querySelector('.skeleton')).toHaveAttribute('aria-hidden', 'true')
     })
 
     it('shows the empty payments state after a successful empty response', () => {

@@ -1,10 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="es-PE">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <meta name="theme-color" content="#f6f5f2" />
+    <meta name="description" content="Mundo Fitness en Trujillo. Conoce nuestro gimnasio, descubre los planes y da el primer paso hacia tu próxima meta." />
+    <title>Mundo Fitness · Vive diferente</title>
+    <script>
+      try {
+        const saved = localStorage.getItem('mf-theme-v1');
+        const dark = saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.querySelector('meta[name="theme-color"]').content = dark ? '#131316' : '#f6f5f2';
+      } catch { document.documentElement.dataset.theme = 'light'; }
+    </script>
   </head>
   <body>
     <div id="root"></div>

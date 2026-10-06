@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mundo Fitness · Prototipo desechable</title><style>
+:root{--bg:#f6f5f2;--surface:#fff;--text:#202024;--muted:#626268;--line:#dfdedb;--red:#c92332;--ink:#ae1727;--soft:#fbe9eb;--brand:#db2637;--success:#187244;color-scheme:light;font:100%/1.55 system-ui,sans-serif}
+:root[data-theme=dark]{--bg:#131316;--surface:#202025;--text:#f5f4f2;--muted:#bebdc4;--line:#3d3d45;--ink:#ff929a;--soft:#40242a;--success:#84d9a7;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);padding-bottom:7rem}button,a{touch-action:manipulation}button{font:inherit;cursor:pointer}button:not(.proto-picker-item){min-height:44px;border:1px solid var(--line);border-radius:999px;padding:.6rem 1.15rem;background:var(--surface);color:var(--text)}button.primary{background:var(--red);color:white;border-color:var(--red)}button:not(.proto-picker-item):active{transform:scale(.98)}:focus-visible{outline:3px solid var(--ink);outline-offset:4px}a{color:var(--ink);text-underline-offset:.2em}h1,h2,h3,p{margin-top:0}h1{line-height:1.03;letter-spacing:-.055em}h2{line-height:1.2;letter-spacing:-.035em}.eyebrow{font-size:.8rem;letter-spacing:.08em;font-weight:700;color:var(--ink);text-transform:uppercase}.muted{color:var(--muted)}.top{max-width:1200px;margin:auto;padding:1.5rem 2rem;display:flex;gap:1rem;align-items:center;justify-content:space-between}.logo{font-weight:850;font-size:1.15rem;letter-spacing:-.04em}.logo span{color:var(--brand)}.notice{font-size:.8rem;background:var(--surface);border-bottom:1px solid var(--line);padding:.7rem 2rem;color:var(--muted)}.container{max-width:1200px;margin:auto;padding:2rem}.hero{display:grid;grid-template-columns:1.3fr 1fr;gap:4rem;align-items:center;min-height:70vh}.hero h1{font-size:clamp(3.5rem,7.5vw,6rem);max-width:9ch}.hero p{max-width:45ch}.actions{display:flex;flex-wrap:wrap;gap:.75rem;margin:1.5rem 0}.art{background:var(--red);color:white;border-radius:2rem;min-height:29rem;padding:2.5rem;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}.art strong{font-size:clamp(4rem,10vw,8rem);line-height:.9;letter-spacing:-.08em}.art p{font-size:1.2rem}.grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}.card{background:var(--surface);border:1px solid var(--line);padding:2rem;border-radius:1.5rem}.tag{display:inline-block;border-radius:999px;padding:.3rem .75rem;background:var(--soft);color:var(--ink);font-size:.85rem;font-weight:650}.status{color:var(--success)}.tokens{display:flex;flex-wrap:wrap;gap:1rem}.swatch{width:6rem}.swatch i{display:block;height:3rem;border:1px solid var(--line);border-radius:.75rem}.swatch small{font-size:.75rem;color:var(--muted)}.dashboard{display:grid;grid-template-columns:13rem minmax(0,1fr);min-height:65vh;border:1px solid var(--line);border-radius:1.5rem;overflow:hidden;background:var(--surface)}aside{background:var(--bg);padding:1.5rem;border-right:1px solid var(--line)}aside p{padding:.75rem;border-radius:.75rem}aside .selected{background:var(--soft);color:var(--ink);font-weight:650}.workspace{padding:2rem}.workspace h1{font-size:2.5rem}.compact{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.compact .card{padding:1.25rem;border-radius:1rem}.number{font-size:1.7rem;font-weight:700;letter-spacing:-.04em}.row{display:flex;justify-content:space-between;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}.feedback{min-height:1.5rem;color:var(--ink);font-weight:600}.state{font-size:.8rem;color:var(--muted)}@media(max-width:800px){.hero{grid-template-columns:1fr;gap:2rem}.art{min-height:19rem}.grid,.compact{grid-template-columns:1fr}.dashboard{grid-template-columns:1fr}aside{display:none}.container,.workspace{padding:1.25rem}.top{padding:1rem}.hero h1{font-size:3.5rem}.notice{padding:.75rem 1rem}}@media(prefers-reduced-motion:reduce){button:not(.proto-picker-item):active{transform:none}}
+.proto-picker {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.82);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 8px 24px rgba(0, 0, 0, 0.24),
+    0 2px 6px rgba(0, 0, 0, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.proto-picker-highlight {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  will-change: transform;
+}
+
+/* The slide is enabled only after first paint (data-ready), so load doesn't animate. */
+.proto-picker[data-ready] .proto-picker-highlight {
+  transition:
+    transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
+    width 250ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-picker[data-ready] .proto-picker-highlight { transition: none; }
+}
+
+.proto-picker-item {
+  position: relative; /* sits above the highlight */
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font: inherit;
+  cursor: pointer;
+  transition: color 150ms ease-out;
+}
+
+.proto-picker-item:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.proto-picker-item:active {
+  transform: scale(0.97);
+}
+
+.proto-picker-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
+.proto-picker-item[data-active] {
+  color: #fff;
+}
+
+.proto-picker-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 4px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.proto-picker-replay {
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.proto-picker[data-position="top"] {
+  bottom: auto;
+  top: 24px;
+}</style></head><body>
+<div class="notice">Prototipo desechable · Sin conexión al sistema · Comparación de personalidad y densidad</div>
+<header class="top"><div class="logo">MUNDO <span>FITNESS</span></div><button id="theme" aria-pressed="false">Activar tema oscuro</button></header>
+<main id="stage"></main><div class="container"><p class="state" id="state" aria-live="polite"></p><p class="feedback" id="feedback" role="status"></p><h2>Una misma identidad, dos temas</h2><div class="tokens"><div class="swatch"><i style="background:var(--bg)"></i><small>Fondo</small></div><div class="swatch"><i style="background:var(--surface)"></i><small>Superficie</small></div><div class="swatch"><i style="background:var(--brand)"></i><small>Marca</small></div><div class="swatch"><i style="background:var(--red)"></i><small>Acción</small></div><div class="swatch"><i style="background:var(--ink)"></i><small>Rojo de texto</small></div><div class="swatch"><i style="background:var(--soft)"></i><small>Selección suave</small></div></div></div>
+<nav class="proto-picker" aria-label="Prototype variants"><span class="proto-picker-highlight" aria-hidden="true"></span><button class="proto-picker-item" data-active aria-current="true">Editorial</button><button class="proto-picker-item">Calma</button></nav>
+<script>
+const variants=[()=>`<div class="container"><section class="hero"><div><p class="eyebrow">Mundo Fitness · Trujillo</p><h1>Tu próximo paso empieza aquí.</h1><p class="muted">Conoce Mundo Fitness y encuentra una forma de empezar a entrenar a tu ritmo.</p><div class="actions"><button class="primary" data-action="Te mostraríamos las opciones verificadas para conocer o contactar al gimnasio.">Conocer el gimnasio</button><button data-action="Te llevaríamos al registro real de una cuenta de socio.">Crear cuenta de socio</button></div><a href="#planes">Explorar membresías ↓</a></div><div class="art" aria-hidden="true"><p>Una decisión.<br>Un nuevo comienzo.</p><strong>DA EL<br>PASO.</strong><p>MUNDO FITNESS</p></div></section><section class="grid"><article class="card" id="planes"><p class="eyebrow">Membresías</p><h2>Elige tu forma de empezar.</h2><p class="muted">Aquí aparecerán los planes disponibles con sus precios y condiciones reales.</p><button data-action="El catálogo se alimentaría de las membresías publicadas; no hay precios ficticios.">Consultar planes</button></article><article class="card"><span class="tag">Ejemplo del portal</span><h2 style="margin-top:1rem">Todo listo para tu próximo paso.</h2><p class="muted">Tu estado de membresía se consultará desde tu cuenta.</p><span class="status">Estado ilustrativo: activo</span></article></section></div>`,()=>`<div class="container"><section class="dashboard"><aside><div class="logo">Mundo Fitness</div><p class="selected">Mi entrenamiento</p><p>Membresías</p><p>Mi cuenta</p><small class="muted">Ejemplo visual de navegación</small></aside><div class="workspace"><p class="eyebrow">Portal de socios · Ejemplo</p><h1>Vamos a por tu próximo paso.</h1><p class="muted">Una vista clara de tu cuenta y de lo que puedes hacer hoy.</p><div class="compact"><article class="card"><p class="muted">Mi membresía</p><div class="number status">Activa</div><small class="muted">Estado ilustrativo</small></article><article class="card"><p class="muted">Mis datos</p><div class="number">Tu cuenta</div><small class="muted">Información en un solo lugar</small></article><article class="card"><p class="muted">Próximo paso</p><button class="primary" data-action="Abriríamos las membresías reales disponibles para tu cuenta.">Ver membresías</button></article></div><section style="margin-top:2rem"><h2>Gestiona tu cuenta</h2><div class="row"><span>Información de socio</span><button data-action="Abriríamos el formulario de perfil sin modificar datos en este prototipo.">Revisar perfil</button></div><div class="row"><span>Conocer el gimnasio</span><button data-action="Mostraríamos la información de contacto verificada de Mundo Fitness.">Contactar</button></div></section></div></section><section class="card" style="margin-top:1.5rem" id="planes"><p class="eyebrow">También para empezar</p><h2>Entrena en Mundo Fitness, Trujillo.</h2><p class="muted">Conoce el gimnasio, crea tu cuenta y consulta los planes reales antes de elegir.</p><div class="actions"><button data-action="Mostraríamos el formulario de registro real.">Crear cuenta</button><button data-action="Mostraríamos el catálogo de planes sin inventar precios.">Consultar planes</button></div></section></div>`];
+// `variants` is an array of render functions, one per variant, in picker order.
+const stage = document.getElementById('stage');
+const picker = document.querySelector('.proto-picker');
+const highlight = picker.querySelector('.proto-picker-highlight');
+const items = [...picker.querySelectorAll('.proto-picker-item:not(.proto-picker-replay)')];
+const replay = picker.querySelector('.proto-picker-replay');
+let current = 0;
+
+function moveHighlight() {
+  const el = items[current];
+  highlight.style.width = el.offsetWidth + 'px';
+  highlight.style.transform = `translateX(${el.offsetLeft}px)`;
+}
+
+function mount(i) {
+  stage.innerHTML = '';
+  // Clear first, render next frame, so entrance animations re-run.
+  requestAnimationFrame(() => { stage.innerHTML = variants[i](); });
+}
+
+function setActive(i) {
+  if (i < 0 || i >= variants.length) return;
+  current = i;
+  items.forEach((el, j) => {
+    el.toggleAttribute('data-active', j === i);
+    if (j === i) el.setAttribute('aria-current', 'true');
+    else el.removeAttribute('aria-current');
+  });
+  moveHighlight();
+  const url = new URL(location);
+  url.searchParams.set('v', i + 1);
+  history.replaceState(null, '', url);
+  mount(i);
+}
+
+items.forEach((el, i) => el.addEventListener('click', () => setActive(i)));
+replay?.addEventListener('click', () => mount(current));
+window.addEventListener('resize', moveHighlight);
+
+document.addEventListener('keydown', (e) => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const num = parseInt(e.key, 10);
+  if (num >= 1 && num <= variants.length) setActive(num - 1);
+  else if (e.key === 'ArrowRight') setActive((current + 1) % variants.length);
+  else if (e.key === 'ArrowLeft') setActive((current - 1 + variants.length) % variants.length);
+  else if (e.key === 'r' || e.key === 'R') mount(current);
+});
+
+setActive((parseInt(new URLSearchParams(location.search).get('v'), 10) || 1) - 1);
+// Enable the slide only after first paint, so load doesn't animate.
+requestAnimationFrame(() => requestAnimationFrame(() => picker.setAttribute('data-ready', '')));
+const themeButton=document.getElementById('theme');themeButton.addEventListener('click',()=>{const dark=document.documentElement.dataset.theme!=='dark';document.documentElement.dataset.theme=dark?'dark':'light';themeButton.setAttribute('aria-pressed',String(dark));themeButton.textContent=dark?'Activar tema claro':'Activar tema oscuro';updateState()});function updateState(){document.getElementById('state').textContent='Dirección: '+(current===0?'editorial energética':'operación compacta y calma')+' · Tema: '+(document.documentElement.dataset.theme||'light')+' · Datos: ilustrativos, sin operaciones reales.'}document.addEventListener('click',e=>{const button=e.target.closest('[data-action]');if(button)document.getElementById('feedback').textContent=button.dataset.action;updateState()});document.addEventListener('keydown',()=>requestAnimationFrame(updateState));updateState();
+</script></body></html>

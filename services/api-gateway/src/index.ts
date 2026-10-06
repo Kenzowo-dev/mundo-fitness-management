@@ -60,6 +60,7 @@ const configuredServices: ServiceConfig[] = [
     name: 'membership-service',
     url: process.env.MEMBERSHIP_SERVICE_URL || 'http://localhost:3003',
     paths: ['/api/memberships'],
+    publicPaths: ['/plans/public'],
   },
   {
     name: 'payment-service',

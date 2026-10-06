@@ -17,7 +17,7 @@
   padding: var(--space-3) var(--space-4);
   color: var(--text-secondary);
   background: var(--bg-elevated-1);
-  border-left: 3px solid var(--accent-secondary);
+  border-left: 3px solid var(--accent-primary);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: 0.875rem;
   line-height: 1.5;

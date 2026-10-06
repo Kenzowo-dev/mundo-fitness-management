@@ -146,6 +146,17 @@ export async function listPlansController(req: AuthenticatedRequest, res: Respon
   }
 }
 
+export async function listPublicPlansController(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const plans = await listPlans(true);
+    res.json(plans.map(({ id, name, description, durationDays, price, currency, features, maxVisitsPerWeek, includesClasses, includesSauna }) => ({
+      id, name, description, durationDays, price, currency, features, maxVisitsPerWeek, includesClasses, includesSauna,
+    })));
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function updatePlanController(req: Request, res: Response, next: NextFunction) {
   try {
     const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);

@@ -9,6 +9,7 @@ import type {
   RegisterData,
   ClientMembership,
   MembershipPlan,
+  PublicMembershipPlan,
   Payment,
   Invoice,
   CreatePaymentInput,
@@ -447,6 +448,10 @@ class ApiClient {
    */
   async getMembershipPlans(activeOnly = true): Promise<MembershipPlan[]> {
     return this.request<MembershipPlan[]>(`/api/memberships/plans?activeOnly=${activeOnly}`);
+  }
+
+  async getPublicMembershipPlans(): Promise<PublicMembershipPlan[]> {
+    return this.request<PublicMembershipPlan[]>('/api/memberships/plans/public');
   }
 
   async getMembershipDashboardStats() {

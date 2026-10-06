@@ -83,7 +83,9 @@ describe('Modal', () => {
     render(<Modal {...createDefaultProps()} />)
     const dialog = screen.getByRole('dialog', { hidden: true })
     expect(dialog).toHaveAttribute('aria-modal', 'true')
-    expect(dialog).toHaveAttribute('aria-labelledby', 'modal-title')
+    const heading = screen.getByRole('heading', { name: 'Test Modal' })
+    expect(dialog).toHaveAttribute('aria-labelledby', heading.id)
+    expect(dialog).toHaveAccessibleName('Test Modal')
   })
 
   it('renders close button with aria-label', () => {

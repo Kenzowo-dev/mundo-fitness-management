@@ -3,6 +3,7 @@ import {
   createPlanController,
   getPlanController,
   listPlansController,
+  listPublicPlansController,
   updatePlanController,
   deletePlanController,
   createMembershipController,
@@ -38,6 +39,7 @@ import { authenticate, authorize, requireClientAccess, requireMembershipAccess }
 const router: Router = Router();
 
 // Planes - rutas específicas primero
+router.get('/plans/public', listPublicPlansController);
 router.get('/plans', authenticate, listPlansController);
 router.get('/plans/:id', authenticate, getPlanController);
 router.post('/plans', authenticate, authorize('admin'), createPlanValidation, createPlanController);

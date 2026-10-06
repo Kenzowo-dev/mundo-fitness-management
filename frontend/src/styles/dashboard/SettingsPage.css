@@ -1,4 +1,5 @@
 .settings-page {
+  min-width: 0;
   display: grid;
   gap: var(--space-6, 24px);
 }
@@ -42,3 +43,5 @@
   .account-facts, .settings-form .form-row { grid-template-columns: 1fr; }
   .settings-actions, .settings-actions .btn { width: 100%; }
 }
+
+.settings-content { box-shadow: var(--shadow-sm); }

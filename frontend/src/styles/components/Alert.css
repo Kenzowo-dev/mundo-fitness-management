@@ -9,18 +9,7 @@
   border: 1px solid transparent;
   font-size: 14px;
   line-height: 1.5;
-  animation: slideIn var(--transition-fast);
-}
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .alert-icon {
@@ -53,8 +42,8 @@
 
 .alert-dismiss {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -62,7 +51,7 @@
   background: transparent;
   border: none;
   color: inherit;
-  opacity: 0.6;
+  opacity: 1;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: opacity var(--transition-fast), background var(--transition-fast);
@@ -70,36 +59,36 @@
 
 .alert-dismiss:hover {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--bg-hover);
 }
 
 .alert-dismiss:focus-visible {
-  outline: 2px solid var(--accent-primary);
+  outline: 3px solid var(--border-focus);
   outline-offset: 2px;
 }
 
 /* Variantes */
 
 .alert-success {
-  background: rgba(0, 230, 118, 0.1);
+  background: var(--state-success-soft);
   border-color: var(--state-success);
   color: var(--state-success);
 }
 
 .alert-error {
-  background: rgba(255, 82, 82, 0.1);
+  background: var(--state-error-soft);
   border-color: var(--state-error);
   color: var(--state-error);
 }
 
 .alert-warning {
-  background: rgba(255, 171, 0, 0.1);
+  background: var(--state-warning-soft);
   border-color: var(--state-warning);
   color: var(--state-warning);
 }
 
 .alert-info {
-  background: rgba(0, 229, 255, 0.1);
+  background: var(--state-info-soft);
   border-color: var(--state-info);
   color: var(--state-info);
 }

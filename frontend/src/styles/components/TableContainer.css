@@ -4,6 +4,10 @@
   background: var(--bg-elevated-1);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-shadow: var(--shadow-sm);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -18,16 +22,15 @@
 .data-table td {
   padding: var(--space-4);
   text-align: left;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .data-table th {
   background: var(--bg-elevated-2);
   font-weight: 700;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
+  font-size: .8125rem;
+  letter-spacing: .01em;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -94,3 +97,5 @@
     min-width: 640px;
   }
 }
+.data-table td { font-size: .875rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.table-container:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 3px; }

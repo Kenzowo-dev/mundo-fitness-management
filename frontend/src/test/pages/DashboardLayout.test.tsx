@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest'
-import { render, screen, act, fireEvent } from '@testing-library/react'
+import { render, screen, act, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -76,10 +76,7 @@ describe('DashboardLayout - Integration Tests', () => {
   describe('Render', () => {
     it('renders sidebar with brand', () => {
       renderDashboardLayout()
-      // Logo has alt="Mundo Fitness"
-      expect(screen.getByAltText('Mundo Fitness')).toBeInTheDocument()
-      // Brand text is in h2
-      expect(screen.getByText('Mundo Fitness')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Mundo Fitness, inicio' })).toHaveAttribute('href', '/')
     })
 
     it('renders main content area with id', () => {
@@ -103,7 +100,7 @@ describe('DashboardLayout - Integration Tests', () => {
     it('renders user info in sidebar footer', () => {
       renderDashboardLayout()
       expect(screen.getByText('Test User')).toBeInTheDocument()
-      expect(screen.getByText('admin')).toBeInTheDocument()
+      expect(screen.getByText('Administrador')).toBeInTheDocument()
     })
 
     it('renders logout button', () => {
@@ -118,7 +115,7 @@ describe('DashboardLayout - Integration Tests', () => {
   describe('Navigation Items', () => {
     const navItems = [
       { label: 'Dashboard' },
-      { label: 'Clientes' },
+      { label: 'Socios' },
       { label: 'Membresías' },
       { label: 'Pagos' },
       { label: 'Informes' },
@@ -166,7 +163,7 @@ describe('DashboardLayout - Integration Tests', () => {
       expect(sidebar).toHaveClass('open')
 
       act(() => {
-        fireEvent.click(screen.getByLabelText(/Cerrar menú/))
+        fireEvent.click(within(document.querySelector('.top-bar')!).getByLabelText(/Cerrar menú/))
       })
       expect(sidebar).not.toHaveClass('open')
     })
@@ -232,7 +229,7 @@ describe('DashboardLayout - Integration Tests', () => {
       act(() => {
         fireEvent.click(screen.getByLabelText(/Abrir menú/))
       })
-      const toggle = screen.getByLabelText(/Cerrar menú/)
+      const toggle = within(document.querySelector('.top-bar')!).getByLabelText(/Cerrar menú/)
       expect(toggle).toHaveAttribute('aria-expanded', 'true')
       expect(toggle).toHaveAttribute('aria-controls', 'sidebar')
     })
