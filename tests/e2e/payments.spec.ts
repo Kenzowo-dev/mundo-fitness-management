@@ -26,4 +26,6 @@ test('reception can record a payment and find it in payment history', async ({ p
   await page.getByRole('button', { name: 'Confirmar Cobro' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Pago registrado como recibido. No se procesó ningún cobro electrónico.' })).toBeVisible();
   await expect(page.getByRole('row').filter({ hasText: client.firstName })).toContainText('59.90');
+  await page.reload();
+  await expect(page.getByRole('row').filter({ hasText: client.firstName })).toContainText('59.90');
 });

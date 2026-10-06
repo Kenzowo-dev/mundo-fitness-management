@@ -8,21 +8,15 @@ test('public home stays public and seeded admin can reach the dashboard', async 
 
   await page.goto('/');
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('heading', { level: 1, name: /Tu entrenamiento sigue/ })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: /Tu próxima versión/ })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Iniciar sesión' }).first()).toHaveAttribute('href', '/login');
   await expect(page.getByLabel('Navegación principal')).toBeVisible();
 
-  await page.route('**/api/auth/login', (route) => route.fulfill({
-    status: 401,
-    contentType: 'application/json',
-    body: JSON.stringify({ error: { message: 'Invalid credentials', code: 'INVALID_CREDENTIALS' } }),
-  }));
   await page.goto('/login');
   await page.getByLabel('Correo electrónico').fill('admin@mundofitness.com');
   await page.getByRole('textbox', { name: 'Contraseña' }).fill('wrong-password');
   await page.getByRole('button', { name: 'Ingresar' }).click();
   await expect(page.getByRole('alert')).toHaveText('El correo electrónico o la contraseña no son correctos.');
-  await page.unroute('**/api/auth/login');
 
   await loginAsAdmin(page);
 
