@@ -68,6 +68,14 @@ Navegador → Frontend (:5173) → API Gateway (:3000)
 
 Esta guía te permite abrir Mundo Fitness en tu propia computadora y probarlo con cuentas de ejemplo. No necesitas saber programar para seguir el recorrido principal. Necesitas conexión a Internet para descargar el proyecto y sus componentes la primera vez.
 
+Elige la forma de trabajo antes de comenzar:
+
+| Modalidad | Dónde se ejecuta la aplicación | Guía |
+|---|---|---|
+| Sistema completo con Docker | Frontend, backend, PostgreSQL y Redis en contenedores. | Sigue los pasos 1 a 7 de esta sección. |
+| Desarrollo en Windows sin Docker | Frontend y backend en Windows, PostgreSQL como servicio de Windows y Redis en Ubuntu mediante WSL 2. | Sigue [Desarrollar en Windows sin Docker](#desarrollar-en-windows-sin-docker). |
+| Desarrollo con almacenamiento en Docker | Frontend y backend en tu computadora; PostgreSQL y Redis en contenedores. | Sigue [Desarrollar con PostgreSQL y Redis en Docker](#desarrollar-con-postgresql-y-redis-en-docker). |
+
 ### Antes de empezar: ¿qué vas a utilizar?
 
 | Concepto | Explicación sencilla | Para qué lo usamos |
@@ -251,7 +259,173 @@ docker compose --env-file .env.docker -f compose.yaml logs --tail=100 postgres
 
 Los **registros**, también llamados *logs*, son los mensajes que genera cada componente y ayudan a identificar el problema. Otros nombres de servicio son `frontend`, `api-gateway`, `auth-service`, `client-service`, `membership-service` y `payment-service`.
 
-### Alternativa para quienes quieren modificar el código
+### Desarrollar en Windows sin Docker
+
+Esta opción está dirigida al equipo que utiliza Windows. Ejecutarás React/Vite y los cinco procesos del backend directamente en Windows. PostgreSQL funcionará como servicio de Windows y Redis dentro de WSL 2, el subsistema que permite ejecutar Ubuntu en la misma computadora. No necesitas instalar Docker Desktop para esta modalidad.
+
+#### 1. Preparar las herramientas de Windows
+
+Necesitas Windows 11 o Windows 10 versión 2004, compilación 19041 o posterior, para seguir el procedimiento de instalación de WSL indicado aquí. Instala las siguientes herramientas:
+
+| Herramienta | Instalación y configuración |
+|---|---|
+| Git | Instala [Git para Windows](https://git-scm.com/downloads/win). |
+| Node.js | Instala una versión actualizada de Node.js `22.x` desde la [página oficial](https://nodejs.org/en/download). Incluye npm. |
+| pnpm | Abre PowerShell y ejecuta `npm.cmd install --global pnpm@11.24.0`. |
+| PostgreSQL | Instala PostgreSQL **17** desde los [instaladores oficiales para Windows](https://www.postgresql.org/download/windows/). Incluye el servidor, pgAdmin y las herramientas de línea de comandos; conserva el puerto `5432` y guarda la contraseña del administrador `postgres`. |
+| Ubuntu mediante WSL 2 | Abre **PowerShell como administrador** y ejecuta `wsl --install -d Ubuntu`, siguiendo la [guía de Microsoft](https://learn.microsoft.com/en-us/windows/wsl/install). Reinicia si se solicita y abre Ubuntu para crear su usuario y contraseña. |
+
+Abre una nueva ventana normal de PowerShell y comprueba:
+
+```powershell
+git --version
+node --version
+pnpm.cmd --version
+wsl --list --verbose
+```
+
+Los resultados deben incluir Node.js `v22.x`, pnpm `11.24.0` y Ubuntu con versión WSL `2`. Los comandos `npm.cmd` y `pnpm.cmd` evitan depender de la política de ejecución de scripts de PowerShell.
+
+Si aún no tienes el proyecto, descárgalo desde PowerShell:
+
+```powershell
+git clone https://github.com/Kenzowo-dev/GYM_Proyect.git
+Set-Location .\GYM_Proyect
+```
+
+Si ya lo tienes, entra en su carpeta existente. Los comandos de Node y pnpm de esta guía se ejecutan desde la raíz, donde está `package.json`.
+
+#### 2. Instalar e iniciar Redis en Ubuntu
+
+Abre la aplicación **Ubuntu**, no PowerShell, para ejecutar:
+
+```bash
+sudo apt update
+sudo apt install redis-server
+redis-server --version
+sudo service redis-server start
+redis-cli ping
+```
+
+Comprueba que Redis sea de versión `7` o posterior y que el último comando responda `PONG`. Si tu distribución ofrece una versión anterior, utiliza el [repositorio oficial de Redis para Ubuntu](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-linux/). Esta instancia local debe escuchar en `127.0.0.1:6379`; conserva la configuración de acceso local.
+
+Windows puede acceder a servicios de WSL mediante `localhost`, como explica la [documentación de red de Microsoft](https://learn.microsoft.com/en-us/windows/wsl/networking). Comprueba el acceso desde **PowerShell**:
+
+```powershell
+Test-NetConnection -ComputerName localhost -Port 6379
+```
+
+Espera `TcpTestSucceeded : True` antes de continuar. Redis necesita que WSL siga funcionando mientras desarrollas.
+
+#### 3. Crear el usuario y la base de PostgreSQL
+
+Abre **pgAdmin**, conecta al servidor PostgreSQL 17 con el administrador `postgres` y selecciona la base `postgres`. Abre **Tools > Query Tool** y ejecuta por separado, con autocommit activado, estas dos instrucciones:
+
+```sql
+CREATE ROLE gym_user WITH LOGIN PASSWORD 'gym_password';
+```
+
+```sql
+CREATE DATABASE gym_db OWNER gym_user;
+```
+
+Estos nombres coinciden con la plantilla local y la contraseña es exclusivamente para datos de prueba. PostgreSQL documenta estas operaciones en [CREATE ROLE](https://www.postgresql.org/docs/17/sql-createrole.html) y [CREATE DATABASE](https://www.postgresql.org/docs/17/sql-createdatabase.html). Si el usuario o la base ya existen, conserva sus datos y utiliza sus credenciales en el paso siguiente.
+
+`pnpm db:init` crea las tablas y carga datos dentro de una base existente; no crea el usuario ni la base. Esta base de Windows es independiente de la que puedas tener en un volumen Docker.
+
+#### 4. Configurar las conexiones locales
+
+Desde PowerShell, en la raíz, copia la plantilla únicamente si `.env.local` todavía no existe:
+
+```powershell
+if (-not (Test-Path .env.local)) { Copy-Item .env.local.example .env.local }
+notepad .env.local
+```
+
+Aunque el comentario de la plantilla menciona almacenamiento en Docker, sus conexiones a `localhost` también sirven para esta modalidad. Comprueba estos valores y ajusta las credenciales si utilizaste otras:
+
+```dotenv
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=gym_db
+POSTGRES_USER=gym_user
+POSTGRES_PASSWORD=gym_password
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+CORS_ORIGIN=http://localhost:5173
+AUTH_SERVICE_URL=http://localhost:3001
+CLIENT_SERVICE_URL=http://localhost:3002
+MEMBERSHIP_SERVICE_URL=http://localhost:3003
+PAYMENT_SERVICE_URL=http://localhost:3004
+```
+
+Conserva también las demás variables de la plantilla, incluido `JWT_SECRET`, que requiere al menos 32 caracteres. El backend busca `.env.local` antes que `.env`. Las variables ya definidas en la terminal tienen prioridad sobre el archivo.
+
+El frontend utiliza `http://localhost:3000` por defecto. Vite no lee el `.env.local` de la raíz con la configuración actual. Si cambias la dirección de la API, crea `frontend/.env.local` con `VITE_API_URL=http://localhost:3000`, sustituyendo esa URL por la correspondiente, y reinicia Vite.
+
+#### 5. Instalar dependencias y preparar los datos
+
+Si tenías el sistema completo en Docker, detén sus contenedores desde Docker Desktop antes de continuar. Deja libres los puertos `3000` a `3004`, `5173`, `5432` y `6379` para esta modalidad.
+
+Ejecuta desde PowerShell, uno por uno:
+
+```powershell
+pnpm.cmd install
+pnpm.cmd --filter=@gym/shared build
+pnpm.cmd db:init
+```
+
+Espera a que cada comando termine sin errores. El último debe registrar `Base de datos inicializada correctamente.` y carga las cuentas de prueba descritas en el paso 6 del recorrido principal. Volver a ejecutarlo reaplica el esquema y los datos iniciales, y puede restablecer las cuentas demo; no lo necesitas para cada arranque.
+
+#### 6. Iniciar el backend y el frontend
+
+El script raíz `pnpm dev` contiene asignaciones como `PORT=3001` que la shell predeterminada de Windows no interpreta. Para usar los scripts actuales sin modificarlos, abre **siete pestañas de PowerShell** en Windows Terminal o en VS Code. Entra en la raíz del proyecto en cada una y ejecuta una fila por pestaña:
+
+| Pestaña | Comando de PowerShell | Función |
+|---|---|---|
+| Código compartido | `pnpm.cmd --filter=@gym/shared dev` | Recompila las utilidades compartidas al editarlas. |
+| Autenticación | `$env:PORT='3001'; pnpm.cmd --filter=auth-service dev` | Backend de autenticación. |
+| Clientes | `$env:PORT='3002'; pnpm.cmd --filter=client-service dev` | Backend de clientes. |
+| Membresías | `$env:PORT='3003'; pnpm.cmd --filter=membership-service dev` | Backend de membresías. |
+| Pagos | `$env:PORT='3004'; pnpm.cmd --filter=payment-service dev` | Backend de pagos. |
+| Gateway | `$env:PORT='3000'; pnpm.cmd --filter=api-gateway dev` | Punto de entrada de la API. |
+| Frontend | `pnpm.cmd --filter=frontend dev --port 5173 --strictPort` | Aplicación web con actualización al editar. |
+
+Deja las pestañas abiertas. `--strictPort` impide que Vite cambie silenciosamente a otro puerto, lo que dejaría de coincidir con `CORS_ORIGIN`. Los registros aparecen en la pestaña de cada proceso.
+
+#### 7. Comprobar el sistema y detenerlo
+
+Desde otra pestaña de PowerShell, consulta la salud del backend:
+
+```powershell
+Invoke-RestMethod http://localhost:3000/health | ConvertTo-Json -Depth 5
+```
+
+Espera `status: healthy` y los cuatro microservicios saludables. Abre [http://localhost:5173](http://localhost:5173) e inicia sesión con las cuentas demo del recorrido principal.
+
+Para detener la aplicación, pulsa **Ctrl+C** en cada una de las siete pestañas. PostgreSQL permanece activo como servicio de Windows. Para detener Redis, ejecuta `sudo service redis-server stop` desde Ubuntu. No borres la base para detener el sistema.
+
+En las siguientes sesiones, verifica que PostgreSQL esté activo, inicia Redis en Ubuntu y repite los comandos del paso 6. Ejecuta `pnpm.cmd install` si cambiaron las dependencias y recompila `@gym/shared` antes de iniciar los servicios si falta su carpeta `dist`.
+
+#### Si el desarrollo en Windows falla
+
+| Problema | Qué revisar |
+|---|---|
+| `PORT` no se reconoce como comando | Utiliza los comandos por pestaña del paso 6; el script raíz no es compatible directamente con la shell predeterminada de Windows. |
+| PowerShell bloquea `pnpm.ps1` | Ejecuta `pnpm.cmd`, como en esta guía. |
+| PostgreSQL rechaza la conexión | Comprueba el servicio en **Servicios** de Windows, el puerto `5432` y las credenciales de `.env.local`. |
+| `role ... does not exist` o `database ... does not exist` | Completa el paso 3 antes de ejecutar `db:init`. |
+| Redis devuelve `ECONNREFUSED` | Inicia Redis en Ubuntu, comprueba `redis-cli ping` y luego el puerto desde PowerShell. Si falla el acceso desde Windows, revisa la configuración de localhost de WSL y las reglas de tu firewall. |
+| Falta `@gym/shared/dist` | Ejecuta `pnpm.cmd --filter=@gym/shared build` antes de iniciar el backend. |
+| `/health` falla o devuelve `degraded` | Revisa las pestañas de los cuatro microservicios y confirma sus puertos y las URL de `.env.local`. |
+| La página abre pero no conecta a la API | Comprueba el gateway en `3000`, `CORS_ORIGIN` en `5173` y cualquier configuración de `frontend/.env.local`. |
+| Un puerto está ocupado | Detén la instancia anterior o el proceso que lo utiliza antes de iniciar otra. |
+
+Para verificar cambios sin Docker, utiliza `pnpm.cmd lint`, `pnpm.cmd build` y `pnpm.cmd test:unit`. `pnpm.cmd test` también ejecuta pruebas de integración con Testcontainers y requiere Docker. El lanzador actual `pnpm.cmd test:e2e` comprueba contenedores Docker, por lo que tampoco corresponde a esta modalidad.
+
+### Desarrollar con PostgreSQL y Redis en Docker
 
 Esta sección es opcional. Úsala para ejecutar el código directamente en tu computadora mientras PostgreSQL y Redis siguen funcionando en Docker. Al ejecutar `pnpm dev`, las herramientas de desarrollo observan los archivos para actualizar o reiniciar la aplicación cuando los editas.
 
@@ -337,7 +511,7 @@ Si prefieres aplicar cambios de código al modo Docker completo, con Node.js, pn
 ### Información sobre la configuración y los datos
 
 - `.env.docker` define las credenciales de PostgreSQL y Redis, `JWT_SECRET` y el origen permitido para las solicitudes del navegador (`CORS_ORIGIN`). Compose proporciona las direcciones internas de los servicios.
-- `.env.local` define las conexiones desde tu computadora, la dirección del gateway y `VITE_API_URL`, que indica al frontend dónde consultar la API. La configuración del backend busca `.env.local` en las carpetas superiores; también acepta un archivo indicado mediante `ENV_FILE`.
+- `.env.local` en la raíz define las conexiones del backend desde tu computadora. La configuración del backend busca ese archivo en las carpetas superiores; también acepta un archivo indicado mediante `ENV_FILE`. Para cambiar la URL de la API del frontend, define `VITE_API_URL` en `frontend/.env.local`; Vite no lee el archivo de la raíz con la configuración actual.
 - `shared/database/schema.sql` define las tablas; `shared/database/seed.sql` incluye las cuentas y datos de prueba. La carga inicial, conocida como **seed**, y la migración `003-membership-renewal-requests.sql` se ejecutan automáticamente cuando Compose crea un volumen de PostgreSQL nuevo.
 - Estas plantillas sirven para desarrollo local. Un entorno de producción requiere secretos robustos y conexiones HTTPS.
 
