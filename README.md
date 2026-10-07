@@ -80,6 +80,31 @@ Copia un bloque de comandos a la vez. Pulsa **Enter** y espera el resultado que 
 
 Sigue únicamente la ruta elegida. Cada ruta indica cuándo consultar un paso compartido. No enciendas dos rutas a la vez: utilizan los mismos puertos.
 
+### Qué archivos de configuración necesitas
+
+Los archivos que terminan en `.example` son **plantillas compartidas**. Ya están en el proyecto y contienen un ejemplo de cada ajuste. No los rellenes con tus contraseñas personales. Cópialos al archivo indicado en esta tabla y edita la copia.
+
+| Ruta elegida | Plantilla que copias | Archivo personal que preparas |
+|---|---|---|
+| Sistema completo con Docker | `.env.docker.example` | `.env.docker` en la raíz. |
+| Desarrollo en Windows sin Docker | `.env.local.example` | `.env.local` en la raíz. |
+| Desarrollo con almacenamiento en Docker | `.env.docker.example` y `.env.local.example` | `.env.docker` y `.env.local`, ambos en la raíz. |
+| Cambiar la URL de la API del frontend local | No hay una plantilla específica del frontend. | `frontend/.env.local`, solo si necesitas cambiar la dirección predeterminada. |
+
+La plantilla `.env.example` corresponde al archivo genérico `.env`. **No necesitas crear `.env` para estos recorridos**: el backend local utiliza `.env.local` y los comandos Docker seleccionan `.env.docker`. No copies todas las plantillas por si acaso, porque podrías acabar editando un archivo que tu ruta no utiliza.
+
+Un archivo de entorno tiene una línea por ajuste. Por ejemplo:
+
+```dotenv
+POSTGRES_PORT=5432
+```
+
+Esto significa que el puerto de PostgreSQL es `5432`. El nombre está antes de `=` y el valor después. No cambies el nombre. Las líneas que empiezan con `#` son comentarios y no se ejecutan. `REDIS_PASSWORD=` significa que no se utiliza contraseña para Redis, no que debas escribir la palabra `vacío`.
+
+Estos bloques de configuración se escriben **dentro del archivo**, no se pegan en la terminal. Utiliza texto plano, sin comillas tipográficas. Guarda con el nombre exacto: `.env.local.txt` y `.env.docker.txt` no son los archivos que espera el proyecto.
+
+Los pasos de cada ruta indican cuándo crear y editar los archivos. Para completar las pruebas no necesitas modificar `compose.yaml`, `compose.local.yaml`, `pnpm-workspace.yaml`, los archivos `tsconfig` ni la configuración de Vite. Los puertos y comandos de esta guía ya corresponden al código actual.
+
 ### Las palabras que encontrarás
 
 | Palabra | Qué significa aquí |
@@ -263,7 +288,51 @@ ls -l .env.docker
 
 Debes ver una línea con el nombre `.env.docker`. Si aparece que no existe, comprueba que estés en la raíz.
 
-El archivo contiene las credenciales y direcciones necesarias para las pruebas. Puedes conservar los valores de ejemplo mientras uses datos ficticios. No los uses para datos reales ni para producción.
+Ahora rellena o revisa la copia, no la plantilla. **En Windows**, abre:
+
+```powershell
+notepad .env.docker
+```
+
+**En macOS**, abre:
+
+```bash
+open -a TextEdit .env.docker
+```
+
+Debes ver los ajustes de `.env.docker.example`. Para una instalación nueva con datos ficticios, comprueba que tu archivo contenga estas líneas. **Este bloque va dentro del archivo**:
+
+```dotenv
+POSTGRES_DB=gym_db
+POSTGRES_USER=gym_user
+POSTGRES_PASSWORD=gym_password
+REDIS_PASSWORD=
+JWT_SECRET=local-only-change-this-secret-before-sharing
+CORS_ORIGIN=http://localhost:5173
+```
+
+| Línea | Qué escribes y por qué |
+|---|---|
+| `POSTGRES_DB` | `gym_db` es el nombre de la base que Docker creará al preparar un volumen nuevo. |
+| `POSTGRES_USER` | `gym_user` es el usuario de PostgreSQL que usará el backend. |
+| `POSTGRES_PASSWORD` | `gym_password` es la contraseña de ejemplo de ese usuario. No es la contraseña de las cuentas del gimnasio. |
+| `REDIS_PASSWORD` | Deja el valor vacío para estas pruebas. Si eliges una contraseña, Compose la utiliza tanto en Redis como en el backend. |
+| `JWT_SECRET` | Conserva el valor de ejemplo para probar con datos ficticios. Debe tener al menos 32 caracteres y ser el mismo para todos los servicios que firman o verifican sesiones. Compose lo reparte desde este archivo. |
+| `CORS_ORIGIN` | Conserva `http://localhost:5173`, sin una barra final. Es la dirección de la página que el backend permite conectar. |
+
+Guarda con **Ctrl+S** en Windows o **Cmd+S** en macOS y cierra el editor. Conserva el formato de texto y el nombre `.env.docker`. No utilices estos secretos de ejemplo para datos reales ni producción.
+
+No añadas `POSTGRES_HOST=localhost` ni las URL locales de los microservicios a esta configuración para intentar conectarlos entre contenedores. `compose.yaml` ya proporciona sus direcciones internas, como `postgres` y `auth-service`.
+
+Si reutilizas un volumen, conserva sus credenciales reales. Cambiar `POSTGRES_PASSWORD` en el archivo **no cambia** la contraseña de la base ya creada. No borres el volumen para corregir una diferencia de configuración.
+
+Antes de encender el sistema, comprueba que Compose puede leer los archivos. Este comando es igual en Windows y macOS:
+
+```bash
+docker compose --env-file .env.docker -f compose.yaml config --quiet
+```
+
+Si termina sin mensajes ni errores, la configuración de Compose es válida. Si dice que falta un archivo o muestra un error, corrígelo antes de arrancar. Esta comprobación no conecta a la base ni verifica sus contraseñas.
 
 #### Paso 3. Prepara y enciende todo el sistema
 
@@ -478,7 +547,7 @@ if (-not (Test-Path .env.docker)) { Copy-Item .env.docker.example .env.docker }
 if [ ! -f .env.docker ]; then cp .env.docker.example .env.docker; fi
 ```
 
-Ambos comandos copian la plantilla solo cuando falta el archivo. Ahora completa [Crea y revisa la configuración local](#crea-y-revisa-la-configuración-local) para preparar `.env.local`.
+Ambos comandos copian la plantilla solo cuando falta el archivo. Revisa sus seis valores siguiendo [Paso 2. Crea tu configuración de Docker](#paso-2-crea-tu-configuración-de-docker); al terminar ese paso, vuelve aquí sin arrancar el sistema completo. Ahora completa [Crea y revisa la configuración local](#crea-y-revisa-la-configuración-local) para preparar `.env.local`.
 
 **En Windows**, abre la configuración de Docker:
 
@@ -494,7 +563,7 @@ open -a TextEdit .env.docker
 
 `open -a TextEdit` abre un archivo existente con esa aplicación. Solo vas a cambiar sus valores; conserva su nombre y su formato de texto.
 
-Comprueba que `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` y `REDIS_PASSWORD` coincidan en ambos archivos. Con las plantillas originales ya coinciden. Si cambiaste alguna credencial, utiliza el valor de la base existente; cambiar el archivo no cambia automáticamente la contraseña guardada en un volumen.
+Comprueba que `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` y `REDIS_PASSWORD` coincidan en ambos archivos. Mantén también el mismo `JWT_SECRET` y `CORS_ORIGIN` al alternar entre el sistema completo y el código local; esto mantiene la configuración de las sesiones y de la página consistente. Con las plantillas originales ya coinciden. Si cambiaste alguna credencial, utiliza el valor de la base existente; cambiar el archivo no cambia automáticamente la contraseña guardada en un volumen.
 
 Guarda con **Ctrl+S** en Windows o **Cmd+S** en macOS y cierra el editor. `.env.docker` configura el almacenamiento en contenedores; `.env.local` indica al código de tu computadora cómo conectarse a él.
 
@@ -746,7 +815,7 @@ open -a TextEdit .env.local
 
 Debes ver los ajustes de la plantilla. El comentario inicial menciona Docker, pero las conexiones a `localhost` sirven también para PostgreSQL y Memurai instalados en Windows.
 
-Comprueba estas líneas. **Este bloque es contenido del archivo, no un comando para la terminal.** No reemplaces el archivo completo con él: conserva las demás líneas de la plantilla.
+Comprueba estas líneas. **Este bloque es contenido del archivo, no un comando para la terminal.** Este ejemplo incluye los ajustes de la plantilla. Si ya tenías una configuración, compara cada línea y cambia únicamente los valores que correspondan a tu entorno.
 
 ```dotenv
 POSTGRES_HOST=localhost
@@ -758,11 +827,17 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
 REDIS_DB=0
+JWT_SECRET=local-only-change-this-secret-before-sharing
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
 CORS_ORIGIN=http://localhost:5173
 AUTH_SERVICE_URL=http://localhost:3001
 CLIENT_SERVICE_URL=http://localhost:3002
 MEMBERSHIP_SERVICE_URL=http://localhost:3003
 PAYMENT_SERVICE_URL=http://localhost:3004
+VITE_API_URL=http://localhost:3000
 ```
 
 | Ajuste | Qué debes comprobar |
@@ -772,10 +847,39 @@ PAYMENT_SERVICE_URL=http://localhost:3004
 | `REDIS_PASSWORD` | Déjalo vacío si el servidor no tiene contraseña. Si tiene una, escribe la misma aquí. |
 | `CORS_ORIGIN` | Conserva `http://localhost:5173`. Autoriza al navegador a conectar esa página con el backend. |
 | Las cuatro variables `*_SERVICE_URL` | Conserva las direcciones y puertos indicados para cada servicio local. |
+| `POSTGRES_PORT` y `REDIS_PORT` | Conserva `5432` y `6379`. Son los puertos utilizados por estas rutas. |
+| `REDIS_DB` | Conserva `0`, el número de base lógica que utilizará el backend dentro de Redis o Memurai. |
+| `JWT_SECRET` | Conserva el ejemplo para datos ficticios o escribe una clave privada de al menos 32 caracteres. Todos los servicios locales leen la misma copia de este archivo. |
+| `JWT_EXPIRES_IN` | Conserva `15m`: el token de acceso dura quince minutos. |
+| `JWT_REFRESH_EXPIRES_IN` | Conserva `7d`: el token de renovación dura siete días. |
+| `RATE_LIMIT_WINDOW_MS` | Conserva `900000`: es una ventana de quince minutos expresada en milisegundos. |
+| `RATE_LIMIT_MAX_REQUESTS` | Conserva `100`: configura el límite de solicitudes para esa ventana. No lo cambies para resolver errores de conexión. |
+| `VITE_API_URL` | La plantilla la incluye como referencia. Vite no lee el archivo de la raíz; si quieres cambiar la dirección de la API, utiliza el archivo del frontend que se explica más abajo. |
 
 Conserva también `JWT_SECRET`, que debe tener al menos 32 caracteres. Esa clave firma las credenciales de sesión. La plantilla contiene un valor para pruebas; utiliza secretos propios antes de manejar datos reales.
 
-Guarda con **Ctrl+S** en el Bloc de notas de Windows o **Cmd+S** en TextEdit de macOS. Conserva el nombre `.env.local` y cierra el editor. Regresa a tu ruta.
+Antes de guardar, comprueba la conexión que corresponde a tu ruta:
+
+- **Windows sin Docker:** `POSTGRES_DB`, `POSTGRES_USER` y `POSTGRES_PASSWORD` deben ser los valores del usuario y la base que creaste en pgAdmin. Si habilitaste contraseña en Memurai, ponla en `REDIS_PASSWORD`; de lo contrario déjalo vacío.
+- **Bases en Docker:** los nombres y las contraseñas deben coincidir con `.env.docker`. Los hosts siguen siendo `localhost` porque Node.js se ejecuta fuera de los contenedores.
+
+Para seguir esta guía, no añadas `PORT` al archivo: cada proceso recibe su propio puerto mediante el comando de arranque. Tampoco necesitas definir `ENV_FILE` ni `NODE_ENV`; el backend usa estos archivos y el modo de desarrollo por defecto. Si ya definiste esas variables en tu terminal, comprueba que no estén seleccionando otro archivo o modo.
+
+Guarda con **Ctrl+S** en el Bloc de notas de Windows o **Cmd+S** en TextEdit de macOS. Conserva el nombre `.env.local` y cierra el editor. Comprueba que el nombre guardado sea correcto. **En Windows**:
+
+```powershell
+Get-ChildItem -Force -Name .env*
+```
+
+**En macOS**:
+
+```bash
+ls -a .env*
+```
+
+Debes ver `.env.local`, no `.env.local.txt`. Verás también las plantillas y cualquier otro archivo de entorno que ya tengas. No borres los otros archivos para completar este paso.
+
+Regresa a tu ruta. Su comando `db:init` comprobará que puede conectarse a PostgreSQL; el arranque y la dirección `/health` comprobarán los servicios.
 
 El backend lee `.env.local` antes que `.env`. Si una variable ya está definida en la terminal, ese valor tiene prioridad. Reinicia los procesos cuando cambies la configuración.
 
@@ -805,7 +909,23 @@ En cualquiera de los dos sistemas, añade esta línea al archivo, sustituyendo l
 VITE_API_URL=http://localhost:3000
 ```
 
+Escribe únicamente la URL de la API en este archivo del frontend; no copies las contraseñas de PostgreSQL ni `JWT_SECRET`. Las variables que empiezan con `VITE_` pueden quedar visibles en el código que recibe el navegador.
+
 Guarda y reinicia el frontend. Vite lee este archivo dentro de `frontend`, no el `.env.local` de la raíz.
+
+### Comprueba la configuración antes de arrancar
+
+Antes de continuar con tu ruta, revisa esta lista:
+
+1. Editaste las copias personales, no los archivos `.example`.
+2. Los nombres de archivo no terminan en `.txt` y están en la raíz, salvo `frontend/.env.local`, que va dentro de `frontend`.
+3. La base, el usuario y la contraseña coinciden con el servidor que vas a utilizar.
+4. La página utilizará `http://localhost:5173` y el gateway `http://localhost:3000`.
+5. Guardaste los archivos antes de iniciar los procesos.
+
+Git ignora los archivos personales `.env`, `.env.docker`, `.env.local` y `frontend/.env.local`. Las plantillas sí se comparten en el repositorio. No pegues contraseñas privadas en las plantillas ni compartas capturas con sus valores.
+
+Si cambias `.env.local` o `frontend/.env.local` mientras el código está funcionando, detén los procesos con **Ctrl+C** y repite el arranque de tu ruta. En macOS utiliza **Control+C**. Si cambias `.env.docker`, repite el comando de arranque Docker de la ruta para que los contenedores reciban la configuración actual; esto no modifica automáticamente los usuarios o contraseñas guardados en PostgreSQL.
 
 ### Inicia el código local en PowerShell
 
