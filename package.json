@@ -14,7 +14,7 @@
     "db:init": "pnpm --filter=@gym/shared db:init",
     "db:migrate": "pnpm --filter=@gym/shared db:migrate",
     "db:push": "pnpm --filter=@gym/shared db:push",
-    "docker:up": "docker compose --env-file .env.docker up -d",
+    "docker:up": "docker compose --env-file .env.docker -f compose.yaml up -d --build",
     "docker:dev": "pnpm build && docker compose --env-file .env.docker -f compose.yaml -f compose.local.yaml up -d --no-build --remove-orphans && docker compose --env-file .env.docker -f compose.yaml -f compose.local.yaml restart auth-service client-service membership-service payment-service api-gateway frontend",
     "docker:down": "docker compose --env-file .env.docker down",
     "docker:logs": "docker compose --env-file .env.docker logs -f",

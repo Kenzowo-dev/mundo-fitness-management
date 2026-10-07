@@ -155,7 +155,7 @@ Un archivo `.env` contiene ajustes como el nombre y la contraseña de la base de
 Con Docker Desktop funcionando, ejecuta:
 
 ```bash
-docker compose --env-file .env.docker build
+docker compose --env-file .env.docker -f compose.yaml build
 ```
 
 Este comando lee tu configuración, descarga los componentes necesarios y prepara las versiones ejecutables de la aplicación, llamadas **imágenes**. La primera vez puede tardar varios minutos y mostrar muchas líneas de texto; eso es normal. Espera a que vuelva a aparecer el lugar donde puedes escribir otro comando. Si termina con un error, revisa la tabla de solución de problemas antes de continuar.
@@ -165,17 +165,17 @@ Este comando lee tu configuración, descarga los componentes necesarios y prepar
 Ejecuta:
 
 ```bash
-docker compose --env-file .env.docker up -d
+docker compose --env-file .env.docker -f compose.yaml up -d --build
 ```
 
-`up` inicia los componentes del sistema. `-d` los deja funcionando en segundo plano, para que puedas seguir usando la terminal. Se inician la página web, los servicios que procesan las operaciones y las bases de infraestructura PostgreSQL y Redis.
+`up` inicia los componentes del sistema. `--build` reconstruye las imágenes con el código de la carpeta actual antes de iniciar los contenedores; Docker reutiliza los pasos que no cambiaron. `-d` los deja funcionando en segundo plano, para que puedas seguir usando la terminal. `-f compose.yaml` selecciona el modo principal, que sirve la interfaz compilada dentro de la imagen. Se inician la página web, los servicios que procesan las operaciones y las bases de infraestructura PostgreSQL y Redis.
 
 En la primera ejecución con un almacenamiento de base de datos nuevo, el proyecto crea automáticamente las tablas y carga las cuentas y datos de prueba. No necesitas crear esos datos manualmente.
 
 Comprueba el estado:
 
 ```bash
-docker compose --env-file .env.docker ps
+docker compose --env-file .env.docker -f compose.yaml ps
 ```
 
 En la columna de estado debes ver los servicios funcionando, con `Up` y `healthy`. `healthy` significa que la comprobación automática indica que ese componente responde. Si aparece `health: starting`, espera un poco y repite el comando. Si aparece `unhealthy` o `Exited`, consulta la solución de problemas.
@@ -207,7 +207,7 @@ Si necesitas comprobar los servicios internos, abre [http://localhost:3000/healt
 Cuando termines, ejecuta desde la raíz del proyecto:
 
 ```bash
-docker compose --env-file .env.docker down
+docker compose --env-file .env.docker -f compose.yaml down
 ```
 
 Este comando detiene y elimina los contenedores, pero **conserva los datos guardados** en el almacenamiento de PostgreSQL, llamado volumen.
@@ -216,11 +216,11 @@ La próxima vez:
 
 1. Abre Docker Desktop y espera a que esté listo.
 2. Abre la terminal y entra en la carpeta `GYM_Proyect` que descargaste.
-3. Ejecuta `docker compose --env-file .env.docker up -d`.
-4. Comprueba el estado con `docker compose --env-file .env.docker ps`.
+3. Ejecuta `docker compose --env-file .env.docker -f compose.yaml up -d --build`.
+4. Comprueba el estado con `docker compose --env-file .env.docker -f compose.yaml ps`.
 5. Abre [http://localhost:5173](http://localhost:5173).
 
-No necesitas volver a clonar el proyecto ni copiar la configuración. Si modificaste el código, vuelve a ejecutar el comando `build` antes de `up -d` para preparar las imágenes actualizadas.
+No necesitas volver a clonar el proyecto ni copiar la configuración. Usa siempre `up -d --build`, también después de actualizar el código o cambiar de rama. Si la construcción falla, no continúes: los contenedores anteriores pueden seguir sirviendo la versión antigua. Con Node.js y pnpm instalados, `pnpm docker:up` ejecuta este mismo arranque.
 
 ### Si algo no funciona
 
@@ -229,9 +229,10 @@ No necesitas volver a clonar el proyecto ni copiar la configuración. Si modific
 | No se reconoce `git` o `docker` | Falta instalar la herramienta o la terminal no ha detectado su instalación. | Completa el paso 1 y cierra y vuelve a abrir la terminal. |
 | Docker indica que no puede conectar con el motor o daemon | Docker no está funcionando todavía. | Abre Docker Desktop, espera a que su motor esté listo y repite el comando. |
 | No encuentra `compose.yaml` | La terminal está en otra carpeta. | Entra en `GYM_Proyect` con `cd` y comprueba con `ls` que aparece el archivo. |
+| Aparece la interfaz de una versión anterior | El contenedor puede estar usando una imagen anterior o los archivos `dist` del modo local. | Ejecuta `docker compose --env-file .env.docker -f compose.yaml up -d --build`, espera a que termine sin errores y abre `http://localhost:5173/`. Si una pestaña ya estaba abierta, recárgala. No borres los volúmenes de la base de datos. |
 | No encuentra `.env.docker` | Falta el archivo de configuración. | Desde la raíz del proyecto, realiza el paso 3. |
 | Falla la descarga durante `build` | Puede haber un problema de conexión o de acceso al registro de imágenes o paquetes. | Comprueba tu conexión, revisa el mensaje de error y vuelve a ejecutar `build`. |
-| Aparece `port is already allocated` o «puerto ocupado» | Otro programa está utilizando uno de los puertos que necesita el proyecto. | Detén la otra instancia del proyecto o el programa que ocupa el puerto; luego repite `up -d`. |
+| Aparece `port is already allocated` o «puerto ocupado» | Otro programa está utilizando uno de los puertos que necesita el proyecto. | Detén la otra instancia del proyecto o el programa que ocupa el puerto; luego repite `up -d --build`. |
 | La página no abre | La aplicación puede estar arrancando, detenida o haber fallado. | Comprueba la dirección `http://localhost:5173` y ejecuta `ps` como en el paso 5. |
 | Un servicio aparece como `unhealthy` o `Exited` | Ese componente no responde o se detuvo por un error. | Consulta sus registros con el comando que aparece debajo de esta tabla. |
 | Las cuentas de prueba no permiten entrar | Comprueba el correo y la contraseña; si son correctos, puede faltar la carga de datos iniciales en una base existente. | Revisa los registros de PostgreSQL. Si necesitas conservar los datos, utiliza la preparación de Node y `pnpm db:init` explicadas más abajo. |
@@ -239,13 +240,13 @@ No necesitas volver a clonar el proyecto ni copiar la configuración. Si modific
 Para ver los mensajes de todos los componentes, ejecuta:
 
 ```bash
-docker compose --env-file .env.docker logs --tail=100
+docker compose --env-file .env.docker -f compose.yaml logs --tail=100
 ```
 
 Para revisar uno concreto, añade su nombre. Por ejemplo, para la base de datos:
 
 ```bash
-docker compose --env-file .env.docker logs --tail=100 postgres
+docker compose --env-file .env.docker -f compose.yaml logs --tail=100 postgres
 ```
 
 Los **registros**, también llamados *logs*, son los mensajes que genera cada componente y ayudan a identificar el problema. Otros nombres de servicio son `frontend`, `api-gateway`, `auth-service`, `client-service`, `membership-service` y `payment-service`.
@@ -304,14 +305,14 @@ cp .env.local.example .env.local
 Si tenías la aplicación completa funcionando en Docker, detén primero sus contenedores para liberar los puertos:
 
 ```bash
-docker compose --env-file .env.docker down
+docker compose --env-file .env.docker -f compose.yaml down
 ```
 
 Después inicia únicamente los dos componentes de almacenamiento:
 
 ```bash
-docker compose --env-file .env.docker up -d postgres redis
-docker compose --env-file .env.docker ps
+docker compose --env-file .env.docker -f compose.yaml up -d postgres redis
+docker compose --env-file .env.docker -f compose.yaml ps
 ```
 
 Espera a que ambos indiquen `healthy` antes de continuar.
@@ -331,7 +332,7 @@ Deja esa terminal abierta mientras uses este modo. Cuando los servicios estén l
 
 No inicies la aplicación completa en Docker y `pnpm dev` al mismo tiempo: utilizan los mismos puertos `3000`–`3004` y `5173`.
 
-Si prefieres aplicar cambios de código al modo Docker completo, con Node.js, pnpm y las dependencias ya preparados puedes usar `pnpm docker:dev`. Este comando compila en tu computadora y actualiza los contenedores de aplicación sin borrar los datos de PostgreSQL y Redis.
+Si prefieres aplicar cambios de código al modo Docker completo, con Node.js, pnpm y las dependencias ya preparados puedes usar `pnpm docker:dev`. Este comando compila en tu computadora y monta los archivos `dist` mediante `compose.local.yaml`, sin reconstruir las imágenes ni borrar los datos de PostgreSQL y Redis. Para cambiar de rama, actualizar dependencias o cambiar archivos Docker, utiliza el arranque principal con `up -d --build`. Este arranque también retira los montajes del modo local para servir los archivos de la imagen recién construida.
 
 ### Información sobre la configuración y los datos
 
@@ -345,8 +346,8 @@ Si prefieres aplicar cambios de código al modo Docker completo, con Node.js, pn
 **Este procedimiento elimina los datos locales del almacenamiento de Docker, incluidos socios, membresías y pagos que hayas registrado.** Úsalo únicamente si quieres empezar de cero con los datos de ejemplo:
 
 ```bash
-docker compose --env-file .env.docker down -v
-docker compose --env-file .env.docker up -d
+docker compose --env-file .env.docker -f compose.yaml down -v
+docker compose --env-file .env.docker -f compose.yaml up -d --build
 ```
 
 La diferencia con la detención habitual es `-v`: también elimina los volúmenes de almacenamiento. En el siguiente inicio, PostgreSQL crea de nuevo la base y carga los datos de prueba. Espera a que los servicios estén `healthy` antes de iniciar sesión.
@@ -960,14 +961,14 @@ pnpm db:init
 
 ```bash
 # Compila e inicia todos los servicios
-docker compose --env-file .env.docker build
-docker compose --env-file .env.docker up -d
+docker compose --env-file .env.docker -f compose.yaml build
+docker compose --env-file .env.docker -f compose.yaml up -d --build
 
 # Consulta los registros
-docker compose --env-file .env.docker logs -f
+docker compose --env-file .env.docker -f compose.yaml logs -f
 
 # Detén los servicios
-docker compose --env-file .env.docker down
+docker compose --env-file .env.docker -f compose.yaml down
 ```
 
 Los puertos están enlazados a loopback y las variables de ejemplo son de desarrollo; este Compose no es una configuración de preproducción ni producción.
@@ -1129,7 +1130,7 @@ redis-cli ping
 
 ```bash
 # Consulta los registros de todos los servicios (al usar docker compose)
-docker compose --env-file .env.docker logs -f
+docker compose --env-file .env.docker -f compose.yaml logs -f
 
 # Registros de un servicio individual (desarrollo)
 pnpm --filter=api-gateway dev 2>&1 | tail -f
