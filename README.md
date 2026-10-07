@@ -73,7 +73,7 @@ Elige la forma de trabajo antes de comenzar:
 | Modalidad | Dónde se ejecuta la aplicación | Guía |
 |---|---|---|
 | Sistema completo con Docker | Frontend, backend, PostgreSQL y Redis en contenedores. | Sigue los pasos 1 a 7 de esta sección. |
-| Desarrollo en Windows sin Docker | Frontend y backend en Windows, PostgreSQL como servicio de Windows y Redis en Ubuntu mediante WSL 2. | Sigue [Desarrollar en Windows sin Docker](#desarrollar-en-windows-sin-docker). |
+| Desarrollo en Windows sin Docker | Frontend y backend en Windows, PostgreSQL y Memurai, compatible con Redis, como servicios de Windows. | Sigue [Desarrollar en Windows sin Docker](#desarrollar-en-windows-sin-docker). |
 | Desarrollo con almacenamiento en Docker | Frontend y backend en tu computadora; PostgreSQL y Redis en contenedores. | Sigue [Desarrollar con PostgreSQL y Redis en Docker](#desarrollar-con-postgresql-y-redis-en-docker). |
 
 ### Antes de empezar: ¿qué vas a utilizar?
@@ -261,11 +261,11 @@ Los **registros**, también llamados *logs*, son los mensajes que genera cada co
 
 ### Desarrollar en Windows sin Docker
 
-Esta opción está dirigida al equipo que utiliza Windows. Ejecutarás React/Vite y los cinco procesos del backend directamente en Windows. PostgreSQL funcionará como servicio de Windows y Redis dentro de WSL 2, el subsistema que permite ejecutar Ubuntu en la misma computadora. No necesitas instalar Docker Desktop para esta modalidad.
+Esta opción está dirigida al equipo que utiliza Windows. Ejecutarás React/Vite y los cinco procesos del backend directamente en Windows. PostgreSQL y Memurai funcionarán como servicios de Windows. Memurai proporciona el servidor compatible con Redis que necesita el backend. Todos los componentes de esta modalidad se ejecutan directamente en Windows.
 
 #### 1. Preparar las herramientas de Windows
 
-Necesitas Windows 11 o Windows 10 versión 2004, compilación 19041 o posterior, para seguir el procedimiento de instalación de WSL indicado aquí. Instala las siguientes herramientas:
+Utiliza Windows de 64 bits compatible con las versiones de las herramientas que vas a instalar. Memurai admite Windows 10 o posterior. Instala las siguientes herramientas:
 
 | Herramienta | Instalación y configuración |
 |---|---|
@@ -273,7 +273,7 @@ Necesitas Windows 11 o Windows 10 versión 2004, compilación 19041 o posterior,
 | Node.js | Instala una versión actualizada de Node.js `22.x` desde la [página oficial](https://nodejs.org/en/download). Incluye npm. |
 | pnpm | Abre PowerShell y ejecuta `npm.cmd install --global pnpm@11.24.0`. |
 | PostgreSQL | Instala PostgreSQL **17** desde los [instaladores oficiales para Windows](https://www.postgresql.org/download/windows/). Incluye el servidor, pgAdmin y las herramientas de línea de comandos; conserva el puerto `5432` y guarda la contraseña del administrador `postgres`. |
-| Ubuntu mediante WSL 2 | Abre **PowerShell como administrador** y ejecuta `wsl --install -d Ubuntu`, siguiendo la [guía de Microsoft](https://learn.microsoft.com/en-us/windows/wsl/install). Reinicia si se solicita y abre Ubuntu para crear su usuario y contraseña. |
+| Memurai Developer | Descarga la edición **Developer** desde [Memurai](https://www.memurai.com/get-memurai) y sigue el paso 2 para instalarla como servicio de Windows. |
 
 Abre una nueva ventana normal de PowerShell y comprueba:
 
@@ -281,10 +281,9 @@ Abre una nueva ventana normal de PowerShell y comprueba:
 git --version
 node --version
 pnpm.cmd --version
-wsl --list --verbose
 ```
 
-Los resultados deben incluir Node.js `v22.x`, pnpm `11.24.0` y Ubuntu con versión WSL `2`. Los comandos `npm.cmd` y `pnpm.cmd` evitan depender de la política de ejecución de scripts de PowerShell.
+Los resultados deben incluir Node.js `v22.x` y pnpm `11.24.0`. Los comandos `npm.cmd` y `pnpm.cmd` evitan depender de la política de ejecución de scripts de PowerShell.
 
 Si aún no tienes el proyecto, descárgalo desde PowerShell:
 
@@ -295,27 +294,30 @@ Set-Location .\GYM_Proyect
 
 Si ya lo tienes, entra en su carpeta existente. Los comandos de Node y pnpm de esta guía se ejecutan desde la raíz, donde está `package.json`.
 
-#### 2. Instalar e iniciar Redis en Ubuntu
+#### 2. Instalar e iniciar Memurai en Windows
 
-Abre la aplicación **Ubuntu**, no PowerShell, para ejecutar:
+Ejecuta el instalador MSI de **Memurai Developer** y acepta la solicitud de permisos de administrador. Selecciona la instalación como **servicio de Windows**, conserva el puerto `6379` y habilita la opción de añadir la carpeta de instalación al `PATH`. Para uso en esta computadora, no necesitas añadir una excepción de acceso remoto al firewall. La [guía oficial de instalación](https://docs.memurai.com/en/installation) describe estas opciones.
 
-```bash
-sudo apt update
-sudo apt install redis-server
-redis-server --version
-sudo service redis-server start
-redis-cli ping
-```
+Pulsa **Win+R**, escribe `services.msc` y abre **Servicios**. Localiza el servicio de Memurai y comprueba que esté **En ejecución**; si está detenido, selecciona **Iniciar**.
 
-Comprueba que Redis sea de versión `7` o posterior y que el último comando responda `PONG`. Si tu distribución ofrece una versión anterior, utiliza el [repositorio oficial de Redis para Ubuntu](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-linux/). Esta instancia local debe escuchar en `127.0.0.1:6379`; conserva la configuración de acceso local.
-
-Windows puede acceder a servicios de WSL mediante `localhost`, como explica la [documentación de red de Microsoft](https://learn.microsoft.com/en-us/windows/wsl/networking). Comprueba el acceso desde **PowerShell**:
+Abre una nueva ventana de PowerShell para que reconozca el `PATH` y verifica:
 
 ```powershell
+memurai-cli -h 127.0.0.1 -p 6379 ping
 Test-NetConnection -ComputerName localhost -Port 6379
 ```
 
-Espera `TcpTestSucceeded : True` antes de continuar. Redis necesita que WSL siga funcionando mientras desarrollas.
+Espera `PONG` en el primer comando y `TcpTestSucceeded : True` en el segundo. Si no se reconoce `memurai-cli`, utiliza la ruta predeterminada del ejecutable:
+
+```powershell
+& "C:\Program Files\Memurai\memurai-cli.exe" -h 127.0.0.1 -p 6379 ping
+```
+
+Si elegiste otra carpeta durante la instalación, ajusta esa ruta. Mantén el servidor limitado al acceso local y sin contraseña para coincidir con la configuración de prueba del paso 4. Si habilitas autenticación, añade la misma contraseña a `REDIS_PASSWORD`.
+
+Memurai Developer es gratuito para desarrollo y pruebas, no para producción. Se detiene después de diez días de funcionamiento continuo y necesita reiniciarse desde **Servicios**, según las [condiciones oficiales de la edición Developer](https://www.memurai.com/faq).
+
+Esta guía utiliza la compatibilidad de protocolo documentada por Memurai; el funcionamiento del proyecto con este servidor aún debe verificarse en Windows siguiendo el paso 7.
 
 #### 3. Crear el usuario y la base de PostgreSQL
 
@@ -405,9 +407,9 @@ Invoke-RestMethod http://localhost:3000/health | ConvertTo-Json -Depth 5
 
 Espera `status: healthy` y los cuatro microservicios saludables. Abre [http://localhost:5173](http://localhost:5173) e inicia sesión con las cuentas demo del recorrido principal.
 
-Para detener la aplicación, pulsa **Ctrl+C** en cada una de las siete pestañas. PostgreSQL permanece activo como servicio de Windows. Para detener Redis, ejecuta `sudo service redis-server stop` desde Ubuntu. No borres la base para detener el sistema.
+Para detener la aplicación, pulsa **Ctrl+C** en cada una de las siete pestañas. PostgreSQL permanece activo como servicio de Windows. Memurai también permanece activo. Para detenerlo, abre **Servicios**, selecciona su servicio y pulsa **Detener**. No borres la base para detener el sistema.
 
-En las siguientes sesiones, verifica que PostgreSQL esté activo, inicia Redis en Ubuntu y repite los comandos del paso 6. Ejecuta `pnpm.cmd install` si cambiaron las dependencias y recompila `@gym/shared` antes de iniciar los servicios si falta su carpeta `dist`.
+En las siguientes sesiones, verifica que PostgreSQL y Memurai estén activos en **Servicios** y repite los comandos del paso 6. Ejecuta `pnpm.cmd install` si cambiaron las dependencias y recompila `@gym/shared` antes de iniciar los servicios si falta su carpeta `dist`.
 
 #### Si el desarrollo en Windows falla
 
@@ -417,7 +419,8 @@ En las siguientes sesiones, verifica que PostgreSQL esté activo, inicia Redis e
 | PowerShell bloquea `pnpm.ps1` | Ejecuta `pnpm.cmd`, como en esta guía. |
 | PostgreSQL rechaza la conexión | Comprueba el servicio en **Servicios** de Windows, el puerto `5432` y las credenciales de `.env.local`. |
 | `role ... does not exist` o `database ... does not exist` | Completa el paso 3 antes de ejecutar `db:init`. |
-| Redis devuelve `ECONNREFUSED` | Inicia Redis en Ubuntu, comprueba `redis-cli ping` y luego el puerto desde PowerShell. Si falla el acceso desde Windows, revisa la configuración de localhost de WSL y las reglas de tu firewall. |
+| Redis devuelve `ECONNREFUSED` | Comprueba que Memurai esté en ejecución en **Servicios**, ejecuta `memurai-cli -h 127.0.0.1 -p 6379 ping` y verifica el puerto desde PowerShell. Si llevaba diez días activo, reinicia el servicio. |
+| No se reconoce `memurai-cli` | Abre una nueva terminal o utiliza la ruta completa del ejecutable indicada en el paso 2. |
 | Falta `@gym/shared/dist` | Ejecuta `pnpm.cmd --filter=@gym/shared build` antes de iniciar el backend. |
 | `/health` falla o devuelve `degraded` | Revisa las pestañas de los cuatro microservicios y confirma sus puertos y las URL de `.env.local`. |
 | La página abre pero no conecta a la API | Comprueba el gateway en `3000`, `CORS_ORIGIN` en `5173` y cualquier configuración de `frontend/.env.local`. |
