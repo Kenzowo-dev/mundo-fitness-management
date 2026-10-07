@@ -66,7 +66,7 @@ Navegador → Frontend (:5173) → API Gateway (:3000)
 
 ## Instalación y ejecución paso a paso
 
-Esta guía está escrita para los miembros del equipo que usan Windows. Al terminar, podrás abrir Mundo Fitness en tu navegador e iniciar sesión con una cuenta de prueba.
+Esta guía está escrita para los miembros del equipo que usan Windows o macOS. Las rutas con Docker incluyen ambos sistemas; la ruta sin Docker está preparada para Windows. Al terminar, podrás abrir Mundo Fitness en tu navegador e iniciar sesión con una cuenta de prueba.
 
 Copia un bloque de comandos a la vez. Pulsa **Enter** y espera el resultado que se indica debajo. Si aparece un error, resuélvelo antes de seguir; ejecutar el siguiente comando no arregla el anterior.
 
@@ -74,9 +74,9 @@ Copia un bloque de comandos a la vez. Pulsa **Enter** y espera el resultado que 
 
 | Quiero hacer esto | Ruta que debo seguir | Qué instalaré |
 |---|---|---|
-| Abrir y probar el sistema completo. | [Sistema completo con Docker](#sistema-completo-con-docker). | Git y Docker Desktop. |
+| Abrir y probar el sistema completo en Windows o macOS. | [Sistema completo con Docker](#sistema-completo-con-docker). | Git y Docker Desktop. |
 | Modificar el código y ejecutar todo directamente en Windows. | [Desarrollo en Windows sin Docker](#desarrollo-en-windows-sin-docker). | Git, Node.js, pnpm, PostgreSQL y Memurai. |
-| Modificar el código, dejando las bases en Docker. | [Desarrollo con almacenamiento en Docker](#desarrollo-con-almacenamiento-en-docker). | Git, Docker Desktop, Node.js y pnpm. |
+| Modificar el código en Windows o macOS, dejando las bases en Docker. | [Desarrollo con almacenamiento en Docker](#desarrollo-con-almacenamiento-en-docker). | Git, Docker Desktop, Node.js y pnpm. |
 
 Sigue únicamente la ruta elegida. Cada ruta indica cuándo consultar un paso compartido. No enciendas dos rutas a la vez: utilizan los mismos puertos.
 
@@ -84,7 +84,7 @@ Sigue únicamente la ruta elegida. Cada ruta indica cuándo consultar un paso co
 
 | Palabra | Qué significa aquí |
 |---|---|
-| Terminal | La ventana donde pegas los comandos. En esta guía utilizarás PowerShell. |
+| Terminal | La ventana donde pegas los comandos. En Windows utilizarás PowerShell; en macOS, la aplicación Terminal. |
 | Frontend | La página que ves y utilizas en el navegador. |
 | Backend | Los programas que procesan el inicio de sesión, los clientes, las membresías y los pagos. |
 | Gateway | La entrada del backend. Recibe las solicitudes de la página y las envía al servicio correspondiente. |
@@ -95,9 +95,11 @@ Sigue únicamente la ruta elegida. Cada ruta indica cuándo consultar un paso co
 | Puerto | El número que identifica a un programa que recibe conexiones. La página utiliza `5173`; la API utiliza `3000`. |
 | Raíz del proyecto | La carpeta `GYM_Proyect` donde están `README.md`, `package.json` y `compose.yaml`. |
 
-### Abre PowerShell y descarga el proyecto
+### Abre la terminal y descarga el proyecto
 
-Este paso sirve para las tres rutas. Hazlo una sola vez.
+Haz este paso una sola vez. Sigue únicamente las instrucciones de tu sistema.
+
+#### Si utilizas Windows
 
 1. Instala [Git para Windows](https://git-scm.com/downloads/win).
 2. Abre el menú Inicio, escribe **PowerShell** y ábrelo. No necesitas abrirlo como administrador para descargar el proyecto.
@@ -151,25 +153,79 @@ Todos los comandos del proyecto se ejecutan desde esta carpeta. Una pestaña nue
 Set-Location "C:\Users\Ana\GYM_Proyect"
 ```
 
+#### Si utilizas macOS
+
+Pulsa **Cmd+Espacio**, escribe `Terminal` y pulsa **Enter**. Se abre la aplicación donde escribirás los comandos.
+
+Comprueba Git:
+
+```bash
+git --version
+```
+
+Debes ver `git version` y un número. Si macOS te pide instalar las herramientas de línea de comandos, acepta, espera a que termine y repite el comando. También puedes consultar las [opciones oficiales para instalar Git en macOS](https://git-scm.com/downloads/mac).
+
+Entra en tu carpeta personal:
+
+```bash
+cd ~
+```
+
+`cd` cambia de carpeta y `~` representa tu carpeta personal. Si todavía no tienes el proyecto, descárgalo:
+
+```bash
+git clone https://github.com/Kenzowo-dev/GYM_Proyect.git
+```
+
+Espera a que termine. Después entra en la carpeta creada:
+
+```bash
+cd GYM_Proyect
+```
+
+Si ya tienes el proyecto, no lo descargues otra vez. Escribe `cd `, con un espacio al final, arrastra la carpeta existente desde Finder a Terminal y pulsa **Enter**. Terminal utilizará la ruta de esa carpeta.
+
+Comprueba tu ubicación:
+
+```bash
+pwd
+```
+
+Debes ver la ruta de tu copia del proyecto. Guárdala para volver a entrar en otras sesiones. Comprueba el contenido:
+
+```bash
+ls
+```
+
+Debes ver `README.md`, `package.json` y `compose.yaml`. Si no aparecen, entra en la carpeta correcta antes de seguir.
+
+Cada vez que abras una pestaña nueva, comprueba su ubicación con `pwd`. Para entrar en tu proyecto, usa `cd` con la ruta guardada entre comillas. Por ejemplo, **solo si esa es tu ruta**:
+
+```bash
+cd "/Users/Ana/GYM_Proyect"
+```
+
 ### Sistema completo con Docker
 
-En esta ruta, Docker ejecuta la página, el backend, PostgreSQL y Redis. No necesitas instalar Node.js, pnpm, PostgreSQL ni Memurai en Windows para seguirla.
+En esta ruta, Docker ejecuta la página, el backend, PostgreSQL y Redis. No necesitas instalar Node.js, pnpm, PostgreSQL ni un servidor Redis en tu computadora para seguirla.
 
 #### Paso 1. Instala y abre Docker Desktop
 
-Instala [Docker Desktop para Windows siguiendo su guía oficial](https://docs.docker.com/desktop/setup/install/windows-install/). Completa los requisitos que indique el instalador y reinicia Windows si te lo pide. Docker Desktop puede habilitar WSL como parte de su instalación; esta ruta no requiere que instales Redis manualmente en Ubuntu.
+**En Windows**, instala [Docker Desktop siguiendo su guía oficial](https://docs.docker.com/desktop/setup/install/windows-install/). Completa los requisitos del instalador y reinicia si te lo pide. Docker Desktop puede habilitar WSL; no necesitas instalar Redis manualmente en Ubuntu.
+
+**En macOS**, abre el menú Apple y selecciona **Acerca de esta Mac**. Comprueba si tu equipo muestra un chip Apple, como M1 o M4, o un procesador Intel. Descarga la opción correspondiente en la [guía de Docker Desktop para Mac](https://docs.docker.com/desktop/setup/install/mac-install/). Abre el archivo `.dmg`, arrastra Docker a **Aplicaciones** y abre Docker desde allí. Completa los ajustes que solicite.
 
 Abre Docker Desktop y espera a que su motor esté funcionando. Utiliza contenedores Linux y deja Docker Desktop abierto.
 
-En PowerShell, dentro de la raíz del proyecto, ejecuta:
+Abre PowerShell en Windows o Terminal en macOS. Entra en la raíz del proyecto y ejecuta los siguientes comandos; son iguales en ambos sistemas:
 
-```powershell
+```bash
 docker --version
 ```
 
 Debes ver la versión de Docker. Ahora comprueba Compose, la herramienta que inicia los componentes juntos:
 
-```powershell
+```bash
 docker compose version
 ```
 
@@ -177,7 +233,7 @@ Debes ver la versión de Docker Compose. El proyecto requiere Compose v2 o compa
 
 #### Paso 2. Crea tu configuración de Docker
 
-Ejecuta:
+**En Windows, desde PowerShell**, ejecuta:
 
 ```powershell
 if (-not (Test-Path .env.docker)) { Copy-Item .env.docker.example .env.docker }
@@ -191,13 +247,29 @@ Comprueba que el archivo exista:
 Test-Path .env.docker
 ```
 
-Debes ver `True`. El archivo contiene las credenciales y direcciones necesarias para las pruebas. Puedes conservar los valores de ejemplo mientras uses datos ficticios. No los uses para datos reales ni para producción.
+Debes ver `True`.
+
+**En macOS, desde Terminal**, ejecuta:
+
+```bash
+if [ ! -f .env.docker ]; then cp .env.docker.example .env.docker; fi
+```
+
+`-f` comprueba si el archivo existe. `cp` copia la plantilla únicamente cuando falta. Si no aparece texto, es normal. Comprueba la copia:
+
+```bash
+ls -l .env.docker
+```
+
+Debes ver una línea con el nombre `.env.docker`. Si aparece que no existe, comprueba que estés en la raíz.
+
+El archivo contiene las credenciales y direcciones necesarias para las pruebas. Puedes conservar los valores de ejemplo mientras uses datos ficticios. No los uses para datos reales ni para producción.
 
 #### Paso 3. Prepara y enciende todo el sistema
 
-Ejecuta:
+Ejecuta desde la raíz, en PowerShell o Terminal:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml up -d --build
 ```
 
@@ -209,15 +281,15 @@ Este comando hace lo siguiente:
 - `--build` prepara las imágenes con el código actual. Una imagen contiene los archivos que Docker ejecutará.
 - `-d` deja los componentes funcionando en segundo plano, aunque el comando termine.
 
-La primera ejecución descarga componentes y puede tardar varios minutos. Espera a que PowerShell te permita escribir otro comando. Si la construcción termina con un error, no des por actualizado el sistema: puede seguir funcionando una versión anterior.
+La primera ejecución descarga componentes y puede tardar varios minutos. Espera a que la terminal te permita escribir otro comando. Si la construcción termina con un error, no des por actualizado el sistema: puede seguir funcionando una versión anterior.
 
 Cuando PostgreSQL tiene un almacenamiento nuevo, se crean las tablas y se cargan las cuentas de prueba automáticamente.
 
 #### Paso 4. Comprueba que terminó de arrancar
 
-Ejecuta:
+Ejecuta desde la raíz, en PowerShell o Terminal:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml ps
 ```
 
@@ -229,13 +301,13 @@ Si ves `starting`, espera unos segundos y repite el mismo comando. Si ves `unhea
 
 Abre [http://localhost:5173](http://localhost:5173) en el navegador. Después sigue [Inicia sesión y comprueba el resultado](#inicia-sesión-y-comprueba-el-resultado).
 
-Puedes cerrar PowerShell después del arranque porque Docker trabaja en segundo plano. Mantén Docker Desktop funcionando.
+Puedes cerrar la terminal después del arranque porque Docker trabaja en segundo plano. Mantén Docker Desktop funcionando.
 
 #### Paso 6. Detén el sistema al terminar
 
-Abre PowerShell en la raíz y ejecuta:
+Abre PowerShell o Terminal en la raíz y ejecuta:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml down
 ```
 
@@ -243,17 +315,17 @@ docker compose --env-file .env.docker -f compose.yaml down
 
 #### La próxima vez que uses esta ruta
 
-Abre Docker Desktop y espera a que esté listo. Abre PowerShell en la raíz. No vuelvas a descargar el proyecto ni a copiar la plantilla.
+Abre Docker Desktop y espera a que esté listo. Abre PowerShell o Terminal en la raíz. No vuelvas a descargar el proyecto ni a copiar la plantilla.
 
 Enciende el sistema:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml up -d --build
 ```
 
 Comprueba los estados:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml ps
 ```
 
@@ -384,41 +456,55 @@ Después repite [Inicia el código local en PowerShell](#inicia-el-código-local
 
 ### Desarrollo con almacenamiento en Docker
 
-En esta ruta, tú ejecutas la página y el backend en Windows para editar el código. Docker ejecuta únicamente PostgreSQL y Redis. No necesitas instalar PostgreSQL ni Memurai en Windows.
+En esta ruta, tú ejecutas la página y el backend en Windows o macOS para editar el código. Docker ejecuta únicamente PostgreSQL y Redis. No necesitas instalar PostgreSQL ni Redis directamente en tu sistema.
 
 #### Paso 1. Prepara las herramientas
 
 Instala y abre Docker Desktop como indica el [paso 1 del sistema completo](#paso-1-instala-y-abre-docker-desktop). Después completa [Prepara Node.js y pnpm para desarrollar](#prepara-nodejs-y-pnpm-para-desarrollar).
 
-Regresa aquí con Docker Desktop funcionando, las dependencias instaladas y PowerShell en la raíz del proyecto.
+Regresa aquí con Docker Desktop funcionando, las dependencias instaladas y tu terminal en la raíz del proyecto. Usa PowerShell en Windows o Terminal en macOS.
 
 #### Paso 2. Prepara los dos archivos de configuración
 
-Crea la configuración para los contenedores:
+**En Windows**, crea la configuración desde PowerShell:
 
 ```powershell
 if (-not (Test-Path .env.docker)) { Copy-Item .env.docker.example .env.docker }
 ```
 
-La copia solo se realiza si el archivo no existe. Ahora completa [Crea y revisa la configuración local](#crea-y-revisa-la-configuración-local) para preparar `.env.local`.
+**En macOS**, crea la configuración desde Terminal:
 
-Abre la configuración de Docker:
+```bash
+if [ ! -f .env.docker ]; then cp .env.docker.example .env.docker; fi
+```
+
+Ambos comandos copian la plantilla solo cuando falta el archivo. Ahora completa [Crea y revisa la configuración local](#crea-y-revisa-la-configuración-local) para preparar `.env.local`.
+
+**En Windows**, abre la configuración de Docker:
 
 ```powershell
 notepad .env.docker
 ```
 
+**En macOS**, abre el archivo con TextEdit:
+
+```bash
+open -a TextEdit .env.docker
+```
+
+`open -a TextEdit` abre un archivo existente con esa aplicación. Solo vas a cambiar sus valores; conserva su nombre y su formato de texto.
+
 Comprueba que `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` y `REDIS_PASSWORD` coincidan en ambos archivos. Con las plantillas originales ya coinciden. Si cambiaste alguna credencial, utiliza el valor de la base existente; cambiar el archivo no cambia automáticamente la contraseña guardada en un volumen.
 
-Guarda y cierra el Bloc de notas. `.env.docker` configura el almacenamiento en contenedores; `.env.local` indica al código de Windows cómo conectarse a él.
+Guarda con **Ctrl+S** en Windows o **Cmd+S** en macOS y cierra el editor. `.env.docker` configura el almacenamiento en contenedores; `.env.local` indica al código de tu computadora cómo conectarse a él.
 
 #### Paso 3. Libera los puertos de otras rutas
 
-Si tenías código local ejecutándose, pulsa **Ctrl+C** en sus pestañas. Si instalaste PostgreSQL o Memurai en Windows, detén esos servicios desde `services.msc` antes de usar el almacenamiento de Docker.
+Si tenías código local ejecutándose, pulsa **Ctrl+C** en sus pestañas. Si instalaste PostgreSQL o Memurai en Windows, detén esos servicios desde `services.msc`. En macOS, si tienes PostgreSQL o Redis locales encendidos, detén esa instancia con la herramienta con la que la iniciaste. No desinstales ni borres sus datos. Así liberas los puertos `5432` y `6379` para Docker.
 
-Con Docker Desktop abierto, ejecuta:
+Con Docker Desktop abierto, ejecuta desde la raíz, en PowerShell o Terminal. Los comandos `docker compose` son iguales en ambos sistemas:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml down
 ```
 
@@ -428,7 +514,7 @@ Esto detiene la ejecución anterior del sistema en Docker y conserva sus volúme
 
 Ejecuta:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml up -d postgres redis
 ```
 
@@ -436,7 +522,7 @@ Los nombres `postgres redis` indican que deben iniciarse solo esos dos component
 
 Comprueba su estado:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml ps
 ```
 
@@ -444,25 +530,35 @@ Debes ver PostgreSQL y Redis funcionando y saludables. Si aún aparece `starting
 
 #### Paso 5. Prepara los datos
 
-Para preparar el esquema y las cuentas demo, ejecuta desde PowerShell en la raíz:
+Para preparar el esquema y las cuentas demo, ejecuta desde la raíz. **En Windows**:
 
 ```powershell
 pnpm.cmd db:init
+```
+
+**En macOS**:
+
+```bash
+pnpm db:init
 ```
 
 Debes ver `Base de datos inicializada correctamente.`. En un volumen nuevo, Docker ya carga los datos iniciales; este comando vuelve a aplicar el esquema y el seed. Puede restablecer las cuentas demo. Si estás reutilizando una base preparada y quieres conservar esas cuentas tal como están, omite este paso.
 
 #### Paso 6. Enciende el código local
 
-Completa [Inicia el código local en PowerShell](#inicia-el-código-local-en-powershell). Son los mismos comandos que la ruta sin Docker: solo cambia dónde funcionan PostgreSQL y Redis.
+**En Windows**, completa [Inicia el código local en PowerShell](#inicia-el-código-local-en-powershell). Utilizarás siete pestañas.
 
-Después sigue [Inicia sesión y comprueba el resultado](#inicia-sesión-y-comprueba-el-resultado). Deja Docker Desktop abierto y conserva las siete pestañas del código en ejecución.
+**En macOS**, completa [Inicia el código local en macOS](#inicia-el-código-local-en-macos). Utilizarás una pestaña que reúne los procesos.
+
+En ambos casos, la página y el backend trabajan en tu computadora; las bases siguen en Docker.
+
+Después sigue [Inicia sesión y comprueba el resultado](#inicia-sesión-y-comprueba-el-resultado). Deja Docker Desktop abierto y conserva abierta la terminal o las pestañas donde ejecutas el código.
 
 #### Paso 7. Detén esta ruta
 
-Primero pulsa **Ctrl+C** en cada una de las siete pestañas del código. Después, desde una pestaña disponible en la raíz, ejecuta:
+Primero pulsa **Ctrl+C** en las siete pestañas del código de Windows o en la pestaña de `pnpm dev` de macOS. En Mac es **Control+C**, no **Cmd+C**. Después, desde una pestaña disponible en la raíz, ejecuta:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml down
 ```
 
@@ -470,29 +566,41 @@ Se detienen PostgreSQL y Redis. Los datos permanecen en los volúmenes.
 
 #### La próxima vez que uses esta ruta
 
-Abre Docker Desktop. Abre PowerShell en la raíz y enciende las bases:
+Abre Docker Desktop. Abre PowerShell o Terminal en la raíz y enciende las bases:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml up -d postgres redis
 ```
 
 Comprueba que estén saludables:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml ps
 ```
 
-Prepara el código compartido:
+**En Windows**, prepara el código compartido:
 
 ```powershell
 pnpm.cmd --filter=@gym/shared build
 ```
 
-Repite [Inicia el código local en PowerShell](#inicia-el-código-local-en-powershell). No vuelvas a copiar los archivos ni a ejecutar `db:init` para un arranque normal. Si cambiaron las dependencias, ejecuta `pnpm.cmd install` antes de compilar.
+Después repite [Inicia el código local en PowerShell](#inicia-el-código-local-en-powershell).
+
+**En macOS**, inicia el código desde la raíz:
+
+```bash
+pnpm dev
+```
+
+Este comando compila el código compartido y enciende los procesos locales. Puedes consultar [Inicia el código local en macOS](#inicia-el-código-local-en-macos) para comprobar el resultado.
+
+No vuelvas a copiar los archivos ni a ejecutar `db:init` para un arranque normal. Si cambiaron las dependencias, ejecuta antes `pnpm.cmd install` en Windows o `pnpm install` en macOS.
 
 ### Prepara Node.js y pnpm para desarrollar
 
-Este paso se utiliza en las dos rutas de desarrollo. La ruta del sistema completo con Docker no lo necesita.
+Este paso se utiliza en las rutas de desarrollo. La ruta del sistema completo con Docker no lo necesita. Sigue únicamente el bloque de tu sistema operativo.
+
+#### Preparar Node.js y pnpm en Windows
 
 Instala una versión actualizada de **Node.js 22.x** desde la [página oficial de Node.js](https://nodejs.org/en/download). Node.js ejecuta el código JavaScript del backend y las herramientas del frontend.
 
@@ -544,9 +652,59 @@ pnpm.cmd --filter=@gym/shared build
 
 Regresa al siguiente paso de la ruta que elegiste.
 
+#### Preparar Node.js y pnpm en macOS
+
+Abre el menú Apple y consulta **Acerca de esta Mac** para saber si tu procesador es Apple o Intel. Instala una versión actualizada de **Node.js 22.x** desde la [página oficial](https://nodejs.org/en/download), utilizando el instalador compatible con tu Mac. No necesitas instalar Homebrew para seguir esta ruta.
+
+Abre una ventana nueva de Terminal y comprueba Node.js:
+
+```bash
+node --version
+```
+
+Debes ver una versión que empiece por `v22.`. Comprueba npm, la herramienta incluida con Node.js:
+
+```bash
+npm --version
+```
+
+Debes ver un número de versión. Instala pnpm:
+
+```bash
+npm install --global pnpm@11.24.0
+```
+
+Este comando instala la herramienta que organiza las dependencias. Espera a que termine y comprueba:
+
+```bash
+pnpm --version
+```
+
+Debes ver `11.24.0`. Si la instalación falla por permisos, sigue las [opciones de instalación oficiales de pnpm](https://pnpm.io/installation) para tu entorno y vuelve a comprobar la versión. No continúes con una instalación que terminó con errores.
+
+Entra en la raíz de tu proyecto con `cd` y descarga sus dependencias:
+
+```bash
+pnpm install
+```
+
+Espera a que termine sin errores. No repitas este comando dentro de cada servicio; desde la raíz prepara todo el proyecto.
+
+Compila el código compartido:
+
+```bash
+pnpm --filter=@gym/shared build
+```
+
+`--filter=@gym/shared` selecciona el paquete de utilidades comunes. `build` crea sus archivos ejecutables en `shared/dist`, que el backend utiliza al arrancar.
+
+Regresa al siguiente paso de la ruta de desarrollo con almacenamiento en Docker.
+
 ### Crea y revisa la configuración local
 
-Este paso se utiliza en las dos rutas que ejecutan el código directamente en Windows. Abre PowerShell en la raíz del proyecto.
+Este paso se utiliza en las rutas que ejecutan el código directamente en tu computadora. Entra en la raíz del proyecto.
+
+**En Windows**, abre PowerShell y sigue estos comandos:
 
 Crea tu archivo sin reemplazar uno existente:
 
@@ -568,9 +726,27 @@ Debes ver `True`. Abre el archivo:
 notepad .env.local
 ```
 
+**En macOS**, utiliza Terminal para crear el archivo si todavía no existe:
+
+```bash
+if [ ! -f .env.local ]; then cp .env.local.example .env.local; fi
+```
+
+`cp` copia la plantilla y la condición evita reemplazar tu configuración existente. Comprueba el archivo:
+
+```bash
+ls -l .env.local
+```
+
+Debes ver su nombre en el resultado. Ábrelo con TextEdit:
+
+```bash
+open -a TextEdit .env.local
+```
+
 Debes ver los ajustes de la plantilla. El comentario inicial menciona Docker, pero las conexiones a `localhost` sirven también para PostgreSQL y Memurai instalados en Windows.
 
-Comprueba estas líneas. **Este bloque es contenido del archivo, no un comando para PowerShell.** No reemplaces el archivo completo con él: conserva las demás líneas de la plantilla.
+Comprueba estas líneas. **Este bloque es contenido del archivo, no un comando para la terminal.** No reemplaces el archivo completo con él: conserva las demás líneas de la plantilla.
 
 ```dotenv
 POSTGRES_HOST=localhost
@@ -591,7 +767,7 @@ PAYMENT_SERVICE_URL=http://localhost:3004
 
 | Ajuste | Qué debes comprobar |
 |---|---|
-| `POSTGRES_HOST` y `REDIS_HOST` | `localhost` porque el código se conecta desde Windows. No escribas los nombres internos `postgres` o `redis` de Docker. |
+| `POSTGRES_HOST` y `REDIS_HOST` | `localhost` porque el código se conecta desde tu computadora. No escribas los nombres internos `postgres` o `redis` de Docker. |
 | `POSTGRES_DB`, `POSTGRES_USER` y `POSTGRES_PASSWORD` | Deben coincidir con la base y el usuario que preparaste, o con `.env.docker` si elegiste almacenamiento en Docker. |
 | `REDIS_PASSWORD` | Déjalo vacío si el servidor no tiene contraseña. Si tiene una, escribe la misma aquí. |
 | `CORS_ORIGIN` | Conserva `http://localhost:5173`. Autoriza al navegador a conectar esa página con el backend. |
@@ -599,17 +775,31 @@ PAYMENT_SERVICE_URL=http://localhost:3004
 
 Conserva también `JWT_SECRET`, que debe tener al menos 32 caracteres. Esa clave firma las credenciales de sesión. La plantilla contiene un valor para pruebas; utiliza secretos propios antes de manejar datos reales.
 
-Pulsa **Ctrl+S** para guardar y cierra el Bloc de notas. Regresa a tu ruta.
+Guarda con **Ctrl+S** en el Bloc de notas de Windows o **Cmd+S** en TextEdit de macOS. Conserva el nombre `.env.local` y cierra el editor. Regresa a tu ruta.
 
 El backend lee `.env.local` antes que `.env`. Si una variable ya está definida en la terminal, ese valor tiene prioridad. Reinicia los procesos cuando cambies la configuración.
 
-El frontend usa `http://localhost:3000` por defecto. No necesitas crear otro archivo para esta guía. Si en el futuro cambias la dirección de la API, abre:
+El frontend usa `http://localhost:3000` por defecto. No necesitas crear otro archivo para esta guía. Si en el futuro cambias la dirección de la API, **en Windows** abre:
 
 ```powershell
 notepad frontend/.env.local
 ```
 
-Acepta crear el archivo si no existe y añade esta línea, sustituyendo la URL por la de tu API:
+Acepta crear el archivo si no existe.
+
+**En macOS**, crea el archivo si falta, sin reemplazar uno existente:
+
+```bash
+touch frontend/.env.local
+```
+
+`touch` crea un archivo vacío cuando no existe. Después ábrelo:
+
+```bash
+open -a TextEdit frontend/.env.local
+```
+
+En cualquiera de los dos sistemas, añade esta línea al archivo, sustituyendo la URL por la de tu API:
 
 ```dotenv
 VITE_API_URL=http://localhost:3000
@@ -702,6 +892,34 @@ Invoke-RestMethod http://localhost:3000/health | ConvertTo-Json -Depth 5
 
 Si devuelve `degraded` o un error, revisa las pestañas del backend antes de intentar iniciar sesión. Cuando esté saludable, abre [http://localhost:5173](http://localhost:5173) y sigue el apartado siguiente.
 
+### Inicia el código local en macOS
+
+Este paso se utiliza para desarrollar en macOS con PostgreSQL y Redis en Docker. Comprueba primero que sus contenedores estén saludables y que `.env.local` y las dependencias estén preparados.
+
+En Terminal, entra en la raíz y ejecuta:
+
+```bash
+pnpm dev
+```
+
+Este comando compila el código compartido y después enciende su observador, los cuatro servicios del gimnasio, el gateway y Vite. En macOS, la terminal interpreta las asignaciones de puertos del script raíz.
+
+Espera a ver los servicios escuchando en `3001`, `3002`, `3003`, `3004` y el gateway en `3000`. Vite debe mostrar `http://localhost:5173/`. Deja esta pestaña abierta: el comando sigue trabajando y sus mensajes pueden aparecer mezclados porque reúne varios procesos.
+
+Si Vite muestra `5174` u otro puerto, no uses esa dirección para continuar. Pulsa **Control+C**, detén la otra aplicación que ocupa `5173` y repite `pnpm dev`. La configuración del backend autoriza la página en `5173`.
+
+Abre otra pestaña con **Cmd+T**. En ella, comprueba el backend:
+
+```bash
+curl -fsS http://localhost:3000/health
+```
+
+`curl` consulta la dirección del gateway. `-f` hace que indique un error si la respuesta HTTP falla y `-sS` oculta el progreso pero conserva los errores. Debes ver una respuesta que contenga `"status":"healthy"` y los cuatro servicios saludables. Los espacios del texto pueden variar.
+
+Si falla, mira los registros de la pestaña donde ejecutaste `pnpm dev`. No intentes iniciar sesión hasta que los servicios estén listos.
+
+Abre [http://localhost:5173](http://localhost:5173) y sigue el apartado siguiente. Para detener el código, vuelve a la pestaña de `pnpm dev` y pulsa **Control+C**. Esto no detiene las bases de Docker; utiliza después el comando `down` de tu ruta.
+
 ### Inicia sesión y comprueba el resultado
 
 Este paso es igual para las tres rutas.
@@ -730,7 +948,7 @@ No borres la base ni los volúmenes para intentar corregir un error de arranque.
 |---|---|
 | No se reconoce `git`, `docker`, `node` o `pnpm.cmd` | Instala la herramienta correspondiente, abre una terminal nueva y vuelve a comprobar su versión. |
 | PowerShell bloquea `pnpm.ps1` o `npm.ps1` | Usa `pnpm.cmd` y `npm.cmd`, como en esta guía. |
-| No encuentra `compose.yaml` o `package.json` | Ejecuta `Get-Location` y `Get-ChildItem`. Entra en la raíz del proyecto antes de repetir el comando. |
+| No encuentra `compose.yaml` o `package.json` | En Windows ejecuta `Get-Location` y `Get-ChildItem`; en macOS, `pwd` y `ls`. Entra en la raíz del proyecto antes de repetir el comando. |
 | Docker no conecta con el motor o daemon | Abre Docker Desktop y espera a que su motor funcione. |
 | Docker muestra `unhealthy` o `Exited` | Consulta los registros con el comando que aparece debajo de esta tabla. |
 | Falla la descarga o la construcción | Revisa el mensaje de red, certificados o dependencias. No continúes hasta que termine sin errores; una imagen anterior puede seguir activa. |
@@ -741,21 +959,21 @@ No borres la base ni los volúmenes para intentar corregir un error de arranque.
 | Falta el usuario o la base de PostgreSQL | En la ruta sin Docker, completa su paso 3. `db:init` no crea la base ni el usuario. |
 | Redis devuelve `ECONNREFUSED` | Comprueba el servicio Memurai o el contenedor Redis, según tu ruta. Memurai Developer necesita reiniciarse tras diez días de funcionamiento continuo. |
 | No se reconoce `memurai-cli` | Abre una terminal nueva o utiliza la ruta completa del ejecutable indicada en la instalación de Memurai. |
-| Falta `@gym/shared/dist` | Ejecuta `pnpm.cmd --filter=@gym/shared build` desde la raíz antes de arrancar el backend local. |
+| Falta `@gym/shared/dist` | Desde la raíz ejecuta `pnpm.cmd --filter=@gym/shared build` en Windows o `pnpm --filter=@gym/shared build` en macOS. |
 | El gateway devuelve `degraded` | Revisa los cuatro servicios y sus puertos. Comprueba las variables `*_SERVICE_URL` en `.env.local`. |
 | La página aparece pero no conecta a la API | Comprueba el gateway en `3000`, la página en `5173`, `CORS_ORIGIN` y cualquier archivo `frontend/.env.local` que hayas creado. |
 | Aparece una interfaz anterior en la ruta Docker completa | Repite su arranque con `up -d --build`, espera una construcción correcta y recarga `http://localhost:5173/`. |
 | No puedes entrar con una cuenta demo | Comprueba correo y contraseña. Si faltan los datos, utiliza `db:init` con la configuración local de la base correcta; recuerda que reaplica datos y cuentas demo. |
 
-En las rutas con Docker, consulta los últimos mensajes desde PowerShell en la raíz:
+En las rutas con Docker, consulta los últimos mensajes desde la raíz, en PowerShell o Terminal:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml logs --tail=100
 ```
 
 Este comando muestra los registros de los contenedores. Para consultar únicamente PostgreSQL:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml logs --tail=100 postgres
 ```
 
@@ -783,27 +1001,45 @@ Ejecuta las pruebas unitarias:
 pnpm.cmd test:unit
 ```
 
-Los tres comandos deben terminar sin errores. No necesitan Docker. `pnpm.cmd test` también ejecuta pruebas de integración que crean contenedores temporales y sí requieren Docker. El lanzador `pnpm.cmd test:e2e` comprueba que el sistema completo esté saludable en Docker; no sirve directamente para las dos rutas con código local.
+En macOS, los mismos controles se ejecutan desde Terminal. Revisa el código:
+
+```bash
+pnpm lint
+```
+
+Comprueba la compilación:
+
+```bash
+pnpm build
+```
+
+Ejecuta las pruebas unitarias:
+
+```bash
+pnpm test:unit
+```
+
+Los tres controles deben terminar sin errores en tu sistema. No necesitan Docker. `pnpm.cmd test` también ejecuta pruebas de integración que crean contenedores temporales y sí requieren Docker. El lanzador `pnpm.cmd test:e2e` comprueba que el sistema completo esté saludable en Docker; no sirve directamente para las dos rutas con código local.
 
 ### Borra los datos de Docker solo si quieres empezar de cero
 
 Este paso es opcional y **elimina los datos de los volúmenes del proyecto**, incluidos los socios, las membresías y los pagos que hayas registrado. No lo utilices para una detención normal. No afecta a la base PostgreSQL instalada como servicio de Windows.
 
-Si quieres empezar de cero en la ruta del sistema completo con Docker, ejecuta desde la raíz:
+Si quieres empezar de cero en la ruta del sistema completo con Docker, ejecuta desde la raíz en PowerShell o Terminal. Los comandos son iguales en ambos sistemas:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml down -v
 ```
 
 `-v` borra los volúmenes. Después enciende de nuevo el sistema:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml up -d --build
 ```
 
 PostgreSQL crea el almacenamiento y carga otra vez los datos de prueba. Comprueba los estados con:
 
-```powershell
+```bash
 docker compose --env-file .env.docker -f compose.yaml ps
 ```
 
