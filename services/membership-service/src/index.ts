@@ -5,12 +5,13 @@ import rateLimit from 'express-rate-limit';
 import { config } from '@gym/shared/config/index.js';
 import { logger } from '@gym/shared/logger/index.js';
 import { requestLoggingMiddleware } from '@gym/shared/logger/index.js';
-import { connectRedis, disconnectRedis, subscribe, CHANNELS, PaymentCompletedPayload } from '@gym/shared/messaging/index.js';
+import { connectRedis, disconnectRedis } from '@gym/shared/messaging/index.js';
 import { closePool } from '@gym/shared/database/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import membershipRoutes from './routes/membership.routes.js';
 
 const app = express();
+if (config.nodeEnv === 'production') app.set('trust proxy', 1);
 const SERVICE_NAME = 'membership-service';
 
 /**
@@ -94,21 +95,6 @@ async function startServer(): Promise<void> {
 
     await query('SELECT 1');
     logger.info('Database connected');
-
-    // Suscripción al evento PAYMENT_COMPLETED para activar membresías tras pago exitoso
-    await subscribe<PaymentCompletedPayload>(CHANNELS.PAYMENT_COMPLETED, async (payload) => {
-      try {
-        if (payload?.membershipId) {
-          await query(
-            "UPDATE client_memberships SET status = 'active', updated_at = NOW() WHERE id = $1",
-            [payload.membershipId]
-          );
-          logger.info({ membershipId: payload.membershipId }, 'Membresía activada automáticamente tras confirmación de pago');
-        }
-      } catch (err) {
-        logger.error({ err }, 'Error procesando PAYMENT_COMPLETED en membership-service');
-      }
-    });
 
     app.listen(config.port, () => {
       logger.info(`${SERVICE_NAME} running on port ${config.port}`);

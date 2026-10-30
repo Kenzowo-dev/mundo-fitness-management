@@ -55,7 +55,9 @@ router.get('/:clientId/documents', authenticate, authorize('admin', 'receptionis
 // Rutas genéricas de cliente AL FINAL
 router.get('/:id', authenticate, authorize('admin', 'receptionist'), requireClientAccess, getClientController);
 router.patch('/:id', authenticate, authorize('admin', 'receptionist'), requireClientAccess, updateClientValidation, updateClientController);
-router.delete('/:id', authenticate, authorize('admin'), requireClientAccess, deleteClientController);
+if (process.env.NODE_ENV !== 'production') {
+  router.delete('/:id', authenticate, authorize('admin'), requireClientAccess, deleteClientController);
+}
 
 // Rutas de goals y documents por ID (no anidadas a clientId)
 router.patch('/goals/:id', authenticate, authorize('admin', 'receptionist'), updateGoalValidation, updateGoalController);

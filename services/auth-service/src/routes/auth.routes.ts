@@ -32,8 +32,10 @@ router.post('/login', loginValidation, loginController);
 router.post('/refresh', refreshValidation, refreshController);
 router.post('/logout', authenticate, logoutController);
 router.post('/change-password', authenticate, changePasswordValidation, changePasswordController);
-router.post('/forgot-password', resetPasswordRequestValidation, requestPasswordResetController);
-router.post('/reset-password', resetPasswordValidation, resetPasswordController);
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/forgot-password', resetPasswordRequestValidation, requestPasswordResetController);
+  router.post('/reset-password', resetPasswordValidation, resetPasswordController);
+}
 
 router.get('/me', authenticate, getCurrentUserController);
 router.patch('/me', authenticate, updateSelfValidation, updateCurrentUserController);

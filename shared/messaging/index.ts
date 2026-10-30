@@ -134,16 +134,6 @@ export async function publish<T = unknown>(channel: string, message: T): Promise
  * Tipos para payloads de eventos de dominio publicados en Redis.
  * Definir tipos aquí permite type-safety entre publishers y subscribers.
  */
-export interface UserCreatedPayload {
-  userId: number;
-  email: string;
-  role: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  birthDate?: string;
-  gender?: string;
-}
 
 export interface UserUpdatedPayload {
   userId: number;
@@ -190,13 +180,6 @@ export interface MembershipCancelledPayload {
   clientId: number;
 }
 
-export interface PaymentCompletedPayload {
-  paymentId: number;
-  membershipId: number | null;
-  clientId: number;
-  amount: number;
-}
-
 export interface PaymentFailedPayload {
   paymentId: number;
   clientId: number;
@@ -224,7 +207,6 @@ export interface PlanDeletedPayload {
  * Mapa de canales a sus tipos de payload para type-safety.
  */
 export interface ChannelPayloadMap {
-  'user.created': UserCreatedPayload;
   'user.updated': UserUpdatedPayload;
   'user.deleted': UserDeletedPayload;
   'client.created': ClientCreatedPayload;
@@ -234,7 +216,6 @@ export interface ChannelPayloadMap {
   'membership.updated': MembershipUpdatedPayload;
   'membership.expired': MembershipExpiredPayload;
   'membership.cancelled': MembershipCancelledPayload;
-  'payment.completed': PaymentCompletedPayload;
   'payment.failed': PaymentFailedPayload;
   'payment.refunded': PaymentRefundedPayload;
   'plan.created': PlanCreatedPayload;
@@ -253,7 +234,6 @@ export type PayloadForChannel<T extends keyof ChannelPayloadMap> = ChannelPayloa
  * Convención: `{entidad}.{accion}` en pasado para eventos de dominio.
  */
 export const CHANNELS = {
-  USER_CREATED: 'user.created',
   USER_UPDATED: 'user.updated',
   USER_DELETED: 'user.deleted',
   CLIENT_CREATED: 'client.created',
@@ -263,7 +243,6 @@ export const CHANNELS = {
   MEMBERSHIP_UPDATED: 'membership.updated',
   MEMBERSHIP_EXPIRED: 'membership.expired',
   MEMBERSHIP_CANCELLED: 'membership.cancelled',
-  PAYMENT_COMPLETED: 'payment.completed',
   PAYMENT_FAILED: 'payment.failed',
   PAYMENT_REFUNDED: 'payment.refunded',
   PLAN_CREATED: 'plan.created',

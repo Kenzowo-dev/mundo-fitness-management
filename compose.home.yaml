@@ -1,0 +1,4 @@
+networks:
+  proxy:
+    name: homelab-proxy
+    external: true

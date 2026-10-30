@@ -125,29 +125,33 @@ export async function registerUser(data: CreateUserData): Promise<{ user: User; 
       `
       INSERT INTO users (email, password_hash, first_name, last_name, phone, birth_date, gender, role)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (email) DO NOTHING
       RETURNING id, email, password_hash, first_name, last_name, phone, birth_date, gender, role, is_active, email_verified, last_login_at, created_at, updated_at
       `,
       [data.email, passwordHash, data.firstName, data.lastName, data.phone ?? null, data.birthDate ?? null, data.gender ?? null, data.role ?? 'member']
     );
+    if (userResult.rows.length === 0) {
+      throw new ConflictError('Email already registered', 'EMAIL_EXISTS');
+    }
 
     const user = mapRowToUser(userResult.rows[0]);
+    if (user.role === 'member') {
+      const clientResult = await client.query(
+        `INSERT INTO clients (user_id, dni, first_name, last_name, email, phone, birth_date, gender, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
+         ON CONFLICT DO NOTHING
+         RETURNING id`,
+        [user.id, `CLI-${user.id}`, user.firstName, user.lastName, user.email, user.phone ?? null, user.birthDate ?? null, user.gender ?? null]
+      );
+      if (clientResult.rows.length === 0) {
+        throw new ConflictError('Ya existe una ficha con estos datos. Pide ayuda al administrador.', 'CLIENT_EXISTS');
+      }
+    }
     const tokens = await createTokenPair(user.id, user.email, user.role);
 
     await storeRefreshToken(client, user.id, tokens.refreshToken);
 
     return { user, tokens };
-  });
-
-  // Publish only after the user row is committed, so client-service can safely reference its ID.
-  await publish(CHANNELS.USER_CREATED, {
-    userId: registration.user.id,
-    email: registration.user.email,
-    role: registration.user.role,
-    firstName: registration.user.firstName,
-    lastName: registration.user.lastName,
-    phone: registration.user.phone,
-    birthDate: registration.user.birthDate?.toISOString(),
-    gender: registration.user.gender,
   });
 
   logger.info({ userId: registration.user.id }, 'User registered successfully');

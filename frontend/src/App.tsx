@@ -144,22 +144,26 @@ function App() {
             </PublicRoute>
           }
         />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <ForgotPassword />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/reset-password"
-          element={
-            <PublicRoute>
-              <ResetPassword />
-            </PublicRoute>
-          }
-        />
+        {import.meta.env.DEV && (
+          <>
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPassword />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicRoute>
+                  <ResetPassword />
+                </PublicRoute>
+              }
+            />
+          </>
+        )}
         <Route path="/portal" element={<MemberRoute />} />
         <Route path="/sin-acceso" element={<AccessNotice />} />
         <Route

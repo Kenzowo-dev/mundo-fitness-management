@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { query, publish } = vi.hoisted(() => ({ query: vi.fn(), publish: vi.fn() }));
-vi.mock('@gym/shared/database/index.js', () => ({ query, transaction: vi.fn() }));
-vi.mock('@gym/shared/messaging/index.js', () => ({ publish, CHANNELS: { PAYMENT_COMPLETED: 'payment.completed' } }));
+const { query, publish, transaction } = vi.hoisted(() => {
+  const query = vi.fn();
+  const transaction = vi.fn((callback: (client: { query: typeof query }) => Promise<unknown>) => callback({ query }));
+  return { query, publish: vi.fn(), transaction };
+});
+vi.mock('@gym/shared/database/index.js', () => ({ query, transaction }));
+vi.mock('@gym/shared/messaging/index.js', () => ({ publish, CHANNELS: { PAYMENT_FAILED: 'payment.failed' } }));
 
 import { createPayment, updatePayment } from '../src/services/payment.service.js';
 
@@ -36,7 +40,8 @@ describe('createPayment', () => {
     query
       .mockResolvedValueOnce({ rows: [{ id: 22 }] })
       .mockResolvedValueOnce({ rows: [{ id: 71 }] })
-      .mockResolvedValueOnce({ rows: [paymentRow] });
+      .mockResolvedValueOnce({ rows: [paymentRow] })
+      .mockResolvedValueOnce({ rowCount: 1 });
 
     const result = await createPayment({
       clientId: 22,
@@ -52,12 +57,12 @@ describe('createPayment', () => {
     const [insertSql, values] = query.mock.calls[2];
     expect(insertSql).toContain("'completed', NOW()");
     expect(values).toEqual([22, 71, 149.9, 'PEN', 'cash', null, null, null]);
-    expect(publish).toHaveBeenCalledWith('payment.completed', {
-      paymentId: 501,
-      membershipId: 71,
-      clientId: 22,
-      amount: 149.9,
-    });
+    expect(transaction).toHaveBeenCalledOnce();
+    expect(query.mock.calls[3]).toEqual([
+      "UPDATE client_memberships SET status = 'active', updated_at = NOW() WHERE id = $1",
+      [71],
+    ]);
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it('rejects a membership owned by a different client without inserting a payment', async () => {
@@ -111,20 +116,52 @@ describe('createPayment', () => {
     expect(query).toHaveBeenCalledTimes(1);
   });
 
-  it('confirms a pending payment and publishes completion once', async () => {
+  it('confirms a pending payment and activates its membership together', async () => {
     query
       .mockResolvedValueOnce({ rows: [{ ...paymentRow, status: 'pending', paid_at: null }] })
-      .mockResolvedValueOnce({ rows: [paymentRow] });
+      .mockResolvedValueOnce({ rows: [paymentRow] })
+      .mockResolvedValueOnce({ rowCount: 1 });
 
     const result = await updatePayment(501, { status: 'completed' });
 
     expect(result.status).toBe('completed');
-    expect(publish).toHaveBeenCalledTimes(1);
-    expect(publish).toHaveBeenCalledWith('payment.completed', {
-      paymentId: 501,
-      membershipId: 71,
-      clientId: 22,
-      amount: 149.9,
-    });
+    expect(transaction).toHaveBeenCalledOnce();
+    expect(query.mock.calls[1][0]).toContain('AND status = $3 RETURNING *');
+    expect(query.mock.calls[2][1]).toEqual([71]);
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('rejects the payment when membership activation fails', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ id: 22 }] })
+      .mockResolvedValueOnce({ rows: [{ id: 71 }] })
+      .mockResolvedValueOnce({ rows: [paymentRow] })
+      .mockResolvedValueOnce({ rowCount: 0 });
+
+    await expect(createPayment({ clientId: 22, membershipId: 71, amount: 149.9, paymentMethod: 'cash' }))
+      .rejects.toMatchObject({ statusCode: 404 });
+    expect(transaction).toHaveBeenCalledOnce();
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('does not confirm a pending payment if it changed meanwhile', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ ...paymentRow, status: 'pending', paid_at: null }] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    await expect(updatePayment(501, { status: 'completed' }))
+      .rejects.toMatchObject({ code: 'PAYMENT_CHANGED', statusCode: 409 });
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects confirmation if the membership can no longer be activated', async () => {
+    query
+      .mockResolvedValueOnce({ rows: [{ ...paymentRow, status: 'pending', paid_at: null }] })
+      .mockResolvedValueOnce({ rows: [paymentRow] })
+      .mockResolvedValueOnce({ rowCount: 0 });
+
+    await expect(updatePayment(501, { status: 'completed' }))
+      .rejects.toMatchObject({ statusCode: 404 });
+    expect(transaction).toHaveBeenCalledOnce();
   });
 });

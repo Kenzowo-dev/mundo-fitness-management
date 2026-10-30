@@ -11,6 +11,7 @@ import { errorHandler, notFoundHandler } from './middleware/error.middleware.js'
 import authRoutes from './routes/auth.routes.js';
 
 const app = express();
+if (config.nodeEnv === 'production') app.set('trust proxy', 1);
 const SERVICE_NAME = 'auth-service';
 
 /**

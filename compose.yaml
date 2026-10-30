@@ -1,7 +1,11 @@
 services:
   postgres:
-    image: postgres:17-alpine
-    container_name: gym-postgres
+    image: gym-postgres:17-alpine
+    build:
+      context: .
+      dockerfile: shared/database/Dockerfile
+      args:
+        DB_SEED_FILE: ${DB_SEED_FILE:-seed.sql}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gym_db}
@@ -11,9 +15,6 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./shared/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./shared/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
-      - ./shared/database/migrations/003-membership-renewal-requests.sql:/docker-entrypoint-initdb.d/03-membership-renewal-requests.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gym_user} -d ${POSTGRES_DB:-gym_db}"]
       interval: 10s
@@ -22,7 +23,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: gym-redis
     restart: unless-stopped
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -41,7 +41,6 @@ services:
     build:
       context: .
       dockerfile: services/auth-service/Dockerfile
-    container_name: gym-auth-service
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -78,7 +77,6 @@ services:
     build:
       context: .
       dockerfile: services/client-service/Dockerfile
-    container_name: gym-client-service
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -113,7 +111,6 @@ services:
     build:
       context: .
       dockerfile: services/membership-service/Dockerfile
-    container_name: gym-membership-service
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -148,7 +145,6 @@ services:
     build:
       context: .
       dockerfile: services/payment-service/Dockerfile
-    container_name: gym-payment-service
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -183,8 +179,10 @@ services:
     build:
       context: .
       dockerfile: services/api-gateway/Dockerfile
-    container_name: gym-api-gateway
     restart: unless-stopped
+    networks:
+      - default
+      - proxy
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
@@ -206,7 +204,7 @@ services:
       MEMBERSHIP_SERVICE_URL: http://membership-service:3003
       PAYMENT_SERVICE_URL: http://payment-service:3004
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${API_GATEWAY_HOST_PORT:-3000}:3000"
     depends_on:
       auth-service:
         condition: service_healthy
@@ -226,10 +224,10 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
-    container_name: gym-frontend
     restart: unless-stopped
-    environment:
-      VITE_API_URL: http://localhost:3000
+    networks:
+      - default
+      - proxy
     ports:
       - "127.0.0.1:5173:5173"
     depends_on:
@@ -243,8 +241,9 @@ services:
 
 volumes:
   postgres_data:
+    name: gym_postgres_data
   redis_data:
+    name: gym_redis_data
 
 networks:
-  default:
-    name: gym-network
+  proxy:
