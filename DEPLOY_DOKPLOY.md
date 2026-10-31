@@ -7,9 +7,8 @@ Dokploy administra el despliegue y Traefik recibe el tráfico web. Nginx Proxy M
 El instalador oficial exige libres los puertos 80, 443 y 3000. En este servidor, Nginx Proxy Manager usa el 80 y la API del gimnasio usa el 3000. Haz el cambio en este orden:
 
 1. En `/home/kenzo/homelab/infrastructure/proxy/compose.yml`, cambia `127.0.0.1:80:80` por `127.0.0.1:8080:80`. Mantén `192.168.1.200:81:81` y los dos volúmenes actuales. Aplica el cambio con `docker compose up -d` en esa carpeta.
-2. En `.env.production` del proyecto actual, añade `API_GATEWAY_HOST_PORT=13000`.
-3. Detén el Compose anterior con el comando de abajo. Esto conserva PostgreSQL y Redis. **No agregues `-v`.**
-4. Instala Dokploy con `curl -sSL https://dokploy.com/install.sh | sudo sh`. El instalador activa Docker Swarm. Este servidor no tenía Swarm activo.
+2. Detén el Compose anterior con el comando de abajo. Esto conserva PostgreSQL y Redis. **No agregues `-v`.**
+3. Instala Dokploy con `curl -sSL https://dokploy.com/install.sh | sudo sh`. El instalador activa Docker Swarm. Este servidor no tenía Swarm activo.
 
 ```bash
 cd /home/kenzo/homelab/projects/gym

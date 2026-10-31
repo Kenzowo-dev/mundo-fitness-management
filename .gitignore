@@ -70,3 +70,7 @@ pnpm-debug.log*
 
 # Turbo
 .turbo/
+
+# Artefactos locales de build/análisis
+.deploy-build-tmp/
+graphify-out/
