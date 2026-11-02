@@ -25,7 +25,7 @@ const memberClient = {
   firstName: 'Socio',
   lastName: 'Prueba',
   email: memberUser.email,
-  phone: '+51987654321',
+  phone: '987654321',
   address: 'Calle Uno 123',
   status: 'active',
   joinedAt: '2026-09-01',
@@ -66,15 +66,15 @@ describe('MemberPortal', () => {
   });
 
   it('lets a member update contact fields from their own portal', async () => {
-    vi.spyOn(api, 'updateOwnClientProfile').mockResolvedValue({ ...memberClient, phone: '+51999999999' });
+    vi.spyOn(api, 'updateOwnClientProfile').mockResolvedValue({ ...memberClient, phone: '999999999' });
     renderPortal();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Actualizar datos' }));
     const phoneField = screen.getByLabelText('Teléfono', { exact: true });
-    fireEvent.change(phoneField, { target: { value: '+51999999999' } });
+    fireEvent.change(phoneField, { target: { value: '999999999' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar datos' }));
 
-    await waitFor(() => expect(api.updateOwnClientProfile).toHaveBeenCalledWith(42, expect.objectContaining({ phone: '+51999999999' })));
+    await waitFor(() => expect(api.updateOwnClientProfile).toHaveBeenCalledWith(42, expect.objectContaining({ phone: '999999999' })));
     expect(await screen.findByRole('status')).toHaveTextContent('Tus datos de contacto se actualizaron.');
     expect(screen.queryByLabelText('Documento')).not.toBeInTheDocument();
   });

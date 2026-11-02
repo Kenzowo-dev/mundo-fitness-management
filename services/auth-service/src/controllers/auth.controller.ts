@@ -27,18 +27,29 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+// Nombres y apellidos: solo letras (incluye tildes y ñ) separadas por un espacio.
+const personName = z.string().trim().min(1).max(100).regex(/^\p{L}+(?: \p{L}+)*$/u, 'Solo se permiten letras');
+
+// Fecha de nacimiento: fecha real, no futura y posterior a 1900.
+const birthDate = z.string().date('Ingresa una fecha válida').refine(
+  (value) => value >= '1900-01-01' && value <= new Date().toISOString().slice(0, 10),
+  'La fecha de nacimiento no puede ser futura ni anterior a 1900',
+);
+
+const gender = z.enum(['masculino', 'femenino', 'otro', '']);
+
 const registerSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email('Ingresa un correo válido con @, por ejemplo socio@correo.com'),
   password: z.string().min(8).max(128),
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
-  gender: z.string().max(20).optional(),
+  firstName: personName,
+  lastName: personName,
+  phone: z.string().regex(/^\d{0,9}$/).optional(),
+  birthDate: birthDate.optional(),
+  gender: gender.optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email('Ingresa un correo válido con @, por ejemplo socio@correo.com'),
   password: z.string().min(1),
 });
 
@@ -52,7 +63,7 @@ const changePasswordSchema = z.object({
 });
 
 const resetPasswordRequestSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email('Ingresa un correo válido con @, por ejemplo socio@correo.com'),
 });
 
 const resetPasswordSchema = z.object({
@@ -61,19 +72,19 @@ const resetPasswordSchema = z.object({
 });
 
 const updateSelfSchema = z.object({
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
-  gender: z.string().max(20).optional(),
+  firstName: personName.optional(),
+  lastName: personName.optional(),
+  phone: z.string().regex(/^\d{0,9}$/).optional(),
+  birthDate: birthDate.optional(),
+  gender: gender.optional(),
 });
 
 const updateUserSchema = z.object({
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
-  gender: z.string().max(20).optional(),
+  firstName: personName.optional(),
+  lastName: personName.optional(),
+  phone: z.string().regex(/^\d{0,9}$/).optional(),
+  birthDate: birthDate.optional(),
+  gender: gender.optional(),
   role: z.enum(['member', 'receptionist', 'admin']).optional(),
   isActive: z.boolean().optional(),
 });

@@ -324,10 +324,12 @@ export async function listClients(
     conditions.push(`(
       first_name ILIKE $${values.length + 1} OR
       last_name ILIKE $${values.length + 1} OR
+      (first_name || ' ' || last_name) ILIKE $${values.length + 1} OR
       dni ILIKE $${values.length + 1} OR
       email ILIKE $${values.length + 1}
     )`);
-    values.push(`%${filters.search}%`);
+    // Espacios repetidos se reducen para que "Carlos  Ramírez" también encuentre al socio.
+    values.push(`%${filters.search.trim().replace(/\s+/g, ' ')}%`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

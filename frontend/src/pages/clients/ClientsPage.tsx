@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Eye, Pencil, Search, UserRoundPlus } from 'lucide'
 import { MorphIcon } from 'morphicons/react'
 import { useClients, useCreateClient, useUpdateClient } from '../../hooks/useApi'
@@ -12,6 +12,7 @@ import Alert from '../../components/Alert'
 import PageHeader from '../../components/PageHeader'
 import Pagination from '../../components/Pagination'
 import TableContainer from '../../components/TableContainer'
+import { getBirthDateError, isValidName } from '../../utils/validation'
 import '../../styles/dashboard/ClientsPage.css'
 
 const createEmptyClientForm = (): CreateClientData => ({
@@ -55,18 +56,46 @@ function serializeClientUpdate(values: Partial<Client>): Partial<Client> {
   return result as Partial<Client>
 }
 
+// Enfoca el primer campo con error y abre "Datos adicionales" si está plegado.
+function focusFieldError(prefix: 'create' | 'edit', field: string) {
+  const id = `${prefix}-${field === 'firstName' ? 'name' : field === 'lastName' ? 'lastname' : field}`
+  const element = document.getElementById(id)
+  const section = element?.closest('details')
+  if (section) section.open = true
+  element?.focus()
+}
+
 function validateClientForm(values: ClientFormValues): ClientFormErrors {
   const errors: ClientFormErrors = {}
   const dni = values.dni?.trim() ?? ''
   const firstName = values.firstName?.trim() ?? ''
   const lastName = values.lastName?.trim() ?? ''
   const email = values.email?.trim() ?? ''
+  const phone = values.phone?.trim() ?? ''
+  const emergencyContactPhone = values.emergencyContactPhone?.trim() ?? ''
 
+  // Datos principales: todos obligatorios. El orden define qué campo se enfoca primero.
   if (!/^\d{8}$/.test(dni)) errors.dni = 'Ingresa un DNI de 8 dígitos.'
   if (!firstName) errors.firstName = 'Ingresa los nombres del socio.'
+  else if (!isValidName(firstName)) errors.firstName = 'Los nombres solo pueden tener letras.'
   if (!lastName) errors.lastName = 'Ingresa los apellidos del socio.'
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.email = 'Ingresa un correo electrónico válido.'
+  else if (!isValidName(lastName)) errors.lastName = 'Los apellidos solo pueden tener letras.'
+  if (!email) errors.email = 'Ingresa el correo electrónico del socio.'
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = 'Ingresa un correo válido con @, por ejemplo socio@correo.com.'
+  }
+  if (!phone) errors.phone = 'Ingresa el teléfono del socio.'
+  else if (!/^\d{1,9}$/.test(phone)) errors.phone = 'Ingresa solo números (máximo 9 dígitos).'
+
+  // Datos adicionales: opcionales, pero si se llenan deben ser válidos.
+  if (emergencyContactPhone && !/^\d{1,9}$/.test(emergencyContactPhone)) {
+    errors.emergencyContactPhone = 'Ingresa solo números (máximo 9 dígitos).'
+  }
+  const birthDateError = getBirthDateError(values.birthDate?.trim() ?? '')
+  if (birthDateError) errors.birthDate = birthDateError
+  const emergencyContactName = values.emergencyContactName?.trim() ?? ''
+  if (emergencyContactName && !isValidName(emergencyContactName)) {
+    errors.emergencyContactName = 'El nombre del contacto solo puede tener letras.'
   }
 
   return errors
@@ -112,6 +141,18 @@ export default function ClientsPage() {
   const filtersAreActive = Boolean(appliedSearch || statusFilter)
   const hasFilterValues = Boolean(searchInput || appliedSearch || statusFilter)
 
+  // Filtra la lista mientras se escribe, tras una pausa corta para no consultar en cada tecla.
+  useEffect(() => {
+    const search = searchInput.trim()
+    if (search === appliedSearch) return
+    const timer = setTimeout(() => {
+      setPage(1)
+      setAppliedSearch(search)
+      setApiErrorDismissed(false)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchInput, appliedSearch])
+
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setPage(1)
@@ -148,7 +189,7 @@ export default function ClientsPage() {
 
     const firstError = Object.keys(errors)[0]
     if (firstError) {
-      document.getElementById(`create-${firstError === 'firstName' ? 'name' : firstError === 'lastName' ? 'lastname' : firstError}`)?.focus()
+      focusFieldError('create', firstError)
       return
     }
 
@@ -192,7 +233,7 @@ export default function ClientsPage() {
     setEditError(null)
     const firstError = Object.keys(errors)[0]
     if (firstError) {
-      document.getElementById(`edit-${firstError === 'firstName' ? 'name' : firstError === 'lastName' ? 'lastname' : firstError}`)?.focus()
+      focusFieldError('edit', firstError)
       return
     }
 

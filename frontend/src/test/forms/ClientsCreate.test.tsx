@@ -141,13 +141,62 @@ describe('ClientsPage - Create Client', () => {
       expect(dialog.getByPlaceholderText('Ej: Juan')).toBeInTheDocument()
       expect(dialog.getByPlaceholderText('Ej: Pérez')).toBeInTheDocument()
       expect(dialog.getByPlaceholderText('socio@correo.com')).toBeInTheDocument()
-      expect(dialog.getByPlaceholderText('+51987654321')).toBeInTheDocument()
+      expect(dialog.getByPlaceholderText('987654321')).toBeInTheDocument()
       expect(dialog.getByPlaceholderText('Av. Las Camelias 450')).toBeInTheDocument()
       expect(dialog.getByLabelText('Género')).toBeInTheDocument()
     })
   })
 
   describe('Validation', () => {
+    it('accepts only numeric DNI and phone values within their digit limits', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+      const dni = dialog.getByPlaceholderText('Ej: 71234567')
+      const phone = dialog.getByPlaceholderText('987654321')
+
+      fireEvent.change(dni, { target: { value: '12A3456789' } })
+      fireEvent.change(phone, { target: { value: '+51 9876543210' } })
+
+      expect(dni).toHaveValue('12345678')
+      expect(dni).toHaveAttribute('maxLength', '8')
+      expect(dni).toHaveAttribute('inputMode', 'numeric')
+      expect(phone).toHaveValue('519876543')
+      expect(phone).toHaveAttribute('maxLength', '9')
+      expect(phone).toHaveAttribute('inputMode', 'numeric')
+    })
+
+    it('keeps only letters and spaces in nombres and apellidos', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+      const firstName = dialog.getByPlaceholderText('Ej: Juan')
+      const lastName = dialog.getByPlaceholderText('Ej: Pérez')
+
+      fireEvent.change(firstName, { target: { value: 'Ana3 Lucía#' } })
+      fireEvent.change(lastName, { target: { value: 'Peña-99 Ruiz' } })
+
+      expect(firstName).toHaveValue('Ana Lucía')
+      expect(lastName).toHaveValue('Peña Ruiz')
+    })
+
+    it('rejects a future birth date and opens the optional section to show it', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '12345678' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Ana' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Ruiz' } })
+      fireEvent.change(dialog.getByLabelText(/Fecha de nacimiento/), { target: { value: '2999-01-01' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
+      })
+
+      expect(dialog.getByText('La fecha de nacimiento no puede ser futura.')).toBeInTheDocument()
+      expect(getDialog().querySelector('details.client-optional-fields')).toHaveAttribute('open')
+    })
+
     it('shows error when required fields are empty on submit', async () => {
       renderPage()
       await openCreateModal()
@@ -224,7 +273,7 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
       fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@test.com' } })
-      fireEvent.change(dialog.getByPlaceholderText('+51987654321'), { target: { value: '987654323' } })
+      fireEvent.change(dialog.getByPlaceholderText('987654321'), { target: { value: '987654323' } })
       fireEvent.change(dialog.getByPlaceholderText('Av. Las Camelias 450'), { target: { value: 'Av. Nueva 789' } })
       fireEvent.change(dialog.getByLabelText('Género'), { target: { value: 'masculino' } })
 
@@ -245,6 +294,43 @@ describe('ClientsPage - Create Client', () => {
       })
     })
 
+    it.each(['carlostest.com', 'carlos@', 'carlos@test'])('does not register the socio when the email is %s', async (email) => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '73456789' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
+      fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: email } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
+      })
+
+      expect(dialog.getByText('Ingresa un correo válido con @, por ejemplo socio@correo.com.')).toBeInTheDocument()
+      expect(mockCreateClient).not.toHaveBeenCalled()
+    })
+
+    it('requires email and phone to register a socio', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '73456789' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
+      })
+
+      expect(dialog.getByText('Ingresa el correo electrónico del socio.')).toBeInTheDocument()
+      expect(dialog.getByText('Ingresa el teléfono del socio.')).toBeInTheDocument()
+      expect(dialog.getByPlaceholderText('socio@correo.com')).toHaveFocus()
+      expect(mockCreateClient).not.toHaveBeenCalled()
+    })
+
     it('closes modal and resets form after successful submit', async () => {
       mockCreateClient.mockResolvedValue(undefined)
       renderPage()
@@ -254,6 +340,8 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '73456789' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
+      fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@correo.com' } })
+      fireEvent.change(dialog.getByPlaceholderText('987654321'), { target: { value: '987654323' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
@@ -273,6 +361,8 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '73456789' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
+      fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@correo.com' } })
+      fireEvent.change(dialog.getByPlaceholderText('987654321'), { target: { value: '987654323' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))

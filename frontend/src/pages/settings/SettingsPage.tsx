@@ -9,6 +9,7 @@ import FormField from '@/components/FormField'
 import PageHeader from '@/components/PageHeader'
 import Skeleton from '@/components/Skeleton'
 import Tabs, { TabPanel } from '@/components/Tabs'
+import { BIRTH_DATE_MIN, getBirthDateError, isValidName, sanitizeNameInput, todayIsoDate } from '@/utils/validation'
 import '@/styles/dashboard/SettingsPage.css'
 
 type TabId = 'profile' | 'security'
@@ -33,6 +34,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile>(() => user ? fromUser(user) : { firstName: '', lastName: '', phone: '', birthDate: '', gender: '' })
   const [profileUserId, setProfileUserId] = useState<number | null>(user?.id ?? null)
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [profileErrors, setProfileErrors] = useState<Partial<Record<keyof Profile, string>>>({})
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
 
@@ -42,12 +44,40 @@ export default function SettingsPage() {
   }
 
   const updateProfile = (key: keyof Profile) => (value: string) => {
-    setProfile((current) => ({ ...current, [key]: value }))
+    const nextValue = key === 'phone'
+      ? value.replace(/\D/g, '').slice(0, 9)
+      : key === 'firstName' || key === 'lastName' ? sanitizeNameInput(value) : value
+    setProfile((current) => ({ ...current, [key]: nextValue }))
+    setProfileErrors((current) => {
+      if (!current[key]) return current
+      const next = { ...current }
+      delete next[key]
+      return next
+    })
     setProfileMessage(null)
+  }
+
+  const validateProfile = (): Partial<Record<keyof Profile, string>> => {
+    const errors: Partial<Record<keyof Profile, string>> = {}
+    if (!profile.firstName.trim()) errors.firstName = 'Ingresa tu nombre.'
+    else if (!isValidName(profile.firstName)) errors.firstName = 'El nombre solo puede tener letras.'
+    if (!profile.lastName.trim()) errors.lastName = 'Ingresa tu apellido.'
+    else if (!isValidName(profile.lastName)) errors.lastName = 'El apellido solo puede tener letras.'
+    if (profile.phone && !/^\d{1,9}$/.test(profile.phone)) errors.phone = 'Ingresa solo números (máximo 9 dígitos).'
+    const birthDateError = getBirthDateError(profile.birthDate)
+    if (birthDateError) errors.birthDate = birthDateError
+    return errors
   }
 
   const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const errors = validateProfile()
+    setProfileErrors(errors)
+    const firstError = Object.keys(errors)[0]
+    if (firstError) {
+      document.getElementById(firstError)?.focus()
+      return
+    }
     const payload: Partial<User> = {
       firstName: profile.firstName.trim(),
       lastName: profile.lastName.trim(),
@@ -105,12 +135,12 @@ export default function SettingsPage() {
               <div><dt>Tipo de cuenta</dt><dd>{roleLabel(user.role)}</dd></div>
             </dl>
             {profileMessage && <Alert type={profileMessage.type} message={profileMessage.text} dismissible onDismiss={() => setProfileMessage(null)} />}
-            <form className="settings-form" onSubmit={handleProfileSubmit}>
+            <form className="settings-form" onSubmit={handleProfileSubmit} noValidate>
               <div className="form-row">
-                <FormField id="firstName" label="Nombre" value={profile.firstName} onChange={updateProfile('firstName')} required autoComplete="given-name" />
-                <FormField id="lastName" label="Apellido" value={profile.lastName} onChange={updateProfile('lastName')} required autoComplete="family-name" />
-                <FormField id="phone" label="Teléfono" type="tel" value={profile.phone} onChange={updateProfile('phone')} autoComplete="tel" />
-                <FormField id="birthDate" label="Fecha de nacimiento" type="date" value={profile.birthDate} onChange={updateProfile('birthDate')} />
+                <FormField id="firstName" label="Nombre" value={profile.firstName} onChange={updateProfile('firstName')} error={profileErrors.firstName} required autoComplete="given-name" maxLength={100} />
+                <FormField id="lastName" label="Apellido" value={profile.lastName} onChange={updateProfile('lastName')} error={profileErrors.lastName} required autoComplete="family-name" maxLength={100} />
+                <FormField id="phone" label="Teléfono" type="tel" value={profile.phone} onChange={updateProfile('phone')} error={profileErrors.phone} autoComplete="tel" inputMode="numeric" maxLength={9} />
+                <FormField id="birthDate" label="Fecha de nacimiento" type="date" value={profile.birthDate} onChange={updateProfile('birthDate')} error={profileErrors.birthDate} min={BIRTH_DATE_MIN} max={todayIsoDate()} />
                 <FormField id="gender" label="Género" type="select" value={profile.gender} onChange={updateProfile('gender')} emptyOptionLabel="Sin especificar" options={[{ value: 'masculino', label: 'Masculino' }, { value: 'femenino', label: 'Femenino' }, { value: 'otro', label: 'Otro' }]} />
               </div>
               <div className="settings-actions"><Button type="submit" loading={updateUser.isPending}>Guardar cambios</Button></div>

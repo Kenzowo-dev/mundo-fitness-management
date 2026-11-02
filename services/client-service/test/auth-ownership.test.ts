@@ -25,7 +25,7 @@ describe('client self-service route authorization', () => {
   it('accepts and retains only the self-service contact fields', () => {
     const request = {
       body: {
-        phone: '+51987654324',
+        phone: '987654324',
         address: 'Av. Principal 123',
         emergencyContactName: 'Contacto local',
         status: 'suspended',
@@ -38,7 +38,7 @@ describe('client self-service route authorization', () => {
 
     expect(next).toHaveBeenCalledOnce();
     expect(request.body).toEqual({
-      phone: '+51987654324',
+      phone: '987654324',
       address: 'Av. Principal 123',
       emergencyContactName: 'Contacto local',
     });

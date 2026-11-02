@@ -90,7 +90,7 @@ export interface CreateMembershipPlanInput {
   description?: string;
   durationDays: number;
   price: number;
-  currency: 'PEN' | 'USD';
+  currency: 'PEN';
   features: string[];
   maxVisitsPerWeek?: number;
   includesClasses: boolean;
@@ -153,7 +153,7 @@ export interface CreatePaymentInput {
   clientId: number;
   membershipId: number;
   amount: number;
-  currency: 'PEN' | 'USD';
+  currency: 'PEN';
   paymentMethod: 'cash' | 'bank_transfer' | 'digital_wallet' | 'credit_card' | 'debit_card';
   transactionId?: string;
   description?: string;

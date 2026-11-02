@@ -9,7 +9,7 @@ describe('Auth Service - Validación y Seguridad de Autenticación', () => {
     password: z.string().min(8).max(128),
     firstName: z.string().min(1).max(100),
     lastName: z.string().min(1).max(100),
-    phone: z.string().max(20).optional(),
+    phone: z.string().regex(/^\d{0,9}$/).optional(),
   });
 
   it('debe validar exitosamente un payload de registro válido', () => {

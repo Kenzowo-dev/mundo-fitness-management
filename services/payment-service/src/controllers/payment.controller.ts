@@ -30,11 +30,11 @@ import {
 const createPaymentSchema = z.object({
   clientId: z.number().int().positive(),
   membershipId: z.number().int().positive(),
-  amount: z.number().positive().max(99_999_999.99).multipleOf(0.01),
-  currency: z.enum(['PEN', 'USD']).default('PEN'),
+  amount: z.number().positive('El monto debe ser mayor a 0').max(99_999_999.99).multipleOf(0.01),
+  currency: z.literal('PEN', { errorMap: () => ({ message: 'Solo se aceptan soles (PEN)' }) }).default('PEN'),
   paymentMethod: z.enum(['cash', 'bank_transfer', 'digital_wallet', 'credit_card', 'debit_card']),
   transactionId: z.string().max(100).optional(),
-  description: z.string().optional(),
+  description: z.string().trim().max(500).optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 
@@ -48,7 +48,7 @@ const createInvoiceSchema = z.object({
   clientId: z.number().int().positive(),
   membershipId: z.number().int().positive().optional(),
   amount: z.number().positive(),
-  currency: z.string().length(3).default('USD'),
+  currency: z.literal('PEN', { errorMap: () => ({ message: 'Solo se aceptan soles (PEN)' }) }).default('PEN'),
   dueDate: z.string().date(),
   items: z.array(z.object({
     description: z.string(),

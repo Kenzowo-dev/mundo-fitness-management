@@ -4,6 +4,7 @@ import { render, screen, waitFor, act, fireEvent } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import MembershipsPage from '@/pages/memberships/MembershipsPage'
+import { api } from '@/api/client'
 import * as useApiModule from '@/hooks/useApi'
 import * as authModule from '@/context/useAuth'
 
@@ -25,8 +26,8 @@ const mockClients = [
 ]
 
 const mockPlans = [
-  { id: 1, name: 'Plan Básico', description: 'Plan básico', durationDays: 30, price: 50, currency: 'USD', features: [], maxVisitsPerWeek: 3, includesPersonalTrainer: false, includesClasses: true, includesSauna: false, isActive: true, sortOrder: 1, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
-  { id: 2, name: 'Plan Premium', description: 'Plan premium', durationDays: 90, price: 120, currency: 'USD', features: [], maxVisitsPerWeek: 5, includesPersonalTrainer: true, includesClasses: true, includesSauna: true, isActive: true, sortOrder: 2, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
+  { id: 1, name: 'Plan Básico', description: 'Plan básico', durationDays: 30, price: 50, currency: 'PEN', features: [], maxVisitsPerWeek: 3, includesPersonalTrainer: false, includesClasses: true, includesSauna: false, isActive: true, sortOrder: 1, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
+  { id: 2, name: 'Plan Premium', description: 'Plan premium', durationDays: 90, price: 120, currency: 'PEN', features: [], maxVisitsPerWeek: 5, includesPersonalTrainer: true, includesClasses: true, includesSauna: true, isActive: true, sortOrder: 2, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' },
 ]
 
 const mockMemberships = [
@@ -160,6 +161,15 @@ describe('MembershipsPage - Integration Tests', () => {
     vi.spyOn(useApiModule, 'useUpdateMembershipPlan').mockReturnValue(createMockMutation() as ReturnType<typeof useApiModule.useUpdateMembershipPlan>)
 
     return render(<MembershipsPage />, { wrapper: createWrapper() })
+  }
+
+  const searchAndSelectClient = async (client = mockClients[0]) => {
+    vi.spyOn(api, 'getClients').mockResolvedValue({
+      data: [client],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    })
+    fireEvent.change(screen.getByLabelText(/Buscar socio por nombre o DNI/), { target: { value: client.dni } })
+    fireEvent.click(await screen.findByRole('button', { name: new RegExp(`${client.firstName} ${client.lastName}`) }))
   }
 
   const openCheckInModal = async () => {
@@ -335,15 +345,29 @@ describe('MembershipsPage - Integration Tests', () => {
       expect(screen.getByRole('heading', { name: 'Registrar ingreso de socio' })).toBeInTheDocument()
     })
 
-    it('renders client select in check-in modal', async () => {
+    it('searches the socio by name or DNI instead of a dropdown', async () => {
       renderMembershipsPage()
       await openCheckInModal()
-      // FormField label includes required asterisk, use partial match
-      expect(screen.getByLabelText(/Seleccione el Socio/)).toBeInTheDocument()
-      // Verify select has options
-      const select = screen.getByLabelText(/Seleccione el Socio/)
-      expect(select).toBeInTheDocument()
-      expect(select.querySelectorAll('option').length).toBeGreaterThan(0)
+      expect(screen.queryByLabelText(/Seleccione el Socio/)).not.toBeInTheDocument()
+      expect(screen.getByLabelText(/Buscar socio por nombre o DNI/)).toBeInTheDocument()
+
+      await searchAndSelectClient(mockClients[1])
+      expect(api.getClients).toHaveBeenCalledWith(1, 20, { search: '72345678' })
+      expect(screen.getByText('María García')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cambiar socio' })).toBeInTheDocument()
+    })
+
+    it('asks to search a socio before registering the check-in', async () => {
+      const mockCheckIn = createMockMutation()
+      renderMembershipsPage({ checkInMutation: mockCheckIn })
+      await openCheckInModal()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
+      })
+
+      expect(screen.getByText('Busca y selecciona un socio para registrar el ingreso.')).toBeInTheDocument()
+      expect(mockCheckIn.mutateAsync).not.toHaveBeenCalled()
     })
 
     it('calls checkIn mutation on valid submit', async () => {
@@ -351,8 +375,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ checkInMutation: mockCheckIn })
       await openCheckInModal()
 
-      // Use screen.getByLabelText since label is associated with select in dialog
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
@@ -371,7 +394,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ checkInMutation: mockCheckIn })
       await openCheckInModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
@@ -387,7 +410,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ checkInMutation: mockCheckIn })
       await openCheckInModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
@@ -421,16 +444,13 @@ describe('MembershipsPage - Integration Tests', () => {
       expect(screen.getByRole('heading', { name: 'Asignar membresía' })).toBeInTheDocument()
     })
 
-    it('renders client and plan selects in assign modal', async () => {
+    it('renders the socio search and plan select in assign modal', async () => {
       renderMembershipsPage()
       await openAssignModal()
 
-      expect(screen.getByLabelText(/Seleccione el Socio/)).toBeInTheDocument()
-      expect(screen.getByLabelText(/Seleccione el Plan/)).toBeInTheDocument()
-      // Verify selects have options
-      const clientSelect = screen.getByLabelText(/Seleccione el Socio/)
+      expect(screen.queryByLabelText(/Seleccione el Socio/)).not.toBeInTheDocument()
+      expect(screen.getByLabelText(/Buscar socio por nombre o DNI/)).toBeInTheDocument()
       const planSelect = screen.getByLabelText(/Seleccione el Plan/)
-      expect(clientSelect.querySelectorAll('option').length).toBeGreaterThan(0)
       expect(planSelect.querySelectorAll('option').length).toBeGreaterThan(0)
     })
 
@@ -439,7 +459,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ createMutation: mockCreate })
       await openAssignModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       fireEvent.change(screen.getByLabelText(/Seleccione el Plan/), { target: { value: '2' } })
 
       await act(async () => {
@@ -461,7 +481,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ createMutation: mockCreate })
       await openAssignModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       fireEvent.change(screen.getByLabelText(/Seleccione el Plan/), { target: { value: '2' } })
 
       await act(async () => {
@@ -478,7 +498,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ createMutation: mockCreate })
       await openAssignModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       fireEvent.change(screen.getByLabelText(/Seleccione el Plan/), { target: { value: '2' } })
 
       await act(async () => {

@@ -288,13 +288,21 @@ describe('ClientsPage - Integration Tests', () => {
       expect(searchInput).toHaveValue('Juan')
     })
 
-    it('applies text search only after submission', async () => {
+    it('filters the list while typing, after a short pause', async () => {
       renderClientsPage()
       const searchInput = screen.getByPlaceholderText('Nombre, DNI o correo')
 
       fireEvent.change(searchInput, { target: { value: 'Juan' } })
       expect(useApiModule.useClients).toHaveBeenLastCalledWith(1, 20, { search: undefined, status: undefined })
 
+      await waitFor(() => {
+        expect(useApiModule.useClients).toHaveBeenLastCalledWith(1, 20, { search: 'Juan', status: undefined })
+      })
+    })
+
+    it('applies the search immediately when pressing Buscar', async () => {
+      renderClientsPage()
+      fireEvent.change(screen.getByPlaceholderText('Nombre, DNI o correo'), { target: { value: 'Juan' } })
       fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
       expect(useApiModule.useClients).toHaveBeenLastCalledWith(1, 20, { search: 'Juan', status: undefined })
     })
@@ -352,6 +360,8 @@ describe('ClientsPage - Integration Tests', () => {
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: 71234567'), { target: { value: '73456789' } })
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
+      fireEvent.change(within(dialog).getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@correo.com' } })
+      fireEvent.change(within(dialog).getByPlaceholderText('987654321'), { target: { value: '987654323' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
@@ -375,6 +385,8 @@ describe('ClientsPage - Integration Tests', () => {
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: 71234567'), { target: { value: '73456789' } })
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
+      fireEvent.change(within(dialog).getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@correo.com' } })
+      fireEvent.change(within(dialog).getByPlaceholderText('987654321'), { target: { value: '987654323' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
@@ -397,6 +409,8 @@ describe('ClientsPage - Integration Tests', () => {
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: 71234567'), { target: { value: '73456789' } })
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
       fireEvent.change(within(dialog).getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
+      fireEvent.change(within(dialog).getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@correo.com' } })
+      fireEvent.change(within(dialog).getByPlaceholderText('987654321'), { target: { value: '987654323' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))

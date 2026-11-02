@@ -412,7 +412,7 @@ export async function createInvoice(data: CreateInvoiceData): Promise<Invoice> {
       data.membershipId ?? null,
       invoiceNumber,
       data.amount,
-      data.currency ?? 'USD',
+      data.currency ?? 'PEN',
       data.dueDate,
       JSON.stringify(data.items),
       data.notes ?? null,

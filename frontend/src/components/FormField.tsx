@@ -1,3 +1,4 @@
+import type { InputHTMLAttributes } from 'react'
 import { Input, Select, Textarea } from './Input'
 import '@/styles/components/FormField.css'
 
@@ -11,6 +12,7 @@ interface FormFieldProps {
   value?: string
   onChange?: (value: string) => void
   onBlur?: () => void
+  onKeyDown?: InputHTMLAttributes<HTMLInputElement>['onKeyDown']
   placeholder?: string
   error?: string
   helperText?: string
@@ -19,7 +21,11 @@ interface FormFieldProps {
   options?: Array<{ value: string; label: string }>
   emptyOptionLabel?: string
   autoComplete?: string
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode']
   maxLength?: number
+  min?: number | string
+  max?: number | string
+  step?: number | string
   className?: string
 }
 
@@ -31,6 +37,7 @@ export default function FormField({
   value = '',
   onChange,
   onBlur,
+  onKeyDown,
   placeholder,
   error,
   helperText,
@@ -39,7 +46,11 @@ export default function FormField({
   options,
   emptyOptionLabel,
   autoComplete,
+  inputMode,
   maxLength,
+  min,
+  max,
+  step,
   className = '',
 }: FormFieldProps) {
   const renderInput = () => {
@@ -71,7 +82,7 @@ export default function FormField({
       case 'textarea':
         return <Textarea {...commonProps} maxLength={maxLength} />
       default:
-        return <Input {...commonProps} type={type} autoComplete={autoComplete} maxLength={maxLength} />
+        return <Input {...commonProps} type={type} autoComplete={autoComplete} inputMode={inputMode} maxLength={maxLength} min={min} max={max} step={step} onKeyDown={onKeyDown} />
     }
   }
 

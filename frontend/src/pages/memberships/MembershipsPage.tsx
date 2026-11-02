@@ -12,6 +12,7 @@ import Tabs, { TabPanel } from '../../components/Tabs'
 import TableContainer from '../../components/TableContainer'
 import PageHeader from '../../components/PageHeader'
 import PlanFormModal from '../../components/PlanFormModal'
+import ClientSearchPicker from '../../components/ClientSearchPicker'
 import { useAuth } from '../../context/useAuth'
 import '../../styles/dashboard/MembershipsPage.css'
 
@@ -38,7 +39,7 @@ export default function MembershipsPage() {
   const [isAssignOpen, setIsAssignOpen] = useState(false)
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null)
-  const [selectedClientId, setSelectedClientId] = useState<number | ''>('')
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [selectedPlanId, setSelectedPlanId] = useState<number | ''>('')
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -75,15 +76,15 @@ export default function MembershipsPage() {
 
   const handleCheckInSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedClientId) {
-      setActionError('Selecciona un socio para registrar el ingreso.')
+    if (!selectedClient) {
+      setActionError('Busca y selecciona un socio para registrar el ingreso.')
       return
     }
 
     try {
       setActionError(null)
       const clientMem = allMemberships.find((m) =>
-        m.clientId === Number(selectedClientId) &&
+        m.clientId === selectedClient.id &&
         m.status === 'active' &&
         m.startDate.slice(0, 10) <= todayKey &&
         m.endDate.slice(0, 10) >= todayKey
@@ -93,10 +94,10 @@ export default function MembershipsPage() {
         return
       }
 
-      await checkInMutation.mutateAsync({ clientId: Number(selectedClientId), clientMembershipId: clientMem.id })
+      await checkInMutation.mutateAsync({ clientId: selectedClient.id, clientMembershipId: clientMem.id })
       setActionSuccess('Ingreso registrado. El acceso al gimnasio está habilitado.')
       setIsCheckInOpen(false)
-      setSelectedClientId('')
+      setSelectedClient(null)
       setTimeout(() => setActionSuccess(null), 4000)
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Error al registrar el check-in')
@@ -105,8 +106,8 @@ export default function MembershipsPage() {
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedClientId || !selectedPlanId) {
-      setActionError('Selecciona un socio y un plan de membresía.')
+    if (!selectedClient || !selectedPlanId) {
+      setActionError('Busca y selecciona un socio, y elige un plan de membresía.')
       return
     }
 
@@ -121,7 +122,7 @@ export default function MembershipsPage() {
       const endDate = dateKey(endDateObj)
 
       await createMembershipMutation.mutateAsync({
-        clientId: Number(selectedClientId),
+        clientId: selectedClient.id,
         planId: Number(selectedPlanId),
         startDate,
         endDate,
@@ -131,7 +132,7 @@ export default function MembershipsPage() {
 
       setActionSuccess('Membresía asignada correctamente al socio.')
       setIsAssignOpen(false)
-      setSelectedClientId('')
+      setSelectedClient(null)
       setSelectedPlanId('')
       setTimeout(() => setActionSuccess(null), 4000)
     } catch (err) {
@@ -299,12 +300,12 @@ export default function MembershipsPage() {
 
       <Modal
         open={isCheckInOpen}
-        onClose={() => setIsCheckInOpen(false)}
+        onClose={() => { setIsCheckInOpen(false); setSelectedClient(null) }}
         title="Registrar ingreso de socio"
         size="md"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsCheckInOpen(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={() => { setIsCheckInOpen(false); setSelectedClient(null) }}>Cancelar</Button>
             <Button variant="primary" disabled={checkInMutation.isPending} onClick={handleCheckInSubmit}>
               {checkInMutation.isPending ? 'Registrando...' : 'Registrar Ingreso'}
             </Button>
@@ -314,28 +315,19 @@ export default function MembershipsPage() {
         <form onSubmit={handleCheckInSubmit}>
           <div className="modal-body">
             {actionError && isCheckInOpen && <Alert type="error" message={actionError} onDismiss={() => setActionError(null)} dismissible />}
-            <FormField
-              label="Seleccione el Socio *"
-              type="select"
-              id="checkin-client"
-              value={String(selectedClientId)}
-              onChange={(value) => setSelectedClientId(Number(value) || '')}
-              options={allClients.map(c => ({ value: String(c.id), label: `${c.firstName} ${c.lastName} - DNI: ${c.dni}` }))}
-              emptyOptionLabel="-- Seleccionar socio --"
-              required
-            />
+            <ClientSearchPicker id="checkin" selectedClient={selectedClient} onSelect={setSelectedClient} />
           </div>
         </form>
       </Modal>
 
       <Modal
         open={isAssignOpen}
-        onClose={() => setIsAssignOpen(false)}
+        onClose={() => { setIsAssignOpen(false); setSelectedClient(null) }}
         title="Asignar membresía"
         size="md"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsAssignOpen(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={() => { setIsAssignOpen(false); setSelectedClient(null) }}>Cancelar</Button>
             <Button variant="primary" disabled={createMembershipMutation.isPending} onClick={handleAssignSubmit}>
               {createMembershipMutation.isPending ? 'Activando...' : 'Activar Membresía'}
             </Button>
@@ -345,18 +337,9 @@ export default function MembershipsPage() {
         <form onSubmit={handleAssignSubmit}>
           <div className="modal-body">
             {actionError && isAssignOpen && <Alert type="error" message={actionError} onDismiss={() => setActionError(null)} dismissible />}
+            <ClientSearchPicker id="assign" selectedClient={selectedClient} onSelect={setSelectedClient} />
             <FormField
-              label="Seleccione el Socio *"
-              type="select"
-              id="assign-client"
-              value={String(selectedClientId)}
-              onChange={(value) => setSelectedClientId(Number(value) || '')}
-              options={allClients.map(c => ({ value: String(c.id), label: `${c.firstName} ${c.lastName} - DNI: ${c.dni}` }))}
-              emptyOptionLabel="-- Seleccionar socio --"
-              required
-            />
-            <FormField
-              label="Seleccione el Plan *"
+              label="Seleccione el Plan"
               type="select"
               id="assign-plan"
               value={String(selectedPlanId)}

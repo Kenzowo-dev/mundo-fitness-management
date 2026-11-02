@@ -60,6 +60,21 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('Perfil actualizado correctamente.')).toBeInTheDocument()
   })
 
+  it('keeps only letters in the name fields', () => {
+    setup()
+    const firstName = screen.getByLabelText(/^Nombre/)
+    fireEvent.change(firstName, { target: { value: 'Ana3 María!' } })
+    expect(firstName).toHaveValue('Ana María')
+  })
+
+  it('blocks saving a future birth date', async () => {
+    setup()
+    fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: '2999-01-01' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('La fecha de nacimiento no puede ser futura.')).toBeInTheDocument()
+    expect(update.mutateAsync).not.toHaveBeenCalled()
+  })
+
   it('requires matching valid passwords then asks for a fresh login', async () => {
     password.mutateAsync.mockResolvedValue(undefined)
     setup()

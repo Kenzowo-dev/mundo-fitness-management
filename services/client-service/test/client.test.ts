@@ -15,11 +15,11 @@ import {
 // ─── Esquemas de validación (replica de la lógica del controlador) ───────────
 
 const createClientSchema = z.object({
-  dni: z.string().min(5).max(20),
+  dni: z.string().regex(/^\d{8}$/),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   email: z.string().email().optional(),
-  phone: z.string().max(20).optional(),
+  phone: z.string().regex(/^\d{0,9}$/).optional(),
   gender: z.enum(['male', 'female', 'other']).optional(),
 });
 
@@ -28,7 +28,7 @@ const createClientSchema = z.object({
 const baseClientRow: ClientRow = {
   id: 1,
   user_id: 42,
-  dni: '12345678A',
+  dni: '12345678',
   first_name: 'Lucía',
   last_name: 'Fernández',
   email: 'lucia@mundofitness.com',
@@ -97,7 +97,7 @@ describe('Client Service - mapRowToClient', () => {
 
     assert.equal(client.id, 1);
     assert.equal(client.userId, 42);
-    assert.equal(client.dni, '12345678A');
+    assert.equal(client.dni, '12345678');
     assert.equal(client.firstName, 'Lucía');
     assert.equal(client.lastName, 'Fernández');
     assert.equal(client.email, 'lucia@mundofitness.com');
@@ -228,7 +228,7 @@ describe('Client Service - mapRowToDocument', () => {
 describe('Client Service - Validación de creación de cliente', () => {
   it('debe validar un payload de registro de cliente válido', () => {
     const valid = {
-      dni: '12345678A',
+      dni: '12345678',
       firstName: 'Lucía',
       lastName: 'Fernández',
       email: 'lucia@mundofitness.com',
@@ -236,7 +236,7 @@ describe('Client Service - Validación de creación de cliente', () => {
     };
     const parsed = createClientSchema.parse(valid);
 
-    assert.equal(parsed.dni, '12345678A');
+    assert.equal(parsed.dni, '12345678');
     assert.equal(parsed.firstName, 'Lucía');
     assert.equal(parsed.gender, 'female');
   });
@@ -247,10 +247,25 @@ describe('Client Service - Validación de creación de cliente', () => {
     );
   });
 
+  it('debe rechazar un DNI con letras', () => {
+    assert.throws(() =>
+      createClientSchema.parse({ dni: '1234567A', firstName: 'A', lastName: 'B' })
+    );
+  });
+
+  it('debe rechazar un teléfono con letras o más de nueve dígitos', () => {
+    assert.throws(() =>
+      createClientSchema.parse({ dni: '12345678', firstName: 'A', lastName: 'B', phone: '98765A321' })
+    );
+    assert.throws(() =>
+      createClientSchema.parse({ dni: '12345678', firstName: 'A', lastName: 'B', phone: '1234567890' })
+    );
+  });
+
   it('debe rechazar un cliente con email inválido', () => {
     assert.throws(() =>
       createClientSchema.parse({
-        dni: '12345678A',
+        dni: '12345678',
         firstName: 'Lucía',
         lastName: 'Fernández',
         email: 'correo-invalido',
@@ -261,7 +276,7 @@ describe('Client Service - Validación de creación de cliente', () => {
   it('debe rechazar un género que no sea male/female/other', () => {
     assert.throws(() =>
       createClientSchema.parse({
-        dni: '12345678A',
+        dni: '12345678',
         firstName: 'Lucía',
         lastName: 'Fernández',
         gender: 'unknown',

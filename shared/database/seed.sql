@@ -61,7 +61,7 @@ VALUES
     'Acceso libre al área de máquinas y pesas',
     30,
     29.99,
-    'USD',
+    'PEN',
     '["Acceso a sala de musculación", "Casillero estándar"]',
     3,
     false,
@@ -75,7 +75,7 @@ VALUES
     'Acceso integral con todas las clases grupales incluidas',
     30,
     49.99,
-    'USD',
+    'PEN',
     '["Acceso total a máquinas", "Clases de Spinning y Yoga", "Duchas y vestuarios"]',
     5,
     false,
@@ -89,7 +89,7 @@ VALUES
     'Acceso total e ilimitado con sesiones de entrenador personal',
     30,
     99.99,
-    'USD',
+    'PEN',
     '["Acceso ilimitado 24/7", "Todas las clases", "2 sesiones con Entrenador Personal", "Zona de Sauna y Spa"]',
     NULL,
     true,
@@ -103,7 +103,7 @@ VALUES
     'Membresía anual con descuento preferencial del 25%',
     365,
     399.99,
-    'USD',
+    'PEN',
     '["Acceso ilimitado anual", "Evaluación médica mensual", "Pases de cortesía para invitados (2/mes)", "Sauna y toallas"]',
     NULL,
     true,
@@ -121,6 +121,22 @@ FROM clients c
 CROSS JOIN membership_plans p
 WHERE c.dni = '76543210'
   AND p.name = 'Plan Básico Mensual'
+  AND NOT EXISTS (
+      SELECT 1 FROM client_memberships cm
+      WHERE cm.client_id = c.id AND cm.status = 'active' AND cm.end_date >= CURRENT_DATE
+  );
+
+-- 7. Socios ficticios adicionales para probar la búsqueda por nombre o DNI.
+INSERT INTO clients (dni, first_name, last_name, email, phone, birth_date, gender, address, status, joined_at) VALUES
+    ('70112233', 'María', 'García Torres', 'maria.garcia@mundofitness.com', '+51912345678', '1998-03-22', 'femenino', 'Jr. Las Flores 456, Lima', 'active', CURRENT_DATE),
+    ('71445566', 'Carlos', 'Ramírez Soto', 'carlos.ramirez@mundofitness.com', '+51923456789', '1990-11-08', 'masculino', 'Av. Los Olivos 789, Lima', 'active', CURRENT_DATE)
+ON CONFLICT (dni) DO NOTHING;
+
+INSERT INTO client_memberships (client_id, plan_id, start_date, end_date, status, auto_renew)
+SELECT c.id, p.id, CURRENT_DATE, CURRENT_DATE + p.duration_days, 'active', false
+FROM clients c
+JOIN membership_plans p ON p.name = CASE c.dni WHEN '70112233' THEN 'Plan Estándar Completo' ELSE 'Plan Premium VIP' END
+WHERE c.dni IN ('70112233', '71445566')
   AND NOT EXISTS (
       SELECT 1 FROM client_memberships cm
       WHERE cm.client_id = c.id AND cm.status = 'active' AND cm.end_date >= CURRENT_DATE

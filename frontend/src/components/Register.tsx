@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/useAuth'
+import { BIRTH_DATE_MIN, getBirthDateError, isValidName, sanitizeNameInput, todayIsoDate } from '@/utils/validation'
 import '@/styles/auth/Register.css'
 
 export default function Register() {
@@ -27,10 +28,13 @@ export default function Register() {
 
   const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = event.target
+    const nextValue = name === 'phone'
+      ? value.replace(/\D/g, '').slice(0, 9)
+      : name === 'firstName' || name === 'lastName' ? sanitizeNameInput(value) : value
 
     setFormData((previousData) => ({
       ...previousData,
-      [name]: value,
+      [name]: nextValue,
     }))
 
     if (fieldErrors[name]) {
@@ -51,6 +55,7 @@ export default function Register() {
       case 'firstName':
       case 'lastName':
         if (!value.trim()) return 'Este campo es obligatorio'
+        if (!isValidName(value)) return 'Solo se permiten letras'
         return null
       case 'email':
         if (!value.trim()) return 'El correo es obligatorio'
@@ -66,10 +71,11 @@ export default function Register() {
         return null
       case 'phone':
         if (!value.trim()) return 'El teléfono es obligatorio'
+        if (!/^\d{1,9}$/.test(value)) return 'Ingresa solo números (máximo 9 dígitos)'
         return null
       case 'birthDate':
         if (!value) return 'La fecha de nacimiento es obligatoria'
-        return null
+        return getBirthDateError(value)
       case 'gender':
         if (!value) return 'Selecciona una opción'
         return null
@@ -113,8 +119,8 @@ export default function Register() {
       await register({
         email: formData.email,
         password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
         phone: formData.phone,
         birthDate: formData.birthDate,
         gender: formData.gender,
@@ -347,6 +353,8 @@ export default function Register() {
                 name="phone"
                 type="tel"
                 placeholder="Ej. 987654321"
+                inputMode="numeric"
+                maxLength={9}
                 value={formData.phone}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -371,6 +379,8 @@ export default function Register() {
                 id="birthDate"
                 name="birthDate"
                 type="date"
+                min={BIRTH_DATE_MIN}
+                max={todayIsoDate()}
                 value={formData.birthDate}
                 onChange={handleChange}
                 onBlur={handleBlur}

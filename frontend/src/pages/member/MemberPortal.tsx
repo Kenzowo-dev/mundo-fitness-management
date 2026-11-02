@@ -9,6 +9,7 @@ import Alert from '../../components/Alert'
 import Button from '../../components/Button'
 import FormField from '../../components/FormField'
 import Skeleton from '../../components/Skeleton'
+import { sanitizeNameInput } from '../../utils/validation'
 import '@/styles/dashboard/MemberPortal.css'
 
 type ContactDetails = Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>
@@ -164,10 +165,10 @@ export default function MemberPortal() {
             {profileError && <Alert type="error" message={profileError} dismissible onDismiss={() => setProfileError(null)} />}
             {isEditingProfile ? (
               <form className="member-profile-form" onSubmit={saveProfile}>
-                <FormField id="member-phone" name="phone" label="Teléfono" type="tel" maxLength={20} value={profileForm.phone ?? ''} onChange={(phone) => setProfileForm((current) => ({ ...current, phone }))} autoComplete="tel" />
-                <FormField id="member-address" name="address" label="Dirección" value={profileForm.address ?? ''} onChange={(address) => setProfileForm((current) => ({ ...current, address }))} autoComplete="street-address" />
-                <FormField id="emergency-name" name="emergencyContactName" label="Nombre de contacto de emergencia" maxLength={100} value={profileForm.emergencyContactName ?? ''} onChange={(emergencyContactName) => setProfileForm((current) => ({ ...current, emergencyContactName }))} />
-                <FormField id="emergency-phone" name="emergencyContactPhone" label="Teléfono de contacto de emergencia" type="tel" maxLength={20} value={profileForm.emergencyContactPhone ?? ''} onChange={(emergencyContactPhone) => setProfileForm((current) => ({ ...current, emergencyContactPhone }))} />
+                <FormField id="member-phone" name="phone" label="Teléfono" type="tel" maxLength={9} inputMode="numeric" value={profileForm.phone ?? ''} onChange={(phone) => setProfileForm((current) => ({ ...current, phone: phone.replace(/\D/g, '').slice(0, 9) }))} autoComplete="tel" />
+                <FormField id="member-address" name="address" label="Dirección" maxLength={255} value={profileForm.address ?? ''} onChange={(address) => setProfileForm((current) => ({ ...current, address }))} autoComplete="street-address" />
+                <FormField id="emergency-name" name="emergencyContactName" label="Nombre de contacto de emergencia" maxLength={100} value={profileForm.emergencyContactName ?? ''} onChange={(emergencyContactName) => setProfileForm((current) => ({ ...current, emergencyContactName: sanitizeNameInput(emergencyContactName) }))} />
+                <FormField id="emergency-phone" name="emergencyContactPhone" label="Teléfono de contacto de emergencia" type="tel" maxLength={9} inputMode="numeric" value={profileForm.emergencyContactPhone ?? ''} onChange={(emergencyContactPhone) => setProfileForm((current) => ({ ...current, emergencyContactPhone: emergencyContactPhone.replace(/\D/g, '').slice(0, 9) }))} />
                 <div className="member-profile-actions">
                   <Button type="button" variant="secondary" onClick={() => setIsEditingProfile(false)}>Cancelar</Button>
                   <Button type="submit" loading={updateProfileMutation.isPending}>Guardar datos</Button>

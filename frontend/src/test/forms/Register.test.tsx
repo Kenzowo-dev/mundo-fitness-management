@@ -80,6 +80,29 @@ describe('Register', () => {
   })
 
   describe('Required fields validation', () => {
+    it('allows only up to nine numeric phone digits', () => {
+      renderForm()
+      const phone = screen.getByLabelText('Número de teléfono')
+
+      fireEvent.change(phone, { target: { value: '+51 9876543210' } })
+
+      expect(phone).toHaveValue('519876543')
+      expect(phone).toHaveAttribute('maxLength', '9')
+      expect(phone).toHaveAttribute('inputMode', 'numeric')
+    })
+
+    it('keeps only letters and spaces in first and last names', () => {
+      renderForm()
+      const firstName = screen.getByLabelText('Nombre')
+      const lastName = screen.getByLabelText('Apellido')
+
+      fireEvent.change(firstName, { target: { value: 'José2 María!' } })
+      fireEvent.change(lastName, { target: { value: 'Núñez_123 Peña' } })
+
+      expect(firstName).toHaveValue('José María')
+      expect(lastName).toHaveValue('Núñez Peña')
+    })
+
     it('shows error for empty firstName on blur', async () => {
       renderForm()
       const firstNameInput = screen.getByLabelText('Nombre')

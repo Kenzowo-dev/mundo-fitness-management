@@ -160,6 +160,17 @@ describe('PaymentsPage - Integration Tests', () => {
     return render(<PaymentsPage />, { wrapper: createWrapper() })
   }
 
+  const searchAndSelectClient = async (client = mockClients[0]) => {
+    vi.spyOn(api, 'getClients').mockResolvedValue({
+      data: [client],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    })
+    fireEvent.change(screen.getByLabelText(/Buscar socio por nombre o DNI/), { target: { value: client.dni } })
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar socio' }))
+    const result = await screen.findByRole('button', { name: new RegExp(`${client.firstName} ${client.lastName}`) })
+    fireEvent.click(result)
+  }
+
   const openPaymentModal = async () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Registrar nuevo pago' }))
@@ -227,7 +238,7 @@ describe('PaymentsPage - Integration Tests', () => {
       vi.spyOn(api, 'getClientMemberships').mockReturnValue(new Promise(() => {}))
       renderPaymentsPage()
       await openPaymentModal()
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       expect(await screen.findByLabelText('Cargando membresías del socio')).toBeInTheDocument()
     })
 
@@ -341,15 +352,55 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage()
       await openPaymentModal()
 
-      expect(screen.getByLabelText(/^Socio/)).toBeInTheDocument()
+      expect(screen.queryByRole('combobox', { name: /^Socio/ })).not.toBeInTheDocument()
+      expect(screen.getByLabelText(/Buscar socio por nombre o DNI/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Buscar socio' })).toBeInTheDocument()
       expect(screen.getByLabelText(/Monto/)).toBeInTheDocument()
       expect(screen.getByLabelText(/Método de Pago/)).toBeInTheDocument()
       expect(screen.getByText(/no realiza cobros electrónicos/)).toBeInTheDocument()
       fireEvent.click(screen.getByText('Agregar descripción (opcional)'))
       expect(screen.getByLabelText(/Descripción del pago/)).toBeInTheDocument()
-      // Verify select has options
-      const clientSelect = screen.getByLabelText(/^Socio/)
-      expect(clientSelect.querySelectorAll('option').length).toBeGreaterThan(0)
+    })
+
+    it('searches socios by name or DNI and selects one from the results', async () => {
+      vi.spyOn(api, 'getClients').mockResolvedValue({
+        data: [mockClients[1]],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      })
+      renderPaymentsPage()
+      await openPaymentModal()
+
+      fireEvent.change(screen.getByLabelText(/Buscar socio por nombre o DNI/), { target: { value: '72345678' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Buscar socio' }))
+
+      await waitFor(() => {
+        expect(api.getClients).toHaveBeenCalledWith(1, 20, { search: '72345678' })
+      })
+      const result = await screen.findByRole('button', { name: /María García/ })
+      expect(result).toHaveTextContent('DNI 72345678')
+      expect(screen.queryByRole('button', { name: /Juan Pérez/ })).not.toBeInTheDocument()
+
+      fireEvent.click(result)
+      await waitFor(() => expect(api.getClientMemberships).toHaveBeenCalledWith(2))
+      expect(screen.getByRole('button', { name: 'Cambiar socio' })).toBeInTheDocument()
+      expect(screen.queryByLabelText(/Buscar socio por nombre o DNI/)).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar socio' }))
+      expect(screen.getByLabelText(/Buscar socio por nombre o DNI/)).toHaveValue('')
+    })
+
+    it('shows a message when no socio matches the search', async () => {
+      vi.spyOn(api, 'getClients').mockResolvedValue({
+        data: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      })
+      renderPaymentsPage()
+      await openPaymentModal()
+
+      fireEvent.change(screen.getByLabelText(/Buscar socio por nombre o DNI/), { target: { value: '00000000' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Buscar socio' }))
+
+      expect(await screen.findByText('No se encontraron socios con ese nombre o DNI.')).toBeInTheDocument()
     })
 
     it('calls createPayment mutation with correct data', async () => {
@@ -357,7 +408,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       await waitFor(() => expect(api.getClientMemberships).toHaveBeenCalledWith(1))
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
@@ -386,7 +437,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
@@ -406,7 +457,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
@@ -421,11 +472,35 @@ describe('PaymentsPage - Integration Tests', () => {
       })
     })
 
+    it('shows matching socios while typing, without pressing search', async () => {
+      vi.spyOn(api, 'getClients').mockResolvedValue({
+        data: [mockClients[1]],
+        pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+      })
+      renderPaymentsPage()
+      await openPaymentModal()
+
+      fireEvent.change(screen.getByLabelText(/Buscar socio por nombre o DNI/), { target: { value: 'Mar' } })
+
+      expect(await screen.findByRole('button', { name: /María García/ })).toBeInTheDocument()
+      expect(api.getClients).toHaveBeenCalledWith(1, 20, { search: 'Mar' })
+    })
+
+    it('does not allow negative amounts', async () => {
+      renderPaymentsPage()
+      await openPaymentModal()
+      const amountInput = screen.getByLabelText(/Monto/)
+
+      expect(amountInput).toHaveAttribute('min', '0.01')
+      fireEvent.change(amountInput, { target: { value: '-50' } })
+      expect(amountInput).toHaveValue(50)
+    })
+
     it('rejects amounts with more than two decimal places before sending', async () => {
       const mockCreate = createMockMutation()
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await searchAndSelectClient()
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '1.005' } })

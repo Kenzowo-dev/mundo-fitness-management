@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CircleDollarSign, ReceiptText, RefreshCw, WalletCards } from 'lucide'
 import { api } from '../../api/client'
-import type { CreatePaymentInput } from '../../types/api'
+import type { Client, CreatePaymentInput } from '../../types/api'
 import MorphIcon from '../../components/MorphIcon'
 import { useClients, usePayments, useInvoices, useCreatePayment } from '../../hooks/useApi'
 import StatusBadge from '../../components/StatusBadge'
@@ -15,6 +15,7 @@ import TableContainer from '../../components/TableContainer'
 import PageHeader from '../../components/PageHeader'
 import Pagination from '../../components/Pagination'
 import Skeleton from '../../components/Skeleton'
+import ClientSearchPicker from '../../components/ClientSearchPicker'
 import '../../styles/dashboard/PaymentsPage.css'
 
 const paymentMethods: Record<string, string> = {
@@ -27,6 +28,14 @@ const paymentMethods: Record<string, string> = {
 
 function formatMoney(amount: number | string, currency: string) {
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(Number(amount))
+}
+
+function getAmountError(value: string) {
+  if (!value) return undefined
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return 'El monto debe ser mayor a 0.'
+  if (Math.round(amount * 100) !== amount * 100) return 'Usa como máximo dos decimales.'
+  return undefined
 }
 
 function formatDate(value: string) {
@@ -50,6 +59,7 @@ export default function PaymentsPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [newPayment, setNewPayment] = useState<PaymentFormState>({
     clientId: '',
     membershipId: '',
@@ -78,11 +88,21 @@ export default function PaymentsPage() {
 
   const createPaymentMutation = useCreatePayment()
 
+  const selectClient = (client: Client | null) => {
+    setSelectedClient(client)
+    setNewPayment((current) => ({ ...current, clientId: client ? String(client.id) : '', membershipId: '' }))
+  }
+
   const handleCreatePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const amount = Number(newPayment.amount)
-    if (!newPayment.clientId || !newPayment.membershipId || !Number.isFinite(amount) || amount <= 0 || Math.round(amount * 100) !== amount * 100) {
-      setPaymentError('Seleccione un socio y una membresía, e ingrese un monto válido con hasta dos decimales.')
+    if (!newPayment.clientId || !newPayment.membershipId) {
+      setPaymentError('Busque y seleccione un socio y una membresía.')
+      return
+    }
+    const amountError = newPayment.amount ? getAmountError(newPayment.amount) : 'Ingrese el monto del pago.'
+    if (amountError) {
+      setPaymentError(`${amountError} Ingrese un monto mayor a 0 con hasta dos decimales.`)
       return
     }
 
@@ -108,6 +128,7 @@ export default function PaymentsPage() {
         paymentMethod: 'cash',
         description: '',
       })
+      setSelectedClient(null)
     } catch (err) {
       setPaymentError(err instanceof Error ? err.message : 'Error al procesar el pago')
     }
@@ -223,16 +244,9 @@ export default function PaymentsPage() {
             {clientsIsError && <div className="payment-query-error"><Alert type="error" title="No se pudieron cargar los socios" message={clientsError instanceof Error ? clientsError.message : 'Inténtalo de nuevo.'} /><Button variant="secondary" onClick={() => void refetchClients()}>Reintentar</Button></div>}
             {clientsLoading && <div className="payment-field-skeleton" aria-busy="true"><span>Socio</span><Skeleton height={44} ariaLabel="Cargando socios" /></div>}
             {!clientsLoading && !clientsIsError && allClients.length === 0 && <Alert type="warning" message="Aún no hay socios. Registra primero a un socio antes de registrar un pago." />}
-            {!clientsLoading && !clientsIsError && allClients.length > 0 && <FormField
-              label="Socio"
-              type="select"
-              id="payment-client"
-              value={newPayment.clientId}
-              onChange={(value) => setNewPayment({ ...newPayment, clientId: value, membershipId: '' })}
-              options={allClients.map(c => ({ value: String(c.id), label: `${c.firstName} ${c.lastName} · DNI ${c.dni}` }))}
-              emptyOptionLabel="Selecciona un socio"
-              required
-            />}
+            {!clientsLoading && !clientsIsError && allClients.length > 0 && <>
+              <ClientSearchPicker id="payment" selectedClient={selectedClient} onSelect={selectClient} />
+            </>}
 
             {newPayment.clientId && membershipsQuery.isLoading && <div className="payment-field-skeleton" aria-busy="true"><span>Membresía asociada</span><Skeleton height={44} ariaLabel="Cargando membresías del socio" /></div>}
             {newPayment.clientId && !membershipsQuery.isLoading && !membershipsQuery.isError && clientMemberships.length > 0 && <FormField
@@ -254,25 +268,22 @@ export default function PaymentsPage() {
 
             <div className="payment-form-grid">
               <FormField
-                label="Monto *"
+                label="Monto (S/)"
                 type="number"
                 id="payment-amount"
                 value={newPayment.amount}
-                onChange={(value) => setNewPayment({ ...newPayment, amount: value })}
+                onChange={(value) => setNewPayment({ ...newPayment, amount: value.replace(/-/g, '') })}
+                onKeyDown={(event) => {
+                  if (['-', '+', 'e', 'E'].includes(event.key)) event.preventDefault()
+                }}
+                min={0.01}
+                step="0.01"
                 placeholder="Ej: 49.90"
+                error={getAmountError(newPayment.amount)}
                 required
               />
               <FormField
-                label="Moneda *"
-                type="select"
-                id="payment-currency"
-                value={newPayment.currency}
-                onChange={(value) => setNewPayment({ ...newPayment, currency: value === 'USD' ? 'USD' : 'PEN' })}
-                options={[{ value: 'PEN', label: 'Soles peruanos (PEN)' }, { value: 'USD', label: 'Dólares estadounidenses (USD)' }]}
-                required
-              />
-              <FormField
-                label="Método de Pago *"
+                label="Método de Pago"
                 type="select"
                 id="payment-method"
                 value={newPayment.paymentMethod}

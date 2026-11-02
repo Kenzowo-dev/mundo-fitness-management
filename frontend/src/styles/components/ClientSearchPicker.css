@@ -1,0 +1,87 @@
+/* Buscador de socios por nombre o DNI (ClientSearchPicker). */
+
+.client-picker-search {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.client-picker-search > .form-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.client-picker-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 240px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.client-picker-result,
+.client-picker-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated-2);
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.client-picker-result {
+  cursor: pointer;
+  font: inherit;
+}
+
+.client-picker-result:hover {
+  background: var(--bg-hover);
+}
+
+.client-picker-result:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.client-picker-result span,
+.client-picker-selected-dni,
+.client-picker-selected-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.client-picker-selected > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.client-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.client-picker-field-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.client-picker-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}

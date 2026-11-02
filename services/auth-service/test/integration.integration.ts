@@ -78,6 +78,7 @@ async function createClient() {
       firstName: 'Integration',
       lastName: 'Member',
       email: uniqueEmail(),
+      phone: '987654321',
     })
     .expect(201);
   return response.body as { id: number; dni: string; firstName: string };
@@ -231,9 +232,9 @@ describe('Integration: Client Service with PostgreSQL and Redis', () => {
     await request(clientApp)
       .patch(`/api/clients/${client.id}`)
       .set(bearer())
-      .send({ phone: '+51999999999' })
+      .send({ phone: '999999999' })
       .expect(200)
-      .expect(({ body }) => expect(body.phone).toBe('+51999999999'));
+      .expect(({ body }) => expect(body.phone).toBe('999999999'));
     await request(clientApp)
       .get(`/api/clients?search=${client.dni}`)
       .set(bearer())
@@ -242,7 +243,7 @@ describe('Integration: Client Service with PostgreSQL and Redis', () => {
     await request(clientApp)
       .post('/api/clients')
       .set(bearer())
-      .send({ dni: client.dni, firstName: 'Duplicate', lastName: 'Member' })
+      .send({ dni: client.dni, firstName: 'Duplicate', lastName: 'Member', email: uniqueEmail(), phone: '987654321' })
       .expect(409);
   });
 
@@ -352,7 +353,7 @@ describe('Integration: API Gateway with real service routers', () => {
     const client = await request(gatewayApp)
       .post('/api/clients')
       .set(bearer(token))
-      .send({ dni: uniqueDni(), firstName: 'Gateway', lastName: 'Forwarded', email: uniqueEmail() })
+      .send({ dni: uniqueDni(), firstName: 'Gateway', lastName: 'Forwarded', email: uniqueEmail(), phone: '987654321' })
       .expect(201);
 
     await request(gatewayApp)

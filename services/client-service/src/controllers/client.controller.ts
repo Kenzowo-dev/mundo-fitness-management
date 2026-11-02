@@ -26,43 +26,61 @@ import {
   NotFoundError,
 } from '@gym/shared/errors/index.js';
 
+// Nombres y apellidos: solo letras (incluye tildes y ñ) separadas por un espacio.
+const personName = z.string().trim().min(1).max(100).regex(/^\p{L}+(?: \p{L}+)*$/u, 'Solo se permiten letras');
+
+// Fecha de nacimiento: fecha real, no futura y posterior a 1900.
+const birthDate = z.string().date('Ingresa una fecha válida').refine(
+  (value) => value >= '1900-01-01' && value <= new Date().toISOString().slice(0, 10),
+  'La fecha de nacimiento no puede ser futura ni anterior a 1900',
+);
+
+const gender = z.enum(['masculino', 'femenino', 'otro', '']);
+
+// Nombre del contacto de emergencia: opcional, solo letras; '' permite borrarlo.
+const optionalPersonName = z.union([personName, z.literal('')]);
+
+// Correo y teléfono son obligatorios al registrar un socio.
+const requiredEmail = z.string({ required_error: 'Ingresa el correo electrónico del socio' }).trim().email('Ingresa un correo válido con @, por ejemplo socio@correo.com');
+const requiredPhone = z.string({ required_error: 'Ingresa el teléfono del socio' }).regex(/^\d{1,9}$/,'Ingresa solo números (máximo 9 dígitos)');
+
 const createClientSchema = z.object({
   userId: z.number().int().positive().optional(),
-  dni: z.string().length(8),
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
-  email: z.string().email().optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
-  gender: z.string().max(20).optional(),
-  address: z.string().optional(),
-  emergencyContactName: z.string().max(100).optional(),
-  emergencyContactPhone: z.string().max(20).optional(),
-  medicalConditions: z.string().optional(),
-  notes: z.string().optional(),
+  dni: z.string().regex(/^\d{8}$/),
+  firstName: personName,
+  lastName: personName,
+  email: requiredEmail,
+  phone: requiredPhone,
+  birthDate: birthDate.optional(),
+  gender: gender.optional(),
+  address: z.string().trim().max(255).optional(),
+  emergencyContactName: optionalPersonName.optional(),
+  emergencyContactPhone: z.string().regex(/^\d{0,9}$/).optional(),
+  medicalConditions: z.string().trim().max(1000).optional(),
+  notes: z.string().trim().max(1000).optional(),
 });
 
 const updateClientSchema = z.object({
-  dni: z.string().length(8).optional(),
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  email: z.union([z.string().email(), z.literal('')]).optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
-  gender: z.string().max(20).optional(),
-  address: z.string().optional(),
-  emergencyContactName: z.string().max(100).optional(),
-  emergencyContactPhone: z.string().max(20).optional(),
-  medicalConditions: z.string().optional(),
-  notes: z.string().optional(),
+  dni: z.string().regex(/^\d{8}$/).optional(),
+  firstName: personName.optional(),
+  lastName: personName.optional(),
+  email: requiredEmail.optional(),
+  phone: requiredPhone.optional(),
+  birthDate: birthDate.optional(),
+  gender: gender.optional(),
+  address: z.string().trim().max(255).optional(),
+  emergencyContactName: optionalPersonName.optional(),
+  emergencyContactPhone: z.string().regex(/^\d{0,9}$/).optional(),
+  medicalConditions: z.string().trim().max(1000).optional(),
+  notes: z.string().trim().max(1000).optional(),
   status: z.enum(['active', 'inactive', 'suspended']).optional(),
 });
 
 const updateOwnClientSchema = z.object({
-  phone: z.string().max(20).optional(),
-  address: z.string().optional(),
-  emergencyContactName: z.string().max(100).optional(),
-  emergencyContactPhone: z.string().max(20).optional(),
+  phone: z.string().regex(/^\d{0,9}$/).optional(),
+  address: z.string().trim().max(255).optional(),
+  emergencyContactName: optionalPersonName.optional(),
+  emergencyContactPhone: z.string().regex(/^\d{0,9}$/).optional(),
 }).refine((data) => Object.values(data).some((value) => value !== undefined), {
   message: 'Proporciona al menos un dato de contacto para actualizar.',
 });

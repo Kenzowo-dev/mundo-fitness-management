@@ -37,7 +37,7 @@ const createPlanSchema = z.object({
   description: z.string().trim().max(500).optional(),
   durationDays: z.number().int().min(1).max(3660),
   price: z.number().positive().max(99_999_999.99).multipleOf(0.01),
-  currency: z.enum(['PEN', 'USD']).default('PEN'),
+  currency: z.literal('PEN', { errorMap: () => ({ message: 'Solo se aceptan soles (PEN)' }) }).default('PEN'),
   features: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
   maxVisitsPerWeek: z.number().int().min(1).max(21).optional(),
   includesPersonalTrainer: z.boolean().default(false),
@@ -51,7 +51,7 @@ const updatePlanSchema = z.object({
   description: z.string().trim().max(500).optional(),
   durationDays: z.number().int().min(1).max(3660).optional(),
   price: z.number().positive().max(99_999_999.99).multipleOf(0.01).optional(),
-  currency: z.enum(['PEN', 'USD']).optional(),
+  currency: z.literal('PEN', { errorMap: () => ({ message: 'Solo se aceptan soles (PEN)' }) }).optional(),
   features: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
   maxVisitsPerWeek: z.number().int().min(1).max(21).optional(),
   includesPersonalTrainer: z.boolean().optional(),
@@ -84,7 +84,7 @@ const updateMembershipSchema = z.object({
   autoRenew: z.boolean().optional(),
   paymentMethodId: z.string().max(100).optional(),
   status: z.enum(['active', 'cancelled', 'expired', 'frozen']).optional(),
-  cancellationReason: z.string().optional(),
+  cancellationReason: z.string().trim().max(500).optional(),
 });
 
 const visitSchema = z.object({
