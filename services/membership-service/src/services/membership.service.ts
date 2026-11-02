@@ -38,6 +38,9 @@ export interface MembershipPlanRow {
   created_at: Date;
   updated_at: Date;
 }
+type CountRow = {
+  count: string;
+};
 
 interface MembershipRenewalRequestRow {
   id: number;
@@ -127,19 +130,54 @@ export async function listMyMembershipRenewalRequests(userId: number): Promise<M
   return result.rows.map(mapRowToRenewalRequest);
 }
 
-export async function listMembershipRenewalRequests(): Promise<MembershipRenewalRequest[]> {
-  const result = await query<MembershipRenewalRequestRow>(
-    `SELECT request.id, request.client_id, request.plan_id, plan.name AS plan_name, request.status,
-       request.member_note, request.staff_note, request.requested_at, request.updated_at, request.handled_by,
-       client.first_name AS client_first_name, client.last_name AS client_last_name,
-       client.email AS client_email, client.dni AS client_dni
-     FROM membership_renewal_requests request
-     JOIN clients client ON client.id = request.client_id
-     JOIN membership_plans plan ON plan.id = request.plan_id
-     ORDER BY CASE request.status WHEN 'pending' THEN 0 WHEN 'contacted' THEN 1 ELSE 2 END,
-       request.requested_at ASC, request.id ASC`,
-  );
-  return result.rows.map(mapRowToRenewalRequest);
+export async function listMembershipRenewalRequests(
+  page?: number,
+  limit?: number
+): Promise<
+  | MembershipRenewalRequest[]
+  | { requests: MembershipRenewalRequest[]; total: number }
+> {
+  const paginated = page !== undefined && limit !== undefined;
+  const offset = paginated ? (page - 1) * limit : 0;
+
+  const requestsQuery = `
+    SELECT request.id, request.client_id, request.plan_id,
+           plan.name AS plan_name, request.status,
+           request.member_note, request.staff_note,
+           request.requested_at, request.updated_at, request.handled_by,
+           client.first_name AS client_first_name,
+           client.last_name AS client_last_name,
+           client.email AS client_email, client.dni AS client_dni
+    FROM membership_renewal_requests request
+    JOIN clients client ON client.id = request.client_id
+    JOIN membership_plans plan ON plan.id = request.plan_id
+    ORDER BY CASE request.status
+      WHEN 'pending' THEN 0
+      WHEN 'contacted' THEN 1
+      ELSE 2
+    END,
+    request.requested_at ASC, request.id ASC
+  `;
+
+  if (!paginated) {
+    const result = await query<MembershipRenewalRequestRow>(requestsQuery);
+    return result.rows.map(mapRowToRenewalRequest);
+  }
+
+  const [requestsResult, countResult] = await Promise.all([
+    query<MembershipRenewalRequestRow>(
+      `${requestsQuery} LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    ),
+    query<CountRow>(
+      'SELECT COUNT(*) FROM membership_renewal_requests'
+    ),
+  ]);
+
+  return {
+    requests: requestsResult.rows.map(mapRowToRenewalRequest),
+    total: Number(countResult.rows[0]?.count ?? 0),
+  };
 }
 
 export async function updateMembershipRenewalRequest(
@@ -323,10 +361,37 @@ export async function getPlanById(id: number): Promise<MembershipPlan | null> {
   return result.rows.length > 0 ? mapRowToPlan(result.rows[0]) : null;
 }
 
-export async function listPlans(activeOnly = true): Promise<MembershipPlan[]> {
+export async function listPlans(
+  activeOnly = true,
+  page?: number,
+  limit?: number,
+): Promise<MembershipPlan[] | { data: MembershipPlan[]; total: number }> {
   const where = activeOnly ? 'WHERE is_active = true' : '';
-  const result = await query<MembershipPlanRow>(`SELECT * FROM membership_plans ${where} ORDER BY sort_order, price`);
-  return result.rows.map(mapRowToPlan);
+
+  if (page === undefined || limit === undefined) {
+    const result = await query<MembershipPlanRow>(
+      `SELECT * FROM membership_plans ${where} ORDER BY sort_order, price, id`
+    );
+    return result.rows.map(mapRowToPlan);
+  }
+
+  const offset = (page - 1) * limit;
+
+  const [plansResult, countResult] = await Promise.all([
+    query<MembershipPlanRow>(
+      `SELECT * FROM membership_plans ${where}
+       ORDER BY sort_order, price, id LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ),
+    query<CountRow>(
+      `SELECT COUNT(*) FROM membership_plans ${where}`,
+    ),
+  ]);
+
+  return {
+    data: plansResult.rows.map(mapRowToPlan),
+    total: Number(countResult.rows[0]?.count ?? 0),
+  };
 }
 
 export async function updatePlan(id: number, data: UpdatePlanData): Promise<MembershipPlan> {
@@ -458,11 +523,35 @@ const MEMBERSHIP_WITH_PLAN_SELECT = `SELECT cm.*, mp.name, mp.description, mp.du
      FROM client_memberships cm
      JOIN membership_plans mp ON cm.plan_id = mp.id`;
 
-export async function listMemberships(): Promise<ClientMembership[]> {
-  const result = await query<MembershipWithPlanRow>(
-    `${MEMBERSHIP_WITH_PLAN_SELECT} ORDER BY cm.created_at DESC, cm.id DESC`
-  );
-  return result.rows.map(mapRowToMembershipWithPlan);
+export async function listMemberships(
+  page?: number,
+  limit?: number,
+): Promise<ClientMembership[] | { data: ClientMembership[]; total: number }> {
+  if (page === undefined || limit === undefined) {
+    const result = await query<MembershipWithPlanRow>(
+      `${MEMBERSHIP_WITH_PLAN_SELECT} ORDER BY cm.created_at DESC, cm.id DESC`
+    );
+    return result.rows.map(mapRowToMembershipWithPlan);
+  }
+
+  const offset = (page - 1) * limit;
+
+  const [membershipsResult, countResult] = await Promise.all([
+    query<MembershipWithPlanRow>(
+      `${MEMBERSHIP_WITH_PLAN_SELECT}
+       ORDER BY cm.created_at DESC, cm.id DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    ),
+    query<CountRow>(
+      'SELECT COUNT(*) FROM client_memberships',
+    ),
+  ]);
+
+  return {
+    data: membershipsResult.rows.map(mapRowToMembershipWithPlan),
+    total: Number(countResult.rows[0]?.count ?? 0),
+  };
 }
 
 export async function getClientMemberships(clientId: number): Promise<ClientMembership[]> {

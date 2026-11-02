@@ -129,7 +129,10 @@ export default function MemberPortal() {
   });
   const plansQuery = useQuery<MembershipPlan[]>({
     queryKey: ["member-portal", "plans"],
-    queryFn: () => api.getMembershipPlans(true),
+    queryFn: async () => {
+  const result = await api.getMembershipPlans(true);
+  return Array.isArray(result) ? result : result.data;
+},
   });
   const renewalRequestsQuery = useMyMembershipRenewalRequests();
   const createRenewalRequest = useCreateMembershipRenewalRequest();

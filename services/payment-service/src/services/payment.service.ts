@@ -529,47 +529,155 @@ export async function deactivatePaymentMethod(clientId: number, methodId: number
 }
 
 export async function createRefund(data: CreateRefundData): Promise<Refund> {
-  const payment = await getPaymentById(data.paymentId);
-  if (!payment) throw new NotFoundError('Payment', data.paymentId);
-  if (payment.status !== 'completed') throw new ValidationError('Can only refund completed payments', 'INVALID_PAYMENT_STATUS');
-  if (data.amount > payment.amount) throw new ValidationError('Refund amount cannot exceed payment amount', 'INVALID_REFUND_AMOUNT');
+  return await transaction(async (client) => {
+    const paymentResult = await client.query<PaymentRow>(
+      'SELECT * FROM payments WHERE id = $1 FOR UPDATE',
+      [data.paymentId]
+    );
 
-  const existingRefunds = await query<{ total: string }>('SELECT COALESCE(SUM(amount), 0) as total FROM refunds WHERE payment_id = $1 AND status = $2', [data.paymentId, 'completed']);
-  const totalRefunded = parseFloat(existingRefunds.rows[0].total);
-  if (totalRefunded + data.amount > payment.amount) {
-    throw new ValidationError('Total refunds would exceed payment amount', 'REFUND_EXCEEDS_PAYMENT');
-  }
+    if (paymentResult.rows.length === 0) {
+      throw new NotFoundError('Payment', data.paymentId);
+    }
 
-  const result = await query<RefundRow>(
-    `INSERT INTO refunds (payment_id, amount, reason) VALUES ($1, $2, $3) RETURNING *`,
-    [data.paymentId, data.amount, data.reason ?? null]
-  );
-  return mapRowToRefund(result.rows[0]);
+    const payment = mapRowToPayment(paymentResult.rows[0]);
+
+    if (payment.status !== 'completed') {
+      throw new ValidationError(
+        'Can only refund completed payments',
+        'INVALID_PAYMENT_STATUS'
+      );
+    }
+
+    if (!Number.isFinite(data.amount) || data.amount <= 0) {
+      throw new ValidationError(
+        'Refund amount must be positive',
+        'INVALID_REFUND_AMOUNT'
+      );
+    }
+
+    const existingRefunds = await client.query<{ total: string }>(
+      `SELECT COALESCE(SUM(amount), 0)::text AS total
+       FROM refunds
+       WHERE payment_id = $1
+       AND status IN ('pending', 'completed')`,
+      [data.paymentId]
+    );
+
+    const totalReserved = Number(existingRefunds.rows[0].total);
+
+    if (totalReserved + data.amount > payment.amount + 0.000001) {
+      throw new ValidationError(
+        'Total refunds would exceed payment amount',
+        'REFUND_EXCEEDS_PAYMENT'
+      );
+    }
+
+    const result = await client.query<RefundRow>(
+      `INSERT INTO refunds (payment_id, amount, reason)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [data.paymentId, data.amount, data.reason ?? null]
+    );
+
+    return mapRowToRefund(result.rows[0]);
+  });
 }
 
 export async function processRefund(refundId: number): Promise<Refund> {
   return await transaction(async (client) => {
-    const refundResult = await client.query<RefundRow>('SELECT * FROM refunds WHERE id = $1', [refundId]);
-    if (refundResult.rows.length === 0) throw new NotFoundError('Refund', refundId);
-    const refund = mapRowToRefund(refundResult.rows[0]);
+    const refundResult = await client.query<RefundRow>(
+      'SELECT * FROM refunds WHERE id = $1 FOR UPDATE',
+      [refundId]
+    );
 
-    const paymentResult = await client.query<PaymentRow>('SELECT * FROM payments WHERE id = $1', [refund.paymentId]);
-    if (paymentResult.rows.length === 0) throw new NotFoundError('Payment', refund.paymentId);
-    const payment = mapRowToPayment(paymentResult.rows[0]);
-
-    await client.query('UPDATE refunds SET status = $1, processed_at = NOW() WHERE id = $2', ['completed', refundId]);
-
-    const existingRefunds = await client.query<{ total: string }>('SELECT COALESCE(SUM(amount), 0) as total FROM refunds WHERE payment_id = $1 AND status = $2', [payment.id, 'completed']);
-    const totalRefunded = parseFloat(existingRefunds.rows[0].total);
-
-    if (totalRefunded >= payment.amount) {
-      await client.query('UPDATE payments SET status = $1, refunded_at = NOW(), refund_amount = $2 WHERE id = $3', ['refunded', payment.amount, payment.id]);
-    } else {
-      await client.query('UPDATE payments SET refund_amount = $1 WHERE id = $2', [totalRefunded, payment.id]);
+    if (refundResult.rows.length === 0) {
+      throw new NotFoundError('Refund', refundId);
     }
 
-    await publish(CHANNELS.PAYMENT_REFUNDED, { paymentId: payment.id, refundId: refund.id, amount: refund.amount });
-    return { ...refund, status: 'completed', processedAt: new Date() };
+    const refund = mapRowToRefund(refundResult.rows[0]);
+
+    if (refund.status === 'completed') {
+      return refund;
+    }
+
+    if (refund.status !== 'pending') {
+      throw new ValidationError(
+        'Only pending refunds can be processed',
+        'INVALID_REFUND_STATUS'
+      );
+    }
+
+    const paymentResult = await client.query<PaymentRow>(
+      'SELECT * FROM payments WHERE id = $1 FOR UPDATE',
+      [refund.paymentId]
+    );
+
+    if (paymentResult.rows.length === 0) {
+      throw new NotFoundError('Payment', refund.paymentId);
+    }
+
+    const payment = mapRowToPayment(paymentResult.rows[0]);
+
+    if (payment.status !== 'completed') {
+      throw new ValidationError(
+        'Can only process refunds for completed payments',
+        'INVALID_PAYMENT_STATUS'
+      );
+    }
+
+    const existingRefunds = await client.query<{ total: string }>(
+      `SELECT COALESCE(SUM(amount), 0)::text AS total
+       FROM refunds
+       WHERE payment_id = $1
+       AND status = 'completed'`,
+      [payment.id]
+    );
+
+    const totalRefunded =
+      Number(existingRefunds.rows[0].total) + refund.amount;
+
+    if (totalRefunded > payment.amount + 0.000001) {
+      throw new ValidationError(
+        'Total refunds would exceed payment amount',
+        'REFUND_EXCEEDS_PAYMENT'
+      );
+    }
+
+    await client.query(
+      `UPDATE refunds
+       SET status = $1, processed_at = NOW()
+       WHERE id = $2`,
+      ['completed', refundId]
+    );
+
+    const fullyRefunded =
+      totalRefunded >= payment.amount - 0.000001;
+
+    if (fullyRefunded) {
+      await client.query(
+        `UPDATE payments
+         SET status = $1, refunded_at = NOW(), refund_amount = $2
+         WHERE id = $3`,
+        ['refunded', payment.amount, payment.id]
+      );
+    } else {
+      await client.query(
+        'UPDATE payments SET refund_amount = $1 WHERE id = $2',
+        [totalRefunded, payment.id]
+      );
+    }
+
+    await publish(CHANNELS.PAYMENT_REFUNDED, {
+      paymentId: payment.id,
+      refundId: refund.id,
+      amount: refund.amount,
+    });
+
+    return {
+      ...refund,
+      status: 'completed',
+      processedAt: new Date(),
+    };
   });
 }
 
@@ -582,7 +690,7 @@ export async function getClientPaymentsSummary(clientId: number): Promise<{
   const result = await query<PaymentsSummaryRow>(
     `SELECT 
       COALESCE(SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END), 0) as total_paid,
-      COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) as total_pending,
+      COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) AS total_pending,
       COALESCE(SUM(CASE WHEN status = 'refunded' THEN amount ELSE 0 END), 0) as total_refunded,
       COUNT(*) as payment_count
      FROM payments WHERE client_id = $1`,

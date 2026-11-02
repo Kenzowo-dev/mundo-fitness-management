@@ -85,6 +85,9 @@ export default function Register() {
         return null;
       case "phone":
         if (!value.trim()) return "El teléfono es obligatorio";
+        if (!/^9\d{8}$/.test(value.trim())) {
+          return "Ingresa un celular válido de 9 dígitos que comience con 9";
+      }
         return null;
       case "birthDate":
         if (!value) return "La fecha de nacimiento es obligatoria";
@@ -415,6 +418,9 @@ export default function Register() {
                   id="phone"
                   name="phone"
                   type="tel"
+                  maxLength={9}
+                  inputMode="numeric"
+                  pattern="9[0-9]{8}"
                   placeholder="Ej. 987654321"
                   value={formData.phone}
                   onChange={handleChange}

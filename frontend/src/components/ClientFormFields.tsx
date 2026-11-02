@@ -34,7 +34,18 @@ export default function ClientFormFields({
   onChange,
   includeStatus = false,
 }: ClientFormFieldsProps) {
-  const field = (name: ClientFormField, label: string, type: 'text' | 'email' | 'tel' | 'date' | 'select' | 'textarea', placeholder?: string) => (
+      const field = (
+      name: ClientFormField,
+      label: string,
+      type: 'text' | 'email' | 'tel' | 'date' | 'select' | 'textarea',
+      placeholder?: string,
+      restrictions?: {
+        maxLength?: number
+        inputMode?: 'numeric' | 'text' | 'tel'
+        pattern?: string
+        max?: string
+      },
+    ) => (
     <FormField
       label={label}
       type={type}
@@ -45,6 +56,10 @@ export default function ClientFormFields({
       required={name === 'dni' || name === 'firstName' || name === 'lastName'}
       placeholder={type === 'select' ? undefined : placeholder}
       error={errors[name]}
+      maxLength={restrictions?.maxLength}
+      inputMode={restrictions?.inputMode}
+      pattern={restrictions?.pattern}
+      max={restrictions?.max}
       autoComplete={name === 'firstName' ? 'given-name'
         : name === 'lastName' ? 'family-name'
           : name === 'email' ? 'email'
@@ -68,11 +83,29 @@ export default function ClientFormFields({
       <fieldset className="client-form-section">
         <legend>Datos principales</legend>
         <div className="client-form-grid">
-          {field('dni', 'DNI *', 'text', 'Ej: 71234567')}
-          {field('firstName', 'Nombres *', 'text', 'Ej: Juan')}
-          {field('lastName', 'Apellidos *', 'text', 'Ej: Pérez')}
-          {field('email', 'Correo electrónico', 'email', 'socio@correo.com')}
-          {field('phone', 'Teléfono', 'tel', '+51987654321')}
+          {field('dni', 'DNI *', 'text', 'Ej: 71234567', {
+        maxLength: 8,
+        inputMode: 'numeric',
+        pattern: '[0-9]{8}',
+      })}
+
+      {field('firstName', 'Nombres *', 'text', 'Ej: Juan', {
+        maxLength: 80,
+      })}
+
+      {field('lastName', 'Apellidos *', 'text', 'Ej: Pérez', {
+        maxLength: 80,
+      })}
+
+      {field('email', 'Correo electrónico', 'email', 'socio@correo.com', {
+        maxLength: 254,
+      })}
+
+      {field('phone', 'Teléfono', 'tel', '987654321', {
+        maxLength: 9,
+        inputMode: 'numeric',
+        pattern: '9[0-9]{8}',
+      })}
           {includeStatus && field('status', 'Estado del socio', 'select')}
         </div>
       </fieldset>
@@ -80,11 +113,17 @@ export default function ClientFormFields({
       <details className="client-optional-fields">
         <summary>Datos adicionales <span>(opcionales)</span></summary>
         <div className="client-form-grid">
-          {field('birthDate', 'Fecha de nacimiento', 'date')}
+          {field('birthDate', 'Fecha de nacimiento', 'date', undefined, {
+            max: new Date().toLocaleDateString('en-CA'),
+          })}
           {field('gender', 'Género', 'select')}
           {field('address', 'Dirección', 'text', 'Av. Las Camelias 450')}
           {field('emergencyContactName', 'Contacto de emergencia', 'text', 'Nombre y apellido')}
-          {field('emergencyContactPhone', 'Teléfono de emergencia', 'tel', 'Ej: +51987654321')}
+          {field('emergencyContactPhone', 'Teléfono de emergencia', 'tel', 'Ej: 987654321', {
+            maxLength: 9,
+            inputMode: 'numeric',
+            pattern: '9[0-9]{8}',
+          })}
           {field('medicalConditions', 'Información médica relevante', 'textarea')}
           {field('notes', 'Notas internas', 'textarea')}
         </div>

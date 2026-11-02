@@ -38,12 +38,12 @@ const createPlanSchema = z.object({
   durationDays: z.number().int().min(1).max(3660),
   price: z.number().positive().max(99_999_999.99).multipleOf(0.01),
   currency: z.enum(['PEN', 'USD']).default('PEN'),
-  features: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+  features: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
   maxVisitsPerWeek: z.number().int().min(1).max(21).optional(),
   includesPersonalTrainer: z.boolean().default(false),
   includesClasses: z.boolean().default(false),
   includesSauna: z.boolean().default(false),
-  sortOrder: z.number().int().default(0),
+  sortOrder: z.number().int().min(0).max(999999).default(0),
 });
 
 const updatePlanSchema = z.object({
@@ -52,13 +52,13 @@ const updatePlanSchema = z.object({
   durationDays: z.number().int().min(1).max(3660).optional(),
   price: z.number().positive().max(99_999_999.99).multipleOf(0.01).optional(),
   currency: z.enum(['PEN', 'USD']).optional(),
-  features: z.array(z.string().trim().min(1).max(120)).max(20).optional(),
+  features: z.array(z.string().trim().min(1).max(200)).max(20).optional(),
   maxVisitsPerWeek: z.number().int().min(1).max(21).optional(),
   includesPersonalTrainer: z.boolean().optional(),
   includesClasses: z.boolean().optional(),
   includesSauna: z.boolean().optional(),
   isActive: z.boolean().optional(),
-  sortOrder: z.number().int().optional(),
+  sortOrder: z.number().int().min(0).max(999999).optional(),
 });
 
 const createMembershipSchema = z.object({
@@ -136,22 +136,79 @@ export async function getPlanController(req: AuthenticatedRequest, res: Response
   }
 }
 
-export async function listPlansController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export async function listPlansController(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const activeOnly = req.query.activeOnly !== 'false' || req.user?.role !== 'admin';
-    const plans = await listPlans(activeOnly);
-    res.json(plans);
+    const activeOnly =
+      req.query.activeOnly !== 'false' || req.user?.role !== 'admin';
+
+    const hasPagination =
+      req.query.page !== undefined && req.query.limit !== undefined;
+
+    if (!hasPagination) {
+      const result = await listPlans(activeOnly);
+      return res.json(Array.isArray(result) ? result : result.data);
+    }
+
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+
+    const result = await listPlans(activeOnly, page, limit);
+
+    if (Array.isArray(result)) return res.json(result);
+
+    return res.json({
+      data: result.data,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit),
+      },
+    });
   } catch (error) {
     next(error);
   }
 }
 
-export async function listPublicPlansController(_req: Request, res: Response, next: NextFunction) {
+export async function listPublicPlansController(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const plans = await listPlans(true);
-    res.json(plans.map(({ id, name, description, durationDays, price, currency, features, maxVisitsPerWeek, includesClasses, includesSauna }) => ({
-      id, name, description, durationDays, price, currency, features, maxVisitsPerWeek, includesClasses, includesSauna,
-    })));
+    const result = await listPlans(true);
+
+    const plans = Array.isArray(result) ? result : result.data;
+
+    return res.json(
+      plans.map(({
+        id,
+        name,
+        description,
+        durationDays,
+        price,
+        currency,
+        features,
+        maxVisitsPerWeek,
+        includesClasses,
+        includesSauna,
+      }) => ({
+        id,
+        name,
+        description,
+        durationDays,
+        price,
+        currency,
+        features,
+        maxVisitsPerWeek,
+        includesClasses,
+        includesSauna,
+      }))
+    );
   } catch (error) {
     next(error);
   }
@@ -197,10 +254,36 @@ export async function getMembershipController(req: Request, res: Response, next:
   }
 }
 
-export async function listMembershipsController(_req: Request, res: Response, next: NextFunction) {
+export async function listMembershipsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const memberships = await listMemberships();
-    res.json(memberships);
+    const hasPagination =
+      req.query.page !== undefined && req.query.limit !== undefined;
+
+    if (!hasPagination) {
+      const result = await listMemberships();
+      return res.json(Array.isArray(result) ? result : result.data);
+    }
+
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+
+    const result = await listMemberships(page, limit);
+
+    if (Array.isArray(result)) return res.json(result);
+
+    return res.json({
+      data: result.data,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit),
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -341,10 +424,36 @@ export async function listMyRenewalRequestsController(req: AuthenticatedRequest,
   }
 }
 
-export async function listRenewalRequestsController(_req: Request, res: Response, next: NextFunction) {
+export async function listRenewalRequestsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const requests = await listMembershipRenewalRequests();
-    res.json(requests);
+    const hasPagination =
+      req.query.page !== undefined && req.query.limit !== undefined;
+
+    if (!hasPagination) {
+      const result = await listMembershipRenewalRequests();
+      return res.json(Array.isArray(result) ? result : result.requests);
+    }
+
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+
+    const result = await listMembershipRenewalRequests(page, limit);
+
+    if (Array.isArray(result)) return res.json(result);
+
+    return res.json({
+      data: result.requests,
+      pagination: {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit),
+      },
+    });
   } catch (error) {
     next(error);
   }

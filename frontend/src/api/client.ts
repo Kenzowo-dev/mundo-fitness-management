@@ -21,6 +21,7 @@ import type {
   MembershipReports,
   PaymentReports,
   UpdateMembershipPlanInput,
+  MembershipRenewalRequest,
 } from '../types/api.js';
 
 // URL base de la API obtenida de las variables de entorno de Vite
@@ -446,9 +447,20 @@ class ApiClient {
    * @param activeOnly - Si es true, solo retorna planes activos
    * @returns Promesa con la lista de planes de membresía
    */
-  async getMembershipPlans(activeOnly = true): Promise<MembershipPlan[]> {
-    return this.request<MembershipPlan[]>(`/api/memberships/plans?activeOnly=${activeOnly}`);
-  }
+  async getMembershipPlans(
+  activeOnly = true,
+  page?: number,
+  limit?: number
+): Promise<MembershipPlan[] | PaginatedResponse<MembershipPlan>> {
+  const pagination =
+    page !== undefined && limit !== undefined
+      ? `&page=${page}&limit=${limit}`
+      : '';
+
+  return this.request<MembershipPlan[] | PaginatedResponse<MembershipPlan>>(
+    `/api/memberships/plans?activeOnly=${activeOnly}${pagination}`
+  );
+}
 
   async getPublicMembershipPlans(): Promise<PublicMembershipPlan[]> {
     return this.request<PublicMembershipPlan[]>('/api/memberships/plans/public');
@@ -479,9 +491,19 @@ class ApiClient {
     return this.request<ClientMembership>(`/api/memberships/${id}`);
   }
 
-  async getAllMemberships(): Promise<ClientMembership[]> {
-    return this.request<ClientMembership[]>('/api/memberships');
-  }
+  async getAllMemberships(
+  page?: number,
+  limit?: number
+): Promise<ClientMembership[] | PaginatedResponse<ClientMembership>> {
+  const pagination =
+    page !== undefined && limit !== undefined
+      ? `?page=${page}&limit=${limit}`
+      : '';
+
+  return this.request<ClientMembership[] | PaginatedResponse<ClientMembership>>(
+    `/api/memberships${pagination}`
+  );
+}
 
   /**
    * Obtiene todas las membresías asociadas a un cliente.
@@ -500,9 +522,19 @@ class ApiClient {
     return this.request('/api/memberships/requests/mine');
   }
 
-  async getMembershipRenewalRequests() {
-    return this.request('/api/memberships/requests');
-  }
+  async getMembershipRenewalRequests(
+  page?: number,
+  limit?: number
+): Promise<MembershipRenewalRequest[] | PaginatedResponse<MembershipRenewalRequest>> {
+  const pagination =
+    page !== undefined && limit !== undefined
+      ? `?page=${page}&limit=${limit}`
+      : '';
+
+  return this.request<
+    MembershipRenewalRequest[] | PaginatedResponse<MembershipRenewalRequest>
+  >(`/api/memberships/requests${pagination}`);
+}
 
   async updateMembershipRenewalRequest(id: number, data: { status: 'contacted' | 'closed'; staffNote?: string }) {
     return this.request(`/api/memberships/requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
