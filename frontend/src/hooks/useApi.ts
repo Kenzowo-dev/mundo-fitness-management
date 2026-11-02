@@ -327,11 +327,6 @@ export function useCreateMembershipRenewalRequest() {
   });
 }
 
-queryFn: async () => {
-  const result = await api.getMembershipRenewalRequests();
-  return Array.isArray(result) ? result : result.data;
-}
-
 
 export function useUpdateMembershipRenewalRequest() {
   const queryClient = useQueryClient();

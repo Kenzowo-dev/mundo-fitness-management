@@ -75,8 +75,8 @@ export default function PaymentsPage() {
   const clientMemberships = Array.isArray(membershipsQuery.data) ? membershipsQuery.data : []
   const payments = paymentsData?.data ?? []
   const invoices = invoicesData?.data ?? []
-  const totalPages = paymentsData?.pagination.totalPages ?? 1
-  const invoiceTotalPages = invoicesData?.pagination.totalPages ?? 1
+  const totalPages = paymentsData?.pagination?.totalPages ?? 1
+  const invoiceTotalPages = invoicesData?.pagination?.totalPages ?? 1
 
   const createPaymentMutation = useCreatePayment()
 
@@ -169,7 +169,7 @@ export default function PaymentsPage() {
       {paymentSuccess && <Alert type="success" message={paymentSuccess} onDismiss={() => setPaymentSuccess(null)} dismissible />}
       <Tabs
         tabs={[
-          { id: 'payments', label: 'Pagos', count: paymentsData?.pagination.total ?? payments.length },
+          { id: 'payments', label: 'Pagos', count: paymentsData?.pagination?.total ?? payments.length },
           { id: 'invoices', label: 'Comprobantes', count: invoices.length },
         ]}
         activeTab={activeTab}
@@ -194,7 +194,7 @@ export default function PaymentsPage() {
           <Pagination
             currentPage={page}
             totalPages={totalPages}
-            totalItems={paymentsData?.pagination.total ?? 0}
+            totalItems={paymentsData?.pagination?.total ?? 0}
             onPageChange={setPage}
           />
         )}
@@ -216,7 +216,7 @@ export default function PaymentsPage() {
       <Pagination
         currentPage={invoicesPage}
         totalPages={invoiceTotalPages}
-        totalItems={invoicesData?.pagination.total ?? 0}
+        totalItems={invoicesData?.pagination?.total ?? 0}
         onPageChange={setInvoicesPage}
         disabled={invoicesLoading}
         ariaLabel="Paginación de comprobantes"
