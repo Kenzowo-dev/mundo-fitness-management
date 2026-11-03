@@ -132,7 +132,16 @@ export default function TableContainer<T>({
         <tr
           key={getRowKey(row)}
           onClick={onRowClick ? () => onRowClick(row) : undefined}
+          onKeyDown={onRowClick ? (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onRowClick(row);
+            }
+          } : undefined}
           className={onRowClick ? 'clickable' : ''}
+          tabIndex={onRowClick ? 0 : undefined}
+          role={onRowClick ? 'button' : undefined}
+          aria-label={onRowClick ? `Seleccionar fila ${String(getRowKey(row))}` : undefined}
           style={{ cursor: onRowClick ? 'pointer' : 'default' }}
         >
           {columns.map((col) => (
