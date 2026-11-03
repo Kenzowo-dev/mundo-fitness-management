@@ -32,7 +32,10 @@ const registerSchema = z.object({
   password: z.string().min(8).max(128),
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
-  phone: z.string().max(20).optional(),
+  phone: z.string().trim().regex(
+  /^9\d{8}$/,
+  'El teléfono debe tener exactamente 9 dígitos y comenzar con 9'
+  ),
   birthDate: z.string().date().optional(),
   gender: z.string().max(20).optional(),
 });

@@ -57,16 +57,79 @@ function serializeClientUpdate(values: Partial<Client>): Partial<Client> {
 
 function validateClientForm(values: ClientFormValues): ClientFormErrors {
   const errors: ClientFormErrors = {}
+
   const dni = values.dni?.trim() ?? ''
   const firstName = values.firstName?.trim() ?? ''
   const lastName = values.lastName?.trim() ?? ''
   const email = values.email?.trim() ?? ''
+  const phone = values.phone?.trim() ?? ''
+  const emergencyContactName = values.emergencyContactName?.trim() ?? ''
+  const emergencyContactPhone = values.emergencyContactPhone?.trim() ?? ''
+  const birthDate = values.birthDate?.trim() ?? ''
 
-  if (!/^\d{8}$/.test(dni)) errors.dni = 'Ingresa un DNI de 8 dígitos.'
-  if (!firstName) errors.firstName = 'Ingresa los nombres del socio.'
-  if (!lastName) errors.lastName = 'Ingresa los apellidos del socio.'
+  // Validación de nombres y apellidos
+  const validName = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u
+
+  // DNI: exactamente 8 dígitos
+  if (!/^\d{8}$/.test(dni)) {
+    errors.dni = 'El DNI debe contener exactamente 8 dígitos numéricos.'
+  }
+
+  // Nombres obligatorios
+  if (!firstName) {
+    errors.firstName = 'Ingresa los nombres del socio.'
+  } else if (!validName.test(firstName)) {
+    errors.firstName = 'Los nombres solo deben contener letras, espacios o guiones.'
+  }
+
+  // Apellidos obligatorios
+  if (!lastName) {
+    errors.lastName = 'Ingresa los apellidos del socio.'
+  } else if (!validName.test(lastName)) {
+    errors.lastName = 'Los apellidos solo deben contener letras, espacios o guiones.'
+  }
+
+  // Correo electrónico
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = 'Ingresa un correo electrónico válido.'
+  }
+
+  // Teléfono celular peruano: 9 dígitos y comienza con 9
+  if (phone && !/^9\d{8}$/.test(phone)) {
+    errors.phone = 'El teléfono debe tener 9 dígitos y comenzar con 9.'
+  }
+
+  // Contacto de emergencia
+  if (emergencyContactName && !validName.test(emergencyContactName)) {
+    errors.emergencyContactName = 'Ingresa un nombre válido para el contacto de emergencia.'
+  }
+
+  // Teléfono de emergencia
+  if (emergencyContactPhone && !/^9\d{8}$/.test(emergencyContactPhone)) {
+    errors.emergencyContactPhone = 'El teléfono de emergencia debe tener 9 dígitos y comenzar con 9.'
+  }
+
+  // Fecha de nacimiento
+  if (birthDate) {
+    const [year, month, day] = birthDate.split('-').map(Number)
+    const parsedDate = new Date(year, month - 1, day)
+
+    const isValidDate =
+      /^\d{4}-\d{2}-\d{2}$/.test(birthDate) &&
+      parsedDate.getFullYear() === year &&
+      parsedDate.getMonth() === month - 1 &&
+      parsedDate.getDate() === day
+
+    if (!isValidDate) {
+      errors.birthDate = 'Ingresa una fecha de nacimiento válida.'
+    } else {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      if (parsedDate > today) {
+        errors.birthDate = 'La fecha de nacimiento no puede ser futura.'
+      }
+    }
   }
 
   return errors

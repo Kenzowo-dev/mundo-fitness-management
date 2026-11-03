@@ -30,50 +30,52 @@ import {
 const createPaymentSchema = z.object({
   clientId: z.number().int().positive(),
   membershipId: z.number().int().positive(),
-  amount: z.number().positive().max(99_999_999.99).multipleOf(0.01),
+  amount: z.number().positive().max(1_000_000).multipleOf(0.01),
   currency: z.enum(['PEN', 'USD']).default('PEN'),
   paymentMethod: z.enum(['cash', 'bank_transfer', 'digital_wallet', 'credit_card', 'debit_card']),
-  transactionId: z.string().max(100).optional(),
-  description: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  transactionId: z.string().trim().max(100).optional(),
+  description: z.string().trim().max(200).optional(),
+  metadata: z.record(z.unknown()).optional(),
+
 });
 
 const updatePaymentSchema = z.object({
   status: z.enum(['pending', 'completed', 'failed', 'cancelled']).optional(),
-  gatewayResponse: z.record(z.string(), z.unknown()).optional(),
-  failureReason: z.string().optional(),
+  gatewayResponse: z.record(z.unknown()).optional(),
+  failureReason: z.string().trim().max(200).optional(),
+
 });
 
 const createInvoiceSchema = z.object({
   clientId: z.number().int().positive(),
   membershipId: z.number().int().positive().optional(),
-  amount: z.number().positive(),
-  currency: z.string().length(3).default('USD'),
+  amount: z.number().positive().max(1_000_000).multipleOf(0.01),
+  currency: z.enum(['PEN', 'USD']).default('PEN'),
   dueDate: z.string().date(),
   items: z.array(z.object({
-    description: z.string(),
-    quantity: z.number().int().positive(),
-    unitPrice: z.number().positive(),
-    total: z.number().positive(),
-  })).min(1),
-  notes: z.string().optional(),
+    description: z.string().trim().min(1).max(200),
+    quantity: z.number().int().positive().max(10000),
+    unitPrice: z.number().positive().max(1_000_000).multipleOf(0.01),
+    total: z.number().positive().max(1_000_000).multipleOf(0.01),
+  })).min(1).max(50),
+  notes: z.string().trim().max(500).optional(),
 });
 
 const paymentMethodSchema = z.object({
   clientId: z.number().int().positive(),
   type: z.enum(['credit_card', 'debit_card', 'bank_transfer', 'cash', 'digital_wallet']),
-  provider: z.string().max(50).optional(),
-  providerToken: z.string().max(255).optional(),
-  lastFour: z.string().length(4).optional(),
+  provider: z.string().trim().min(1).max(50).optional(),
+  providerToken: z.string().trim().min(1).max(255).optional(),
+  lastFour: z.string().regex(/^\d{4}$/).optional(),
   expiryMonth: z.number().int().min(1).max(12).optional(),
-  expiryYear: z.number().int().min(2024).max(2040).optional(),
+  expiryYear: z.number().int().min(2026).max(2040).optional(),
   isDefault: z.boolean().default(false),
 });
 
 const refundSchema = z.object({
   paymentId: z.number().int().positive(),
-  amount: z.number().positive(),
-  reason: z.string().optional(),
+  amount: z.number().positive().max(1_000_000).multipleOf(0.01),
+  reason: z.string().trim().min(1).max(200).optional(),
 });
 
 const paginationSchema = z.object({

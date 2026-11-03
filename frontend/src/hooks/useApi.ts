@@ -233,9 +233,23 @@ export function useDeleteClient() {
 }
 
 export function useMembershipPlans(activeOnly = true) {
-  return useQuery<MembershipPlan[], Error, MembershipPlan[]>({
+  return useQuery<MembershipPlan[], Error>({
     queryKey: QUERY_KEYS.membershipPlans(activeOnly),
-    queryFn: () => api.getMembershipPlans(activeOnly),
+    queryFn: async () => {
+      const result = await api.getMembershipPlans(activeOnly);
+      return Array.isArray(result) ? result : result.data;
+    },
+    });
+}
+
+export function usePaginatedMembershipPlans(
+  activeOnly = true,
+  page = 1,
+  limit = 20
+) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.membershipPlans(activeOnly), 'paginated', page, limit],
+    queryFn: () => api.getMembershipPlans(activeOnly, page, limit),
   });
 }
 
@@ -294,19 +308,25 @@ export function useMyMembershipRenewalRequests() {
 export function useMembershipRenewalRequests() {
   return useQuery<MembershipRenewalRequest[], Error>({
     queryKey: QUERY_KEYS.renewalRequests,
-    queryFn: () => api.getMembershipRenewalRequests() as Promise<MembershipRenewalRequest[]>,
+    queryFn: async () => {
+      const result = await api.getMembershipRenewalRequests();
+      return Array.isArray(result) ? result : result.data;
+    },
   });
 }
 
 export function useCreateMembershipRenewalRequest() {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (data: { planId: number; memberNote?: string }) => api.createMembershipRenewalRequest(data),
+    mutationFn: (data: { planId: number; memberNote?: string }) =>
+      api.createMembershipRenewalRequest(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.myRenewalRequests });
     },
   });
 }
+
 
 export function useUpdateMembershipRenewalRequest() {
   const queryClient = useQueryClient();
@@ -428,7 +448,10 @@ export function usePaymentsSummary(clientId: number, enabled = true) {
 export function useAllMemberships(enabled = true) {
   return useQuery<ClientMembership[], Error>({
     queryKey: QUERY_KEYS.allMemberships,
-    queryFn: () => api.getAllMemberships(),
+    queryFn: async () => {
+  const result = await api.getAllMemberships();
+  return Array.isArray(result) ? result : result.data;
+    },
     enabled,
   });
 }
