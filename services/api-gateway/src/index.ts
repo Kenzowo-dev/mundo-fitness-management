@@ -3,8 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import httpProxy from 'http-proxy';
-import type * as http from 'node:http';
-import type * as net from 'node:net';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { config } from '@gym/shared/config/index.js';
