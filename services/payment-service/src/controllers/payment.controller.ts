@@ -36,12 +36,14 @@ const createPaymentSchema = z.object({
   transactionId: z.string().trim().max(100).optional(),
   description: z.string().trim().max(200).optional(),
   metadata: z.record(z.unknown()).optional(),
+
 });
 
 const updatePaymentSchema = z.object({
   status: z.enum(['pending', 'completed', 'failed', 'cancelled']).optional(),
   gatewayResponse: z.record(z.unknown()).optional(),
   failureReason: z.string().trim().max(200).optional(),
+
 });
 
 const createInvoiceSchema = z.object({
@@ -88,9 +90,8 @@ function validate(schema: z.ZodSchema) {
   return (req: Request, _res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      const errors = result.error.flatten().fieldErrors;
-      const message = Object.entries(errors)
-        .map(([field, messages]) => `${field}: ${messages?.join(', ')}`)
+      const message = result.error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
         .join('; ');
       throw new ValidationError(message);
     }

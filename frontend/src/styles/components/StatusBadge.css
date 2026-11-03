@@ -20,8 +20,8 @@
 }
 
 .status-badge.status-inactive {
-  background: var(--bg-elevated-2);
-  color: var(--text-secondary);
+  background: var(--bg-elevated-1);
+  color: var(--text-primary);
 }
 
 .status-badge.status-suspended {
@@ -57,8 +57,8 @@
 }
 
 .status-badge.status-refunded {
-  background: var(--bg-elevated-2);
-  color: var(--text-secondary);
+  background: var(--bg-elevated-1);
+  color: var(--text-primary);
 }
 
 /* Dificultad de planes */
@@ -82,7 +82,7 @@
 
 .status-badge.status-disabled,
 .status-badge.disabled {
-  background: var(--bg-elevated-2);
-  color: var(--text-secondary);
+  background: var(--bg-elevated-1);
+  color: var(--text-primary);
   opacity: 1;
 }

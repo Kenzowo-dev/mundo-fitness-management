@@ -25,7 +25,7 @@ import type {
 } from '../types/api.js';
 
 // URL base de la API obtenida de las variables de entorno de Vite
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
 
 const API_ERROR_MESSAGES: Record<number, string> = {
   400: 'Revisa la información ingresada e inténtalo de nuevo.',

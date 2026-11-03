@@ -26,9 +26,11 @@ export default function Login() {
           <LoginForm />
 
           <footer className="auth-footer">
-            <Link to="/forgot-password" className="forgot-password-link">
-              ¿Olvidaste tu contraseña?
-            </Link>
+            {import.meta.env.DEV && (
+              <Link to="/forgot-password" className="forgot-password-link">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            )}
             <Link to="/registro" className="auth-back-link">
               ¿Primera vez aquí? Crear cuenta de socio
             </Link>

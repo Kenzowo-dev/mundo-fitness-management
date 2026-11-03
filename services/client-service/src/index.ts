@@ -5,12 +5,13 @@ import rateLimit from 'express-rate-limit';
 import { config } from '@gym/shared/config/index.js';
 import { logger } from '@gym/shared/logger/index.js';
 import { requestLoggingMiddleware } from '@gym/shared/logger/index.js';
-import { connectRedis, disconnectRedis, subscribe, CHANNELS, UserCreatedPayload } from '@gym/shared/messaging/index.js';
+import { connectRedis, disconnectRedis } from '@gym/shared/messaging/index.js';
 import { closePool } from '@gym/shared/database/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import clientRoutes from './routes/client.routes.js';
 
 const app = express();
+if (config.nodeEnv === 'production') app.set('trust proxy', 1);
 const SERVICE_NAME = 'client-service';
 
 /**
@@ -95,28 +96,6 @@ async function startServer(): Promise<void> {
     await query('SELECT 1');
     logger.info('Database connected');
 
-    // Suscripción al evento USER_CREATED para sincronizar usuarios tipo socio con clientes
-    await subscribe<UserCreatedPayload>(CHANNELS.USER_CREATED, async (payload) => {
-      try {
-        if (payload?.role === 'member') {
-          const u = payload;
-          const existing = await query('SELECT id FROM clients WHERE email = $1 OR user_id = $2', [u.email, u.userId]);
-          if (existing.rows.length === 0) {
-            await query(
-              `INSERT INTO clients (user_id, dni, first_name, last_name, email, phone, birth_date, gender, status)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
-               ON CONFLICT (dni) DO NOTHING`,
-              [u.userId, `CLI-${u.userId}`, u.firstName || '', u.lastName || '', u.email, u.phone || null, u.birthDate || null, u.gender || null]
-            );
-            logger.info({ userId: u.userId }, 'Cliente creado automáticamente por evento USER_CREATED');
-          } else {
-            await query('UPDATE clients SET user_id = $1 WHERE email = $2', [u.userId, u.email]);
-          }
-        }
-      } catch (err) {
-        logger.error({ err }, 'Error procesando evento USER_CREATED en client-service');
-      }
-    });
 
     app.listen(config.port, () => {
       logger.info(`${SERVICE_NAME} running on port ${config.port}`);

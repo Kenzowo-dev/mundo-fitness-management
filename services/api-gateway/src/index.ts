@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { createProxyMiddleware, Options as ProxyOptions } from 'http-proxy-middleware';
+import httpProxy from 'http-proxy';
 import type * as http from 'node:http';
 import type * as net from 'node:net';
 import { pathToFileURL } from 'node:url';
@@ -135,57 +135,70 @@ function authenticateGateway(services: ServiceConfig[]) {
  */
 function createProxy(service: ServiceConfig) {
   const basePath = service.paths[0];
-  const proxyOptions: ProxyOptions<AuthenticatedRequest, Response> = {
+  const proxy = httpProxy.createProxyServer({
     target: service.url,
     changeOrigin: true,
-    proxyTimeout: 30000,
-    timeout: 30000,
-    selfHandleResponse: false,
-    pathRewrite: (path: string) => {
-      const rewritten = path.startsWith(basePath) ? path.slice(basePath.length) : path;
-      return `${basePath}${rewritten}`;
-    },
-    on: {
-      proxyReq: (proxyReq: http.ClientRequest, req: AuthenticatedRequest, _res: Response) => {
-        const requestId = req.get('x-request-id');
-        if (requestId) proxyReq.setHeader('x-request-id', requestId);
-        if (req.user) {
-          proxyReq.setHeader('x-user-id', req.user.sub);
-          proxyReq.setHeader('x-user-email', req.user.email);
-          proxyReq.setHeader('x-user-role', req.user.role);
-          proxyReq.setHeader('x-user-permissions', JSON.stringify(req.user.permissions || []));
-        }
-        if (req.body && Object.keys(req.body).length > 0) {
-          const bodyData = JSON.stringify(req.body);
-          proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-          proxyReq.write(bodyData);
-        }
-        const rewrittenPath = req.path.startsWith(basePath) ? req.path.slice(basePath.length) : req.path;
-        logger.debug({ service: service.name, path: req.path, method: req.method, rewrittenPath: `${basePath}${rewrittenPath}` }, 'Proxying request');
-      },
-      error: (err: Error, _req: http.IncomingMessage, res: Response | net.Socket) => {
-        logger.error({ err, service: service.name }, 'Proxy error');
-        const expressRes = res as Response;
-        if (!expressRes.headersSent) {
-          expressRes.status(502).json({
-            error: {
-              message: `Service ${service.name} unavailable`,
-              code: 'SERVICE_UNAVAILABLE',
-            },
-          });
-        }
-      },
-      proxyRes: (proxyRes: http.IncomingMessage, req: Request) => {
-        logger.debug({ service: service.name, status: proxyRes.statusCode, path: req.path }, 'Proxy response received');
-      },
-    },
+    xfwd: false,
+  });
+
+  proxy.on('proxyReq', (proxyReq, incomingReq) => {
+    const req = incomingReq as AuthenticatedRequest;
+    const requestId = req.get('x-request-id');
+    if (requestId) proxyReq.setHeader('x-request-id', requestId);
+    if (req.user) {
+      proxyReq.setHeader('x-user-id', req.user.sub);
+      proxyReq.setHeader('x-user-email', req.user.email);
+      proxyReq.setHeader('x-user-role', req.user.role);
+      proxyReq.setHeader('x-user-permissions', JSON.stringify(req.user.permissions || []));
+    }
+    if (req.body && Object.keys(req.body).length > 0) {
+      const bodyData = JSON.stringify(req.body);
+      proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+      proxyReq.write(bodyData);
+    }
+    proxyReq.setTimeout(30000, () => proxyReq.destroy(new Error('Upstream request timed out')));
+    const rewrittenPath = req.path.startsWith(basePath) ? req.path.slice(basePath.length) : req.path;
+    logger.debug({ service: service.name, path: req.path, method: req.method, rewrittenPath: `${basePath}${rewrittenPath}` }, 'Proxying request');
+  });
+
+  proxy.on('error', (err, _req, res) => {
+    logger.error({ err, service: service.name }, 'Proxy error');
+    const expressRes = res as Response;
+    if (!expressRes.headersSent) {
+      expressRes.status(502).json({
+        error: {
+          message: `Service ${service.name} unavailable`,
+          code: 'SERVICE_UNAVAILABLE',
+        },
+      });
+    }
+  });
+
+  proxy.on('proxyRes', (proxyRes, req) => {
+    logger.debug({ service: service.name, status: proxyRes.statusCode, path: req.url }, 'Proxy response received');
+  });
+
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    const originalUrl = req.url;
+    const queryIndex = originalUrl.indexOf('?');
+    const path = queryIndex < 0 ? originalUrl : originalUrl.slice(0, queryIndex);
+    const query = queryIndex < 0 ? '' : originalUrl.slice(queryIndex);
+    const rewritten = path.startsWith(basePath) ? path.slice(basePath.length) : path;
+    req.url = `${basePath}${rewritten}${query}`;
+    try {
+      proxy.web(req, res);
+    } catch (error) {
+      next(error);
+    } finally {
+      req.url = originalUrl;
+    }
   };
-  return createProxyMiddleware(proxyOptions) as express.RequestHandler;
 }
 
 /** Builds a gateway application with injectable downstream URLs for integration tests. */
 export function createGatewayApp(services: ServiceConfig[] = configuredServices): express.Express {
   const app = express();
+  if (config.nodeEnv === 'production') app.set('trust proxy', 1);
   app.use(helmet());
   app.use(cors(config.cors));
   app.use(requestLoggingMiddleware(SERVICE_NAME));

@@ -1,4 +1,4 @@
-import { query, transaction } from '@gym/shared/database/index.js';
+import { query, transaction, type PoolClient } from '@gym/shared/database/index.js';
 import { publish } from '@gym/shared/messaging/index.js';
 import { CHANNELS } from '@gym/shared/messaging/index.js';
 import {
@@ -202,6 +202,17 @@ export function mapRowToRefund(row: RefundRow): Refund {
   };
 }
 
+async function activatePaidMembership(client: PoolClient, membershipId: number | null): Promise<void> {
+  if (!membershipId) {
+    throw new ValidationError('El pago no tiene una membresía válida.', { field: 'membershipId' });
+  }
+  const result = await client.query(
+    "UPDATE client_memberships SET status = 'active', updated_at = NOW() WHERE id = $1",
+    [membershipId],
+  );
+  if (result.rowCount !== 1) throw new NotFoundError('Membership', membershipId);
+}
+
 export async function createPayment(data: CreatePaymentData): Promise<Payment> {
   const client = await query<{ id: number }>('SELECT id FROM clients WHERE id = $1', [data.clientId]);
   if (client.rows.length === 0) throw new NotFoundError('Client', data.clientId);
@@ -216,23 +227,26 @@ export async function createPayment(data: CreatePaymentData): Promise<Payment> {
 
   let payment: Payment;
   try {
-    const result = await query<PaymentRow>(
-      `INSERT INTO payments (
-         client_id, membership_id, amount, currency, payment_method, transaction_id, description, metadata, status, paid_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'completed', NOW())
-       RETURNING *`,
-      [
-        data.clientId,
-        data.membershipId,
-        data.amount,
-        data.currency ?? 'PEN',
-        data.paymentMethod,
-        data.transactionId ?? null,
-        data.description ?? null,
-        data.metadata ? JSON.stringify(data.metadata) : null,
-      ],
-    );
-    payment = mapRowToPayment(result.rows[0]);
+    payment = await transaction(async (client) => {
+      const result = await client.query<PaymentRow>(
+        `INSERT INTO payments (
+           client_id, membership_id, amount, currency, payment_method, transaction_id, description, metadata, status, paid_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'completed', NOW())
+         RETURNING *`,
+        [
+          data.clientId,
+          data.membershipId,
+          data.amount,
+          data.currency ?? 'PEN',
+          data.paymentMethod,
+          data.transactionId ?? null,
+          data.description ?? null,
+          data.metadata ? JSON.stringify(data.metadata) : null,
+        ],
+      );
+      await activatePaidMembership(client, result.rows[0].membership_id);
+      return mapRowToPayment(result.rows[0]);
+    });
   } catch (error) {
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
       throw new ConflictError('La referencia de transacción ya está registrada.', 'PAYMENT_REFERENCE_EXISTS');
@@ -240,12 +254,6 @@ export async function createPayment(data: CreatePaymentData): Promise<Payment> {
     throw error;
   }
 
-  await publish(CHANNELS.PAYMENT_COMPLETED, {
-    paymentId: payment.id,
-    membershipId: payment.membershipId ?? null,
-    clientId: payment.clientId,
-    amount: payment.amount,
-  });
   return payment;
 }
 
@@ -294,22 +302,22 @@ export async function updatePayment(id: number, data: UpdatePaymentData): Promis
   if (fields.length === 0) return existing;
 
   fields.push(`updated_at = NOW()`);
-  values.push(id);
+  values.push(id, existing.status);
 
-  const result = await query<PaymentRow>(
-    `UPDATE payments SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
-    values
-  );
+  const payment = await transaction(async (client) => {
+    const result = await client.query<PaymentRow>(
+      `UPDATE payments SET ${fields.join(', ')} WHERE id = $${paramIndex} AND status = $${paramIndex + 1} RETURNING *`,
+      values,
+    );
+    if (result.rows.length === 0) throw new ConflictError('El pago cambió durante la operación.', 'PAYMENT_CHANGED');
+    const updated = mapRowToPayment(result.rows[0]);
+    if (data.status === 'completed' && existing.status !== 'completed') {
+      await activatePaidMembership(client, updated.membershipId ?? null);
+    }
+    return updated;
+  });
 
-  const payment = mapRowToPayment(result.rows[0]);
-  if (data.status === 'completed' && existing.status !== 'completed') {
-    await publish(CHANNELS.PAYMENT_COMPLETED, {
-      paymentId: payment.id,
-      membershipId: payment.membershipId ?? null,
-      clientId: payment.clientId,
-      amount: payment.amount,
-    });
-  } else if (data.status === 'failed' && existing.status !== 'failed') {
+  if (data.status === 'failed' && existing.status !== 'failed') {
     await publish(CHANNELS.PAYMENT_FAILED, { paymentId: payment.id, clientId: payment.clientId, reason: payment.failureReason });
   }
   return payment;

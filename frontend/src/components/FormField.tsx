@@ -83,6 +83,7 @@ export default function FormField({
         return <Textarea {...commonProps} maxLength={maxLength} />
       default:
         return (
+
   <Input
     {...commonProps}
     type={type}
@@ -95,6 +96,7 @@ export default function FormField({
     step={step}
   />
 )
+
     }
   }
 

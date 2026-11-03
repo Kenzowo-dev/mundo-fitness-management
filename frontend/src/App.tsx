@@ -27,6 +27,22 @@ const DashboardOverview = lazy(
 );
 const MemberPortal = lazy(() => import("./pages/member/MemberPortal.tsx"));
 import "./App.css";
+import { useEffect } from "react";
+
+// Título de documento por ruta (WCAG 2.4.2 — Título de página).
+const pageTitles: Record<string, string> = {
+  "/": "Mundo Fitness · Inicio",
+  "/login": "Mundo Fitness · Iniciar sesión",
+  "/registro": "Mundo Fitness · Crear cuenta de socio",
+  "/portal": "Mundo Fitness · Portal del socio",
+  "/sin-acceso": "Mundo Fitness · Acceso no disponible",
+  "/dashboard": "Mundo Fitness · Dashboard",
+  "/clientes": "Mundo Fitness · Socios",
+  "/membresias": "Mundo Fitness · Membresías",
+  "/pagos": "Mundo Fitness · Pagos",
+  "/informes": "Mundo Fitness · Informes",
+  "/configuracion": "Mundo Fitness · Configuración",
+};
 
 function homeForRole(role?: string) {
   if (role === "member") return "/portal";
@@ -124,6 +140,9 @@ function App() {
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+  useEffect(() => {
+    document.title = pageTitles[pathname] ?? pageTitles["/"];
+  }, [pathname]);
   return (
     <Suspense fallback={<RouteSkeleton />}>
       <Routes>
@@ -144,22 +163,26 @@ function App() {
             </PublicRoute>
           }
         />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <ForgotPassword />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/reset-password"
-          element={
-            <PublicRoute>
-              <ResetPassword />
-            </PublicRoute>
-          }
-        />
+        {import.meta.env.DEV && (
+          <>
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPassword />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicRoute>
+                  <ResetPassword />
+                </PublicRoute>
+              }
+            />
+          </>
+        )}
         <Route path="/portal" element={<MemberRoute />} />
         <Route path="/sin-acceso" element={<AccessNotice />} />
         <Route

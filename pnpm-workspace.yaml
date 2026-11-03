@@ -8,3 +8,8 @@ allowBuilds:
   esbuild: true
   protobufjs: true
   ssh2: true
+overrides:
+  proxy-addr: 2.0.8
+  body-parser: 2.4.0
+  follow-redirects: 1.16.1
+  qs: 6.16.1
