@@ -16,17 +16,18 @@
 
 .page-header-title {
   margin: 0;
-  font-size: clamp(24px, 4vw, 32px);
-  font-weight: 800;
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 750;
   color: var(--text-primary);
-  letter-spacing: -0.5px;
+  letter-spacing: -0.04em;
   line-height: 1.2;
 }
 
 .page-header-description {
   margin: var(--space-2) 0 0;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: .9375rem;
+  max-width: 60ch;
   line-height: 1.6;
 }
 

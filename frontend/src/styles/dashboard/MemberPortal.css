@@ -1,5 +1,6 @@
 .member-portal {
-  width: min(100%, 1040px);
+  width: min(100%, 1160px);
+  min-width: 0;
   margin-inline: auto;
   padding: clamp(var(--space-5), 4vw, var(--space-10));
   display: grid;
@@ -16,7 +17,7 @@
 }
 
 .member-portal-header { align-items: center; }
-.member-portal-header h1 { margin: var(--space-1) 0; font-size: clamp(2rem, 5vw, 3rem); }
+.member-portal-header h1 { margin: var(--space-1) 0; font-size: clamp(2rem, 5vw, 3.25rem); letter-spacing: -.045em; line-height: 1.1; }
 .member-portal-header p:last-child { margin-bottom: 0; color: var(--text-secondary); }
 .member-eyebrow { margin: 0; color: var(--text-secondary); font-size: .75rem; font-weight: 700; letter-spacing: .08em; }
 
@@ -27,13 +28,14 @@
   gap: var(--space-4);
   background: var(--bg-elevated-1);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .member-section-header { align-items: center; }
 .member-section-header h2,
 .membership-status h2 { margin: 0; font-size: 1.25rem; }
-.membership-status { align-items: center; background: var(--bg-elevated-2); }
+.membership-status { align-items: center; background: linear-gradient(120deg, var(--bg-elevated-1), var(--accent-soft)); }
 .membership-summary { min-width: 0; }
 .membership-summary h2 { margin-block: var(--space-2); overflow-wrap: anywhere; }
 .membership-summary p:last-child { margin: 0; color: var(--text-secondary); }
@@ -48,7 +50,7 @@
   font-size: .85rem;
   font-weight: 700;
 }
-.membership-badge.is-active { color: var(--state-success); }
+.membership-badge.is-active { color: var(--state-success); background: var(--state-success-soft); }
 .membership-badge.is-loading { color: var(--text-secondary); }
 
 .member-details {
@@ -73,7 +75,7 @@
 .member-membership-list strong { color: var(--text-primary); }
 .member-membership-list span { color: var(--text-secondary); overflow-wrap: anywhere; }
 .member-muted { margin: 0; color: var(--text-secondary); }
-.member-request-status { margin: 0; padding: var(--space-3) var(--space-4); color: var(--text-primary); background: var(--bg-elevated-2); border-left: 3px solid var(--accent-primary); border-radius: var(--radius-sm); }
+.member-request-status { margin: 0; padding: var(--space-3) var(--space-4); color: var(--text-primary); background: var(--accent-soft); border-left: 3px solid var(--accent-primary); border-radius: var(--radius-sm); }
 .member-request-history { margin-top: var(--space-3); }
 
 .member-profile-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
@@ -91,3 +93,7 @@
   .member-profile-actions { flex-direction: column-reverse; }
   .member-profile-actions .btn { width: 100%; }
 }
+
+.member-portal-header > div { min-width: 0; }
+.member-portal-header h1 { overflow-wrap: anywhere; }
+@media (max-width: 420px) { .membership-status { flex-direction: column; align-items: flex-start; } }

@@ -1,9 +1,9 @@
-/* skeleton.css — Animación de carga pulsante (WCAG 1.4.13) */
+/* skeleton.css — Indicador decorativo para mantener la estructura durante la carga */
 
 .skeleton {
-  background: var(--border-default);
+  background: var(--bg-elevated-3);
   border-radius: var(--radius-sm);
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: pulse 1.5s ease-in-out 3;
   pointer-events: none;
 }
 

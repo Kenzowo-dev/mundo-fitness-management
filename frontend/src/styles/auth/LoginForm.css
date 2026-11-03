@@ -1,13 +1,1 @@
-/* LoginForm.css — Estilos específicos del formulario de Login
-   Importa auth-base.css para estilos compartidos
-*/
-
 @import './auth-base.css';
-
-/* LoginForm uses all base classes from auth-base.css:
-   .auth-form, .auth-form-group, .auth-label, .auth-input-wrapper,
-   .auth-input, .auth-password-toggle, .auth-field-error,
-   .auth-error, .auth-submit
-
-No additional styles needed - all handled by auth-base.css
-*/

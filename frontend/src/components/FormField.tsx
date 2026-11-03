@@ -1,4 +1,5 @@
 import { Input, Select, Textarea } from './Input'
+import type { InputHTMLAttributes } from 'react'
 import '@/styles/components/FormField.css'
 
 export type FieldType = 'text' | 'search' | 'email' | 'password' | 'tel' | 'number' | 'date' | 'select' | 'textarea'
@@ -21,6 +22,11 @@ interface FormFieldProps {
   autoComplete?: string
   maxLength?: number
   className?: string
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode']
+  pattern?: InputHTMLAttributes<HTMLInputElement>['pattern']
+  min?: InputHTMLAttributes<HTMLInputElement>['min']
+  max?: InputHTMLAttributes<HTMLInputElement>['max']
+  step?: InputHTMLAttributes<HTMLInputElement>['step']
 }
 
 export default function FormField({
@@ -38,9 +44,14 @@ export default function FormField({
   disabled = false,
   options,
   emptyOptionLabel,
-  autoComplete,
-  maxLength,
-  className = '',
+    autoComplete,
+    maxLength,
+    className = '',
+    inputMode,
+    pattern,
+    min,
+    max,
+    step,
 }: FormFieldProps) {
   const renderInput = () => {
     const commonProps = {
@@ -71,7 +82,19 @@ export default function FormField({
       case 'textarea':
         return <Textarea {...commonProps} maxLength={maxLength} />
       default:
-        return <Input {...commonProps} type={type} autoComplete={autoComplete} maxLength={maxLength} />
+        return (
+  <Input
+    {...commonProps}
+    type={type}
+    autoComplete={autoComplete}
+    maxLength={maxLength}
+    inputMode={inputMode}
+    pattern={pattern}
+    min={min}
+    max={max}
+    step={step}
+  />
+)
     }
   }
 

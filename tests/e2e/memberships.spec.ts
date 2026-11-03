@@ -30,7 +30,7 @@ test('reception can create a plan, assign it, and check a member in', async ({ p
   await expect(page.getByRole('status').filter({ hasText: 'Membresía asignada correctamente al socio.' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Registrar ingreso de socio' }).click();
-  await page.getByLabel(/Seleccione el Socio/).selectOption({ label: client.optionLabel });
+  await page.getByRole('dialog', { name: 'Registrar ingreso de socio' }).getByLabel(/Seleccione el Socio/).selectOption({ label: client.optionLabel });
   await page.getByRole('dialog').getByRole('button', { name: 'Registrar Ingreso' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Ingreso registrado. El acceso al gimnasio está habilitado.' })).toBeVisible();
 

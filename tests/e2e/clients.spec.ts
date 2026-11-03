@@ -26,4 +26,8 @@ test('reception can create, edit, and find a client', async ({ page }) => {
   await page.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.getByRole('row').filter({ hasText: dni })).toContainText('+51999990000');
+  await page.reload();
+  await page.getByRole('searchbox', { name: 'Buscar socio' }).fill(dni);
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await expect(page.getByRole('row').filter({ hasText: dni })).toContainText('+51999990000');
 });

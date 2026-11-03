@@ -15,11 +15,11 @@
   justify-content: center;
   width: 80px;
   height: 80px;
-  background: var(--bg-elevated-2);
+  background: var(--accent-soft);
   border-radius: 50%;
-  color: var(--text-muted);
+  color: var(--accent-ink);
   font-size: 32px;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 .empty-state-title {
@@ -32,7 +32,7 @@
 .empty-state-description {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: .9375rem;
   line-height: 1.6;
   max-width: 320px;
 }

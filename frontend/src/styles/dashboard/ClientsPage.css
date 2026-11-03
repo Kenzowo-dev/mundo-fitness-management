@@ -91,10 +91,10 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 230, 0, 0.28);
+  border: 1px solid var(--border-subtle);
   border-radius: 50%;
-  background: rgba(255, 230, 0, 0.09);
-  color: var(--accent-primary);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
   font-size: 12px;
   font-weight: 750;
   text-transform: uppercase;
@@ -133,7 +133,7 @@
 }
 
 .clients-contact a:hover {
-  color: var(--accent-primary);
+  color: var(--accent-ink);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -151,9 +151,9 @@
 }
 
 .action-buttons .btn {
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   padding: 0;
 }
 
@@ -208,7 +208,7 @@
 .client-optional-fields {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  background: rgba(28, 33, 40, 0.45);
+  background: var(--bg-elevated-2);
 }
 
 .client-optional-fields summary {
@@ -288,3 +288,5 @@
     border-bottom: 0;
   }
 }
+
+.clients-toolbar { box-shadow: var(--shadow-sm); }

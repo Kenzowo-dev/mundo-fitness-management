@@ -45,6 +45,7 @@ function renderPortal() {
 describe('MemberPortal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState({}, '', '/portal');
     vi.spyOn(authModule, 'useAuth').mockReturnValue({
       user: memberUser,
       isLoading: false,
@@ -63,6 +64,37 @@ describe('MemberPortal', () => {
       data: [],
       pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
     });
+  });
+
+  it.each(['not-a-plan', '99'])('does not submit an invalid or unavailable URL plan %s', async (planId) => {
+    window.history.replaceState({}, '', `/portal?plan=${planId}`);
+    vi.spyOn(api, 'getMembershipPlans').mockResolvedValue([{
+      id: 3, name: 'Plan mensual', description: '', durationDays: 30, price: 50, currency: 'PEN', features: [],
+      includesPersonalTrainer: false, includesClasses: false, includesSauna: false, isActive: true, sortOrder: 1,
+      createdAt: '2026-09-01', updatedAt: '2026-09-01',
+    }]);
+    const submit = vi.spyOn(api, 'createMembershipRenewalRequest');
+    renderPortal();
+
+    const select = await screen.findByLabelText(/Plan solicitado/);
+    await screen.findByRole('option', { name: /Plan mensual/ });
+    expect(select).toHaveValue('');
+    const form = select.closest('form');
+    if (!form) throw new Error('Expected renewal form');
+    fireEvent.submit(form);
+    expect(await screen.findByText('Selecciona un plan para continuar.')).toBeInTheDocument();
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('shows unavailable vigency and permits retry after a membership query fails', async () => {
+    vi.spyOn(api, 'getClientMemberships').mockRejectedValueOnce(new Error('Network unavailable')).mockResolvedValue([]);
+    renderPortal();
+
+    expect(await screen.findByRole('heading', { name: 'Vigencia no disponible' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Sin membresía vigente' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar vigencia' }));
+    expect(await screen.findByRole('heading', { name: 'Sin membresía vigente' })).toBeInTheDocument();
+    expect(api.getClientMemberships).toHaveBeenCalledTimes(2);
   });
 
   it('lets a member update contact fields from their own portal', async () => {

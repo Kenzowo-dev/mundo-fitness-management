@@ -28,8 +28,8 @@
   width: 40px;
   height: 40px;
   place-items: center;
-  color: var(--accent-primary);
-  background: var(--bg-elevated-2);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
   border-radius: var(--radius-md);
 }
 
@@ -84,7 +84,7 @@
   margin: 0 0 var(--space-4);
   padding: var(--space-3) var(--space-4);
   background: var(--bg-elevated-1);
-  border-left: 3px solid var(--accent-secondary);
+  border-left: 3px solid var(--accent-primary);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
@@ -136,3 +136,5 @@
     background: var(--bg-hover);
   }
 }
+
+.membership-metric { box-shadow: var(--shadow-sm); }

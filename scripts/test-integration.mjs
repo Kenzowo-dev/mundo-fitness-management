@@ -1,3 +1,4 @@
+
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,14 +7,24 @@ import { RedisContainer } from '@testcontainers/redis';
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+
 let postgres;
 let redis;
 let exitCode = 1;
 
 function run(command, args, env) {
-  const result = spawnSync(command, args, { cwd: projectRoot, env, stdio: 'inherit' });
+  const result = spawnSync(command, args, {
+    cwd: projectRoot,
+    env,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  });
+
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`${command} exited with status ${result.status}`);
+
+  if (result.status !== 0) {
+    throw new Error(`${command} exited with status ${result.status}`);
+  }
 }
 
 try {
@@ -22,6 +33,7 @@ try {
     .withUsername('gym_integration')
     .withPassword('gym_integration_only')
     .start();
+
   redis = await new RedisContainer('redis:7-alpine').start();
 
   const env = {
@@ -44,22 +56,41 @@ try {
   };
 
   console.log('Initializing disposable PostgreSQL schema and seed...');
-  run(pnpm, ['--filter=@gym/shared', 'exec', 'tsx', 'database/migrate.ts'], env);
 
-  console.log('Running service integration tests against disposable PostgreSQL and Redis...');
-  run(pnpm, [
-    '--filter=auth-service',
-    'exec',
-    'vitest',
-    'run',
-    '--config',
-    resolve(projectRoot, 'services/auth-service/vitest.integration.config.ts'),
-  ], env);
+  run(
+    pnpm,
+    ['--filter=@gym/shared', 'exec', 'tsx', 'database/migrate.ts'],
+    env
+  );
+
+  console.log(
+    'Running service integration tests against disposable PostgreSQL and Redis...'
+  );
+
+  run(
+    pnpm,
+    [
+      '--filter=auth-service',
+      'exec',
+      'vitest',
+      'run',
+      '--config',
+      resolve(
+        projectRoot,
+        'services/auth-service/vitest.integration.config.ts'
+      ),
+    ],
+    env
+  );
+
   exitCode = 0;
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
 } finally {
-  await Promise.allSettled([redis?.stop(), postgres?.stop()]);
+  await Promise.allSettled([
+    redis?.stop(),
+    postgres?.stop(),
+  ]);
 }
 
 process.exitCode = exitCode;

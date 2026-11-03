@@ -41,7 +41,7 @@ describe('App', () => {
     expect(screen.getAllByRole('link', { name: /registrarse|crear cuenta/i })).not.toHaveLength(0);
   });
 
-  it('keeps reception out of admin settings even when opening the route directly', () => {
+  it('keeps reception out of admin settings even when opening the route directly', async () => {
     vi.spyOn(authModule, 'useAuth').mockReturnValue({
       user: {
         id: 2,
@@ -65,7 +65,7 @@ describe('App', () => {
 
     renderWithProviders(<App />, '/configuracion');
 
-    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Información personal' })).not.toBeInTheDocument();
   });
 });
