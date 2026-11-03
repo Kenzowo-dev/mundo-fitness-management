@@ -1799,7 +1799,12 @@ Los puertos están enlazados a loopback y las variables de ejemplo son de desarr
 
 ### Estado de CI/CD y despliegue
 
-GitHub Actions ejecuta lint, compilación y pruebas. Los jobs de deployment son placeholders: no hay infraestructura configurada. Aún no existe un procedimiento de producción listo para usar.
+GitHub Actions ejecuta, en cada push y pull request: validación de nombres de rama, lint, comprobación de tipos, pruebas unitarias, pruebas de integración (Testcontainers con PostgreSQL y Redis), compilación de paquetes y verificación de que todos los Dockerfiles y los archivos de Docker Compose compilan correctamente.
+
+El despliegue en producción **no se hace desde GitHub Actions**. Se gestiona con Dokploy, que despliega directamente desde el repositorio Git (`https://github.com/Kenzowo-dev/mundo-fitness-management.git`, rama `feature/mundo-fitness-ui-redesign`, archivo Compose `./compose.yaml`) en el servidor. Consulta:
+
+- `DEPLOY_DOKPLOY.md` — despliegue con Dokploy y Traefik (método activo).
+- `DEPLOY_HOME_SERVER.md` — despliegue inicial con Docker Compose y Nginx Proxy Manager (método anterior, en el servidor casero).
 
 ## Contribución
 
