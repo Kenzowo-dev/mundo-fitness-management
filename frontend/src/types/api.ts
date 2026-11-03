@@ -85,6 +85,11 @@ export interface MembershipPlan {
   updatedAt: string;
 }
 
+export type PublicMembershipPlan = Pick<MembershipPlan,
+  'id' | 'name' | 'description' | 'durationDays' | 'price' | 'currency' | 'features' |
+  'maxVisitsPerWeek' | 'includesClasses' | 'includesSauna'
+>;
+
 export interface CreateMembershipPlanInput {
   name: string;
   description?: string;

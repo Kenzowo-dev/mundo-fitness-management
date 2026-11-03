@@ -11,7 +11,8 @@
 
 .pagination-info {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: .875rem;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
@@ -22,3 +23,4 @@
     transition: none;
   }
 }
+.pagination button { min-height: 44px; min-width: 44px; }

@@ -141,7 +141,7 @@ describe('ClientsPage - Create Client', () => {
       expect(dialog.getByPlaceholderText('Ej: Juan')).toBeInTheDocument()
       expect(dialog.getByPlaceholderText('Ej: Pérez')).toBeInTheDocument()
       expect(dialog.getByPlaceholderText('socio@correo.com')).toBeInTheDocument()
-      expect(dialog.getByPlaceholderText('+51987654321')).toBeInTheDocument()
+      expect(dialog.getByPlaceholderText('987654321')).toBeInTheDocument()
       expect(dialog.getByPlaceholderText('Av. Las Camelias 450')).toBeInTheDocument()
       expect(dialog.getByLabelText('Género')).toBeInTheDocument()
     })
@@ -175,7 +175,7 @@ describe('ClientsPage - Create Client', () => {
       })
 
       await waitFor(() => {
-        expect(within(getDialog()).getByText('Ingresa un DNI de 8 dígitos.')).toBeInTheDocument()
+        expect(within(getDialog()).getByText('El DNI debe contener exactamente 8 dígitos numéricos.')).toBeInTheDocument()
       })
     })
 
@@ -224,7 +224,7 @@ describe('ClientsPage - Create Client', () => {
       fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Carlos' } })
       fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'López' } })
       fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: 'carlos@test.com' } })
-      fireEvent.change(dialog.getByPlaceholderText('+51987654321'), { target: { value: '987654323' } })
+      fireEvent.change(dialog.getByPlaceholderText('987654321'), { target: { value: '987654323' } })
       fireEvent.change(dialog.getByPlaceholderText('Av. Las Camelias 450'), { target: { value: 'Av. Nueva 789' } })
       fireEvent.change(dialog.getByLabelText('Género'), { target: { value: 'masculino' } })
 

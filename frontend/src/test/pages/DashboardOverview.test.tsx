@@ -33,7 +33,7 @@ describe('DashboardOverview', () => {
   it('welcomes the signed-in employee and shows the operational metrics', () => {
     renderDashboard()
     expect(screen.getByText('¡Bienvenido, Test User!')).toBeInTheDocument()
-    expect(screen.getByText('ADMIN')).toBeInTheDocument()
+    expect(screen.getByText('administración')).toBeInTheDocument()
     expect(screen.getByText('Socios activos')).toBeInTheDocument()
     expect(screen.getByText('Membresías vigentes')).toBeInTheDocument()
     expect(screen.getByText('Check-ins de hoy')).toBeInTheDocument()
@@ -56,7 +56,7 @@ describe('DashboardOverview', () => {
       memberships: createQuery(undefined, { isLoading: true }),
       payments: createQuery(undefined, { isLoading: true }),
     })
-    expect(screen.getAllByLabelText('Cargando contenido')).toHaveLength(4)
+    expect(document.querySelectorAll('.skeleton[aria-hidden="true"]')).toHaveLength(4)
   })
 
   it('shows a useful alert and marks failed metrics unavailable', () => {
@@ -73,7 +73,7 @@ describe('DashboardOverview', () => {
 
   it('keeps the main reception routes available', () => {
     renderDashboard()
-    expect(screen.getByRole('link', { name: /Gestión de Clientes/i })).toHaveAttribute('href', '/clientes')
+    expect(screen.getByRole('link', { name: /Gestionar socios/i })).toHaveAttribute('href', '/clientes')
     expect(screen.getByRole('link', { name: /Membresías y Accesos/i })).toHaveAttribute('href', '/membresias')
     expect(screen.getByRole('link', { name: /^Pagos/i })).toHaveAttribute('href', '/pagos')
   })

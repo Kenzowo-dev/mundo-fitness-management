@@ -47,6 +47,7 @@ type PaymentFormState = Omit<CreatePaymentInput, 'clientId' | 'membershipId' | '
 export default function PaymentsPage() {
   const [activeTab, setActiveTab] = useState<'payments' | 'invoices'>('payments')
   const [page, setPage] = useState(1)
+  const [invoicesPage, setInvoicesPage] = useState(1)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
@@ -61,7 +62,7 @@ export default function PaymentsPage() {
 
   const { data: clientsData, isLoading: clientsLoading, isError: clientsIsError, error: clientsError, refetch: refetchClients } = useClients(1, 100)
   const { data: paymentsData, isLoading: paymentsLoading, isError: paymentsIsError, error: paymentsError, refetch: refetchPayments } = usePayments(page, 20)
-  const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesIsError, error: invoicesError, refetch: refetchInvoices } = useInvoices(1, 100)
+  const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesIsError, error: invoicesError, refetch: refetchInvoices } = useInvoices(invoicesPage, 20)
 
   const allClients = clientsData?.data ?? []
   const selectedClientId = Number(newPayment.clientId)
@@ -74,15 +75,27 @@ export default function PaymentsPage() {
   const clientMemberships = Array.isArray(membershipsQuery.data) ? membershipsQuery.data : []
   const payments = paymentsData?.data ?? []
   const invoices = invoicesData?.data ?? []
-  const totalPages = paymentsData?.pagination.totalPages ?? 1
+  const totalPages = paymentsData?.pagination?.totalPages ?? 1
+  const invoiceTotalPages = invoicesData?.pagination?.totalPages ?? 1
 
   const createPaymentMutation = useCreatePayment()
 
   const handleCreatePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const amount = Number(newPayment.amount)
-    if (!newPayment.clientId || !newPayment.membershipId || !Number.isFinite(amount) || amount <= 0 || Math.round(amount * 100) !== amount * 100) {
-      setPaymentError('Seleccione un socio y una membresía, e ingrese un monto válido con hasta dos decimales.')
+
+    if (
+      !newPayment.clientId ||
+      !newPayment.membershipId ||
+      !newPayment.amount.trim() ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > 1000000 ||
+      Math.round(amount * 100) !== amount * 100
+    ) {
+      setPaymentError(
+        'Seleccione un socio y una membresía. Ingrese un monto mayor que cero, máximo de S/ 1,000,000 y con hasta dos decimales.'
+      )
       return
     }
 
@@ -156,7 +169,7 @@ export default function PaymentsPage() {
       {paymentSuccess && <Alert type="success" message={paymentSuccess} onDismiss={() => setPaymentSuccess(null)} dismissible />}
       <Tabs
         tabs={[
-          { id: 'payments', label: 'Pagos', count: paymentsData?.pagination.total ?? payments.length },
+          { id: 'payments', label: 'Pagos', count: paymentsData?.pagination?.total ?? payments.length },
           { id: 'invoices', label: 'Comprobantes', count: invoices.length },
         ]}
         activeTab={activeTab}
@@ -181,7 +194,7 @@ export default function PaymentsPage() {
           <Pagination
             currentPage={page}
             totalPages={totalPages}
-            totalItems={paymentsData?.pagination.total ?? 0}
+            totalItems={paymentsData?.pagination?.total ?? 0}
             onPageChange={setPage}
           />
         )}
@@ -199,6 +212,16 @@ export default function PaymentsPage() {
             description: 'Los comprobantes asociados a los pagos aparecerán aquí.',
           }}
         />}
+        {!invoicesIsError && invoiceTotalPages > 1 && (
+      <Pagination
+        currentPage={invoicesPage}
+        totalPages={invoiceTotalPages}
+        totalItems={invoicesData?.pagination?.total ?? 0}
+        onPageChange={setInvoicesPage}
+        disabled={invoicesLoading}
+        ariaLabel="Paginación de comprobantes"
+      />
+        )}
       </TabPanel>
 
       <Modal
@@ -260,6 +283,9 @@ export default function PaymentsPage() {
                 value={newPayment.amount}
                 onChange={(value) => setNewPayment({ ...newPayment, amount: value })}
                 placeholder="Ej: 49.90"
+                min="0.01"
+                max="1000000"
+                step="0.01"
                 required
               />
               <FormField
@@ -296,6 +322,7 @@ export default function PaymentsPage() {
                 value={newPayment.description}
                 onChange={(value) => setNewPayment({ ...newPayment, description: value })}
                 placeholder="Ej.: Mensualidad de septiembre"
+                maxLength={200}
               />
             </details>
           </div>

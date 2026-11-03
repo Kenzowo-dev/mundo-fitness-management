@@ -153,7 +153,7 @@ describe('ClientsPage - Edit Client', () => {
       expect(dialog.getByPlaceholderText('Ej: Juan')).toHaveValue('Juan')
       expect(dialog.getByPlaceholderText('Ej: Pérez')).toHaveValue('Pérez')
       expect(dialog.getByPlaceholderText('socio@correo.com')).toHaveValue('juan@test.com')
-      expect(dialog.getByPlaceholderText('+51987654321')).toHaveValue('987654321')
+      expect(dialog.getByPlaceholderText('987654321')).toHaveValue('987654321')
       expect(dialog.getByPlaceholderText('Av. Las Camelias 450')).toHaveValue('Av. Las Camelias 450')
       expect(dialog.getByLabelText('Género')).toHaveValue('masculino')
     })
@@ -193,7 +193,7 @@ describe('ClientsPage - Edit Client', () => {
       })
 
       await waitFor(() => {
-        expect(within(getDialog()).getByText('Ingresa un DNI de 8 dígitos.')).toBeInTheDocument()
+        expect(within(getDialog()).getByText('El DNI debe contener exactamente 8 dígitos numéricos.')).toBeInTheDocument()
       })
     })
 

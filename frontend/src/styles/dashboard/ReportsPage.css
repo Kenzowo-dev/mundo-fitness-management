@@ -1,4 +1,5 @@
 .reports-page {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -128,3 +129,8 @@
   .reports-service-grid { grid-template-columns: 1fr; }
   .report-card { padding: var(--space-4); }
 }
+
+.report-card { box-shadow: var(--shadow-sm); }
+
+.report-card h3 { letter-spacing: -.02em; }
+.report-data-details { overflow-x: auto; }

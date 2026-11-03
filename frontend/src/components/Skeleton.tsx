@@ -1,19 +1,19 @@
-import type { CSSProperties } from 'react'
-import '@/styles/components/Skeleton.css'
+import type { CSSProperties } from "react";
+import "@/styles/components/Skeleton.css";
 
 interface SkeletonProps {
   /** Ancho del skeleton (px, %, rem, etc). */
-  width?: string | number
+  width?: string | number;
   /** Alto del skeleton. */
-  height?: string | number
+  height?: string | number;
   /** Si se trata de un círculo (avatar/ícono). */
-  circle?: boolean
+  circle?: boolean;
   /** Clase CSS adicional. */
-  className?: string
+  className?: string;
   /** Estilos en línea adicionales. */
-  style?: CSSProperties
+  style?: CSSProperties;
   /** Texto alternativo accesible descriptivo del placeholder. */
-  ariaLabel?: string
+  ariaLabel?: string;
 }
 
 /*
@@ -22,26 +22,24 @@ interface SkeletonProps {
  * layout y comunicar estado ocupado (aria-busy) al usuario. (WCAG 1.4.13)
  */
 export default function Skeleton({
-  width = '100%',
-  height = '16px',
+  width = "100%",
+  height = "16px",
   circle = false,
-  className = '',
+  className = "",
   style,
-  ariaLabel = 'Cargando contenido',
 }: SkeletonProps) {
   const styles: CSSProperties = {
     width,
     height,
-    borderRadius: circle ? '50%' : '6px',
+    borderRadius: circle ? "50%" : "var(--radius-sm)",
     ...style,
-  }
+  };
 
   return (
     <div
       className={`skeleton ${className}`}
       style={styles}
-      aria-label={ariaLabel}
-      aria-roledescription="cargando"
+      aria-hidden="true"
     />
-  )
+  );
 }

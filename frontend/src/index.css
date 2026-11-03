@@ -2,7 +2,7 @@
    Importa tokens.css y define estilos globales de la aplicación
 */
 
-@import './styles/tokens.css';
+@import "./styles/tokens.css";
 
 /* ========================= RESET GLOBAL ========================= */
 
@@ -26,7 +26,7 @@ body {
   font-family: var(--font-sans);
   background: var(--bg-app);
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -52,8 +52,8 @@ a {
 /* ========================= FOCUS VISIBLE GLOBAL ========================= */
 
 *:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
+  outline: 3px solid var(--border-focus);
+  outline-offset: 3px;
 }
 
 /* ========================= REDUCED MOTION GLOBAL ========================= */
@@ -147,4 +147,186 @@ pre {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+}
+html {
+  scroll-padding-top: 7rem;
+}
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+button {
+  color: inherit;
+}
+select {
+  background-color: var(--bg-elevated-1);
+  color: var(--text-primary);
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  font-optical-sizing: auto;
+}
+p {
+  text-wrap: pretty;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-shrink: 0;
+}
+.brand-symbol {
+  display: block;
+  width: 10rem;
+  border-radius: 0.5rem;
+  background: #17171a;
+  padding: 0.4rem 0.6rem;
+}
+.brand-symbol img {
+  display: block;
+  width: 100%;
+  height: 3.4rem;
+  object-fit: contain;
+}
+.theme-toggle {
+  height: 44px;
+  width: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+}
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+.route-skeleton {
+  padding: 2rem;
+  min-height: 100svh;
+  width: 100%;
+  max-width: 80rem;
+  margin: auto;
+}
+.route-skeleton-content {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 4rem;
+}
+.route-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.member-brandbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 3rem;
+}
+.member-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+.sidebar-header .brand {
+  justify-content: center;
+}
+.sidebar-section-label {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.top-bar .theme-toggle {
+  margin-left: auto;
+}
+.sidebar-close {
+  display: none;
+}
+.member-portal .skip-link {
+  position: fixed;
+}
+@media (max-width: 768px) {
+  .route-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+  .brand-symbol {
+    width: 9rem;
+  }
+  .member-brandbar {
+    margin-bottom: 2rem;
+  }
+  .sidebar:not(.open) {
+    visibility: hidden;
+  }
+  .sidebar-close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: 1rem 1rem 0 auto;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated-1);
+    color: var(--text-primary);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active:not(:disabled),
+  .public-button:active {
+    transform: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg: var(--bg-elevated-1);
+  }
+}
+@media (prefers-contrast: more) {
+  :root {
+    --glass-bg: var(--bg-elevated-1);
+    --border-default: var(--border-strong);
+  }
+}
+
+@media (max-width: 1024px) {
+  .sidebar:not(.open) {
+    visibility: hidden;
+  }
+  .sidebar-close {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: 1rem 1rem 0 auto;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated-1);
+    color: var(--text-primary);
+  }
+}
+.sidebar-overlay {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.sidebar-overlay:active {
+  transform: none;
 }
