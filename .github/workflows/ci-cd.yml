@@ -154,7 +154,7 @@ jobs:
       - name: Build shared
         run: pnpm --filter=@gym/shared build
 
-      - name: Run integration tests (Testcontainers: PostgreSQL + Redis)
+      - name: "Run integration tests (Testcontainers: PostgreSQL + Redis)"
         run: pnpm test:integration
         env:
           NODE_ENV: test
@@ -190,10 +190,10 @@ jobs:
         run: pnpm --filter=@gym/shared build
 
       - name: Build services
-        run: pnpm --filter='./services/*' build
+        run: pnpm --filter='./services/*' run build
 
       - name: Build frontend
-        run: pnpm --filter=frontend build
+        run: pnpm --filter=frontend run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
