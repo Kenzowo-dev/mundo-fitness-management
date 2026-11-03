@@ -71,7 +71,15 @@ export default function FormField({
       case 'textarea':
         return <Textarea {...commonProps} maxLength={maxLength} />
       default:
-        return <Input {...commonProps} type={type} autoComplete={autoComplete} maxLength={maxLength} />
+        return (
+          <Input
+            {...commonProps}
+            type={type}
+            autoComplete={autoComplete}
+            maxLength={maxLength}
+            aria-required={required ? true : undefined}
+          />
+        )
     }
   }
 

@@ -27,6 +27,22 @@ const DashboardOverview = lazy(
 );
 const MemberPortal = lazy(() => import("./pages/member/MemberPortal.tsx"));
 import "./App.css";
+import { useEffect } from "react";
+
+// Título de documento por ruta (WCAG 2.4.2 — Título de página).
+const pageTitles: Record<string, string> = {
+  "/": "Mundo Fitness · Inicio",
+  "/login": "Mundo Fitness · Iniciar sesión",
+  "/registro": "Mundo Fitness · Crear cuenta de socio",
+  "/portal": "Mundo Fitness · Portal del socio",
+  "/sin-acceso": "Mundo Fitness · Acceso no disponible",
+  "/dashboard": "Mundo Fitness · Dashboard",
+  "/clientes": "Mundo Fitness · Socios",
+  "/membresias": "Mundo Fitness · Membresías",
+  "/pagos": "Mundo Fitness · Pagos",
+  "/informes": "Mundo Fitness · Informes",
+  "/configuracion": "Mundo Fitness · Configuración",
+};
 
 function homeForRole(role?: string) {
   if (role === "member") return "/portal";
@@ -123,6 +139,9 @@ function App() {
   const { pathname } = useLocation();
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
+  }, [pathname]);
+  useEffect(() => {
+    document.title = pageTitles[pathname] ?? pageTitles["/"];
   }, [pathname]);
   return (
     <Suspense fallback={<RouteSkeleton />}>
