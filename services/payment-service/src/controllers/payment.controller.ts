@@ -35,13 +35,13 @@ const createPaymentSchema = z.object({
   paymentMethod: z.enum(['cash', 'bank_transfer', 'digital_wallet', 'credit_card', 'debit_card']),
   transactionId: z.string().trim().max(100).optional(),
   description: z.string().trim().max(200).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 
 });
 
 const updatePaymentSchema = z.object({
   status: z.enum(['pending', 'completed', 'failed', 'cancelled']).optional(),
-  gatewayResponse: z.record(z.unknown()).optional(),
+  gatewayResponse: z.record(z.string(), z.unknown()).optional(),
   failureReason: z.string().trim().max(200).optional(),
 
 });
