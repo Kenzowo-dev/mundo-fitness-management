@@ -87,7 +87,7 @@ async function createAccount(firstName = 'Integration') {
   const email = uniqueEmail();
   const response = await request(authApp)
     .post('/api/auth/register')
-    .send({ email, password: 'SecurePass123!', firstName, lastName: 'Member' })
+    .send({ email, password: 'SecurePass123!', firstName, lastName: 'Member', phone: '999123456' })
     .expect(201);
   return { email, user: response.body.user, tokens: response.body.tokens };
 }

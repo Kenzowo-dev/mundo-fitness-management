@@ -286,7 +286,7 @@ jobs:
 
       - name: Validate compose files
         run: |
-          docker compose --env-file .env.docker -f compose.yaml config --quiet
-          docker compose --env-file .env.docker -f compose.yaml -f compose.local.yaml config --quiet
+          docker compose --env-file .env.docker.example -f compose.yaml config --quiet
+          docker compose --env-file .env.docker.example -f compose.yaml -f compose.local.yaml config --quiet
         env:
           COMPOSE_IGNORE_ORPHANS: 1
