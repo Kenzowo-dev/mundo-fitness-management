@@ -1,11 +1,6 @@
 services:
   postgres:
-    image: gym-postgres:17-alpine
-    build:
-      context: .
-      dockerfile: shared/database/Dockerfile
-      args:
-        DB_SEED_FILE: ${DB_SEED_FILE:-seed.sql}
+    image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gym_db}
@@ -38,9 +33,7 @@ services:
       retries: 5
 
   auth-service:
-    build:
-      context: .
-      dockerfile: services/auth-service/Dockerfile
+    image: ghcr.io/kenzowo-dev/mundo-fitness-management/auth-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -74,9 +67,7 @@ services:
       retries: 3
 
   client-service:
-    build:
-      context: .
-      dockerfile: services/client-service/Dockerfile
+    image: ghcr.io/kenzowo-dev/mundo-fitness-management/client-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -108,9 +99,7 @@ services:
       retries: 3
 
   membership-service:
-    build:
-      context: .
-      dockerfile: services/membership-service/Dockerfile
+    image: ghcr.io/kenzowo-dev/mundo-fitness-management/membership-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -142,9 +131,7 @@ services:
       retries: 3
 
   payment-service:
-    build:
-      context: .
-      dockerfile: services/payment-service/Dockerfile
+    image: ghcr.io/kenzowo-dev/mundo-fitness-management/payment-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-development}
@@ -176,9 +163,7 @@ services:
       retries: 3
 
   api-gateway:
-    build:
-      context: .
-      dockerfile: services/api-gateway/Dockerfile
+    image: ghcr.io/kenzowo-dev/mundo-fitness-management/api-gateway:${IMAGE_TAG:-latest}
     restart: unless-stopped
     networks:
       - default
@@ -221,9 +206,7 @@ services:
       retries: 3
 
   frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
+    image: ghcr.io/kenzowo-dev/mundo-fitness-management/frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     networks:
       - default
