@@ -55,6 +55,17 @@ function serializeClientUpdate(values: Partial<Client>): Partial<Client> {
   return result as Partial<Client>
 }
 
+/**
+ * Quita el error de un campo eliminando la clave (no dejándola en undefined),
+ * para que el aviso general "Revisa los datos" desaparezca cuando ya no quedan errores.
+ */
+function withoutError(errors: ClientFormErrors, field: keyof ClientFormValues): ClientFormErrors {
+  if (!(field in errors)) return errors
+  const rest = { ...errors }
+  delete rest[field as keyof ClientFormErrors]
+  return rest
+}
+
 function validateClientForm(values: ClientFormValues): ClientFormErrors {
   const errors: ClientFormErrors = {}
 
@@ -90,8 +101,10 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
   }
 
   // Correo electrónico
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.email = 'Ingresa un correo electrónico válido.'
+  if (email && !email.includes('@')) {
+    errors.email = 'El correo electrónico debe incluir el símbolo @.'
+  } else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = 'Ingresa un correo electrónico válido (ej: socio@correo.com).'
   }
 
   // Teléfono celular peruano: 9 dígitos y comienza con 9
@@ -274,12 +287,12 @@ export default function ClientsPage() {
 
   const updateCreateField = (field: keyof ClientFormValues, value: string) => {
     setCreateForm((current) => ({ ...current, [field]: value }))
-    setCreateErrors((current) => ({ ...current, [field]: undefined }))
+    setCreateErrors((current) => withoutError(current, field))
   }
 
   const updateEditField = (field: keyof ClientFormValues, value: string) => {
     setEditForm((current) => ({ ...current, [field]: value }))
-    setEditErrors((current) => ({ ...current, [field]: undefined }))
+    setEditErrors((current) => withoutError(current, field))
   }
 
   const closeEdit = () => {

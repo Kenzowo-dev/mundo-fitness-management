@@ -179,6 +179,65 @@ describe('ClientsPage - Create Client', () => {
       })
     })
 
+    it('filters letters out of DNI and phone, and digits out of names', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      const dni = dialog.getByPlaceholderText('Ej: 71234567')
+      const phone = dialog.getByPlaceholderText('987654321')
+      const firstName = dialog.getByPlaceholderText('Ej: Juan')
+      const lastName = dialog.getByPlaceholderText('Ej: Pérez')
+
+      fireEvent.change(dni, { target: { value: '71a23b4567999' } })
+      fireEvent.change(phone, { target: { value: '9x87-654 3210' } })
+      fireEvent.change(firstName, { target: { value: 'Juan2 José!' } })
+      fireEvent.change(lastName, { target: { value: 'Pérez-Ñúñez 3' } })
+
+      expect(dni).toHaveValue('71234567')
+      expect(phone).toHaveValue('987654321')
+      expect(firstName).toHaveValue('Juan José')
+      expect(lastName).toHaveValue('Pérez-Ñúñez ')
+    })
+
+    it('requires the @ symbol in the email', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '71234567' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Pérez' } })
+      fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: 'juancorreo.com' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
+      })
+
+      await waitFor(() => {
+        expect(within(getDialog()).getByText('El correo electrónico debe incluir el símbolo @.')).toBeInTheDocument()
+      })
+    })
+
+    it('hides the summary alert once every flagged field is edited', async () => {
+      renderPage()
+      await openCreateModal()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
+      })
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Corrige los campos señalados')
+      })
+
+      const dialog = within(getDialog())
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '7' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'J' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'P' } })
+
+      expect(screen.queryByText('Corrige los campos señalados para poder registrar al socio.')).not.toBeInTheDocument()
+    })
+
     it('shows error for missing Nombres', async () => {
       renderPage()
       await openCreateModal()

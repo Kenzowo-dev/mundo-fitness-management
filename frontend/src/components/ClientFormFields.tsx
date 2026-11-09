@@ -27,6 +27,33 @@ interface ClientFormFieldsProps {
   includeStatus?: boolean
 }
 
+const DIGIT_FIELDS: Partial<Record<ClientFormField, number>> = {
+  dni: 8,
+  phone: 9,
+  emergencyContactPhone: 9,
+}
+
+const NAME_FIELDS: ReadonlySet<ClientFormField> = new Set(['firstName', 'lastName', 'emergencyContactName'])
+
+/**
+ * Filtra lo que se escribe o pega en los campos restringidos:
+ * - DNI y teléfonos: solo dígitos, recortados a su longitud máxima.
+ * - Nombres y apellidos: solo letras (con tildes y ñ), espacios, apóstrofo y guion.
+ */
+function sanitizeFieldValue(field: ClientFormField, value: string): string {
+  const maxDigits = DIGIT_FIELDS[field]
+  if (maxDigits !== undefined) {
+    return value.replace(/\D/g, '').slice(0, maxDigits)
+  }
+  if (NAME_FIELDS.has(field)) {
+    return value.replace(/[^\p{L}\p{M} '’-]/gu, '')
+  }
+  if (field === 'email') {
+    return value.replace(/\s/g, '')
+  }
+  return value
+}
+
 export default function ClientFormFields({
   idPrefix,
   values,
@@ -52,7 +79,7 @@ export default function ClientFormFields({
       id={`${idPrefix}-${name === 'firstName' ? 'name' : name === 'lastName' ? 'lastname' : name}`}
       name={name}
       value={values[name] ?? ''}
-      onChange={(value) => onChange(name, value)}
+      onChange={(value) => onChange(name, sanitizeFieldValue(name, value))}
       required={name === 'dni' || name === 'firstName' || name === 'lastName'}
       placeholder={type === 'select' ? undefined : placeholder}
       error={errors[name]}
@@ -83,17 +110,17 @@ export default function ClientFormFields({
       <fieldset className="client-form-section">
         <legend>Datos principales</legend>
         <div className="client-form-grid">
-          {field('dni', 'DNI *', 'text', 'Ej: 71234567', {
+          {field('dni', 'DNI', 'text', 'Ej: 71234567', {
         maxLength: 8,
         inputMode: 'numeric',
         pattern: '[0-9]{8}',
       })}
 
-      {field('firstName', 'Nombres *', 'text', 'Ej: Juan', {
+      {field('firstName', 'Nombres', 'text', 'Ej: Juan', {
         maxLength: 80,
       })}
 
-      {field('lastName', 'Apellidos *', 'text', 'Ej: Pérez', {
+      {field('lastName', 'Apellidos', 'text', 'Ej: Pérez', {
         maxLength: 80,
       })}
 
