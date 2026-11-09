@@ -1,0 +1,345 @@
+
+.member-layout {
+  display: flex;
+  min-height: 100svh;
+  width: 100%;
+  background: var(--bg-app);
+  color: var(--text-primary);
+}
+
+/* SIDEBAR */
+
+.member-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 100;
+  width: 270px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated-1);
+  border-right: 1px solid var(--border-subtle);
+  transition: transform var(--transition-base);
+}
+
+.member-sidebar-brand {
+  min-height: 112px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.member-sidebar-brand .brand-symbol {
+  width: 10rem;
+}
+
+.member-sidebar-brand > span {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.member-sidebar-nav {
+  flex: 1;
+  padding: 1.5rem 0.85rem;
+  overflow-y: auto;
+}
+
+.member-sidebar-label {
+  margin: 0 0 0.75rem;
+  padding: 0 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.member-nav-link {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 0.3rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.member-nav-link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.member-nav-link.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-primary);
+}
+
+.member-sidebar-footer {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.member-sidebar-footer span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.member-sidebar-footer small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* MAIN */
+
+.member-main {
+  flex: 1;
+  min-width: 0;
+  margin-left: 270px;
+}
+
+/* HEADER */
+
+.member-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 88px;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(16px);
+}
+
+.member-header-left,
+.member-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.member-header-heading > span {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.member-header-heading h1 {
+  margin: 0.15rem 0 0;
+  font-size: 1.35rem;
+}
+
+.member-icon-button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.member-icon-button:hover {
+  background: var(--bg-hover);
+}
+
+.member-icon-button svg,
+.member-logout-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.member-menu-toggle {
+  display: none;
+}
+
+.member-user-button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.member-avatar {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-primary);
+  font-weight: 800;
+}
+
+.member-user-name {
+  font-size: 0.85rem;
+}
+
+.member-logout-button {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent-primary);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: background var(--transition-fast);
+}
+
+.member-logout-button:hover {
+  background: var(--accent-primary-hover);
+}
+
+.member-content {
+  width: 100%;
+  max-width: 1500px;
+  min-width: 0;
+  margin-inline: auto;
+  padding: clamp(1rem, 3vw, 2.5rem);
+}
+
+/* OVERLAY */
+
+.member-sidebar-overlay {
+  display: none;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 1100px) {
+  .member-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .member-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .member-main {
+    margin-left: 0;
+  }
+
+  .member-menu-toggle {
+    display: grid;
+  }
+
+  .member-sidebar-overlay.is-visible {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: block;
+    background: var(--scrim);
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .member-header {
+    min-height: 72px;
+    padding: 0.75rem 1rem;
+  }
+
+  .member-header-left,
+  .member-header-actions {
+    gap: 0.5rem;
+  }
+
+  .member-header-heading h1 {
+    font-size: 1.05rem;
+  }
+
+  .member-header-heading > span {
+    font-size: 0.55rem;
+  }
+
+  .member-user-name,
+  .member-logout-button span {
+    display: none;
+  }
+
+  .member-logout-button {
+    width: 44px;
+    padding: 0;
+  }
+
+  .member-user-button {
+    padding: 0.2rem;
+    border: 0;
+  }
+
+  .member-content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .member-header-actions {
+    gap: 0.35rem;
+  }
+
+  .member-icon-button,
+  .member-header-actions .theme-toggle,
+  .member-logout-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .member-header-heading h1 {
+    font-size: 0.95rem;
+  }
+}
+
+
+/* Fotografía del socio en la cabecera */
+
+.member-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.member-avatar-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}

@@ -1,0 +1,72 @@
+.member-progress {
+  scroll-margin-top: 24px;
+}
+
+.member-progress-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.member-progress-toolbar select {
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  background: #18181b;
+  color: #fafafa;
+  font: inherit;
+}
+
+.member-progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.member-progress-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.member-progress-stats span {
+  font-size: 0.85rem;
+  color: #a1a1aa;
+}
+
+.member-progress-stats strong {
+  font-size: 1.25rem;
+  color: #f97316;
+}
+
+.member-progress-chart {
+  width: 100%;
+  overflow-x: auto;
+  color: #a1a1aa;
+}
+
+.member-progress-chart svg {
+  display: block;
+  width: 100%;
+  min-width: 420px;
+  height: auto;
+}
+
+.member-progress-caption {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #a1a1aa;
+}
+
+@media (max-width: 640px) {
+  .member-progress-stats {
+    grid-template-columns: 1fr;
+  }
+}

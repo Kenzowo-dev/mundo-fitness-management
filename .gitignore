@@ -74,3 +74,14 @@ pnpm-debug.log*
 # Artefactos locales de build/análisis
 .deploy-build-tmp/
 graphify-out/
+
+# Fotografías de perfil de los socios
+/storage/avatars/*
+!/storage/avatars/.gitkeep
+/services/client-service/storage/avatars/*
+!/services/client-service/storage/avatars/.gitkeep
+
+# Respaldos locales
+/compose.yaml.bak
+/frontend/src/pages/member/MemberPortal.tsx.bak
+/postgres-antiguo-backup.tar.gz

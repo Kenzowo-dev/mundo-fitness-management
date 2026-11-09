@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS clients (
     emergency_contact_phone VARCHAR(20),
     medical_conditions TEXT,
     notes TEXT,
+    avatar_url TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     joined_at DATE NOT NULL DEFAULT CURRENT_DATE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

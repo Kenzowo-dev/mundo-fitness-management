@@ -1,16 +1,15 @@
 import MembershipSummary, { type MembershipSummaryState } from '../../components/MembershipSummary';
-import Brand from "../../components/Brand";
-import ThemeToggle from "../../components/ThemeToggle";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { selectedPlanId } from "../../utils/planSelection";
 import { api } from "../../api/client";
 import { useAuth } from "../../context/useAuth";
 import {
   useCreateMembershipRenewalRequest,
   useMyMembershipRenewalRequests,
-  useUpdateOwnClientProfile,
+  useOwnMeasurements,
+  useOwnGoals,
 } from "../../hooks/useApi";
 import type {
   Client,
@@ -23,11 +22,6 @@ import Button from "../../components/Button";
 import FormField from "../../components/FormField";
 import Skeleton from "../../components/Skeleton";
 import "@/styles/dashboard/MemberPortal.css";
-
-type ContactDetails = Pick<
-  Client,
-  "phone" | "address" | "emergencyContactName" | "emergencyContactPhone"
->;
 
 function formatDate(value?: string) {
   if (!value) return "Sin fecha";
@@ -95,18 +89,8 @@ function PortalSection({
 }
 
 export default function MemberPortal() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const location = useLocation();
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState<ContactDetails>({
-    phone: "",
-    address: "",
-    emergencyContactName: "",
-    emergencyContactPhone: "",
-  });
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
   const [renewalPlanId, setRenewalPlanId] = useState(() =>
     selectedPlanId(location.search),
   );
@@ -121,7 +105,16 @@ export default function MemberPortal() {
     retry: false,
   });
   const clientId = clientQuery.data?.id;
-  const updateProfileMutation = useUpdateOwnClientProfile(user?.id);
+  const measurementsQuery = useOwnMeasurements();
+  const goalsQuery = useOwnGoals();
+
+const activeGoalsCount = (goalsQuery.data ?? []).filter(
+  (goal) => goal.status === "in_progress"
+).length;
+
+const completedGoalsCount = (goalsQuery.data ?? []).filter(
+  (goal) => goal.status === "achieved"
+).length;
   const membershipsQuery = useQuery<ClientMembership[]>({
     queryKey: ["member-portal", "memberships", clientId],
     queryFn: () => api.getClientMemberships(clientId!),
@@ -189,65 +182,24 @@ export default function MemberPortal() {
     }
   };
 
-  const beginProfileEdit = () => {
-    if (!clientQuery.data) return;
-    setProfileForm({
-      phone: clientQuery.data.phone ?? "",
-      address: clientQuery.data.address ?? "",
-      emergencyContactName: clientQuery.data.emergencyContactName ?? "",
-      emergencyContactPhone: clientQuery.data.emergencyContactPhone ?? "",
-    });
-    setProfileMessage(null);
-    setProfileError(null);
-    setIsEditingProfile(true);
-  };
-
-  const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setProfileError(null);
-    setProfileMessage(null);
-    try {
-      await updateProfileMutation.mutateAsync(profileForm);
-      setIsEditingProfile(false);
-      setProfileMessage("Tus datos de contacto se actualizaron.");
-    } catch {
-      setProfileError(
-        "No pudimos actualizar tus datos. Comprueba tu conexión e inténtalo de nuevo.",
-      );
-    }
-  };
-
   return (
-    <main className="member-portal" id="main-content">
-      <a href="#membership-heading" className="skip-link">
-        Saltar a mi membresía
-      </a>
-      <div className="member-brandbar">
-        <Brand />
-        <ThemeToggle />
-      </div>
-      <header className="member-portal-header">
-        <div>
-          <p className="member-eyebrow">MUNDO FITNESS · PORTAL DEL SOCIO</p>
-          <h1>Hola, {user?.firstName}</h1>
-          <p>
-            Hoy también cuenta. Tu membresía y tus próximos pasos, en un solo
-            lugar.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => {
-            logout();
-            navigate("/");
-          }}
-        >
-          Cerrar sesión
-        </Button>
-      </header>
+  <div className="member-portal">
+    <header className="member-portal-header">
+      <div>
+        <p className="member-eyebrow">
+          MUNDO FITNESS · PORTAL DEL SOCIO
+        </p>
 
-      {clientQuery.isLoading && (
+        <h1>Hola, {user?.firstName}</h1>
+
+        <p>
+          Hoy también cuenta. Tu membresía y tus próximos pasos,
+          en un solo lugar.
+        </p>
+      </div>
+    </header>
+
+    {clientQuery.isLoading && (
         <section
           className="member-card"
           aria-label="Cargando tu perfil"
@@ -276,143 +228,124 @@ export default function MemberPortal() {
         <>
           <MembershipSummary state={membershipSummary} />
 
-          <PortalSection
-            id="profile-heading"
-            title="Mis datos"
-            action={
-              !isEditingProfile && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={beginProfileEdit}
-                >
-                  Actualizar datos
-                </Button>
-              )
-            }
-          >
-            {profileMessage && (
-              <Alert
-                type="success"
-                message={profileMessage}
-                dismissible
-                onDismiss={() => setProfileMessage(null)}
-              />
+          <section className="member-card member-dashboard-summary">
+            <header className="member-section-header">
+              <h2>Mi resumen físico</h2>
+            </header>
+
+            {measurementsQuery.isLoading && (
+              <SectionSkeleton rows={2} />
             )}
-            {profileError && (
+
+            {measurementsQuery.isError && (
               <Alert
                 type="error"
-                message={profileError}
-                dismissible
-                onDismiss={() => setProfileError(null)}
+                message="No pudimos cargar tus mediciones."
               />
             )}
-            {isEditingProfile ? (
-              <form className="member-profile-form" onSubmit={saveProfile}>
-                <FormField
-                  id="member-phone"
-                  name="phone"
-                  label="Teléfono"
-                  type="tel"
-                  maxLength={20}
-                  value={profileForm.phone ?? ""}
-                  onChange={(phone) =>
-                    setProfileForm((current) => ({ ...current, phone }))
-                  }
-                  autoComplete="tel"
-                />
-                <FormField
-                  id="member-address"
-                  name="address"
-                  label="Dirección"
-                  value={profileForm.address ?? ""}
-                  onChange={(address) =>
-                    setProfileForm((current) => ({ ...current, address }))
-                  }
-                  autoComplete="street-address"
-                />
-                <FormField
-                  id="emergency-name"
-                  name="emergencyContactName"
-                  label="Nombre de contacto de emergencia"
-                  maxLength={100}
-                  value={profileForm.emergencyContactName ?? ""}
-                  onChange={(emergencyContactName) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      emergencyContactName,
-                    }))
-                  }
-                />
-                <FormField
-                  id="emergency-phone"
-                  name="emergencyContactPhone"
-                  label="Teléfono de contacto de emergencia"
-                  type="tel"
-                  maxLength={20}
-                  value={profileForm.emergencyContactPhone ?? ""}
-                  onChange={(emergencyContactPhone) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      emergencyContactPhone,
-                    }))
-                  }
-                />
-                <div className="member-profile-actions">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setIsEditingProfile(false)}
+
+            {measurementsQuery.isSuccess && (() => {
+              const measurements = measurementsQuery.data;
+              const weight = measurements.find(
+                (item) => item.weightKg != null
+              )?.weightKg;
+              const height = measurements.find(
+                (item) => item.heightCm != null
+              )?.heightCm;
+
+              const bmi =
+                weight != null && height != null && height > 0
+                  ? weight / (height / 100) ** 2
+                  : null;
+
+              return (
+                <div className="member-dashboard-stats">
+                  <Link
+                    to="perfil#measurements"
+                      className="member-dashboard-stat member-dashboard-stat-link"
                   >
-                    Cancelar
-                  </Button>
-                  <Button
-                    type="submit"
-                    loading={updateProfileMutation.isPending}
-                  >
-                    Guardar datos
-                  </Button>
+                <span>Peso registrado</span>
+                <strong>
+                  {weight != null ? `${weight} kg` : "Sin registrar"}
+                </strong>
+                  <small>Ver mis mediciones →</small>
+                  </Link>
+
+                <Link
+                  to="perfil#measurements"
+                  className="member-dashboard-stat member-dashboard-stat-link"
+                >
+                    <span>Altura registrada</span>
+                    <strong>
+                      {height != null ? `${height} cm` : "Sin registrar"}
+                    </strong>
+                  <small>Ver mis mediciones →</small>
+                </Link>
+
+                <Link
+                  to="perfil#measurements"
+                    className="member-dashboard-stat member-dashboard-stat-link"
+                >
+                  <span>Índice de masa corporal</span>
+                    <strong>
+                      {bmi != null ? bmi.toFixed(1) : "Sin datos"}
+                    </strong>
+                    <small>Ver mis mediciones →</small>
+                </Link>
                 </div>
-              </form>
-            ) : (
-              <dl className="member-details">
-                <div>
-                  <dt>Nombre</dt>
-                  <dd>
-                    {clientQuery.data.firstName} {clientQuery.data.lastName}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Correo</dt>
-                  <dd>{clientQuery.data.email || user?.email}</dd>
-                </div>
-                <div>
-                  <dt>Documento</dt>
-                  <dd>{clientQuery.data.dni}</dd>
-                </div>
-                <div>
-                  <dt>Teléfono</dt>
-                  <dd>{clientQuery.data.phone || "No registrado"}</dd>
-                </div>
-                <div>
-                  <dt>Dirección</dt>
-                  <dd>{clientQuery.data.address || "No registrada"}</dd>
-                </div>
-                <div>
-                  <dt>Contacto de emergencia</dt>
-                  <dd>
-                    {clientQuery.data.emergencyContactName || "No registrado"}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Teléfono de emergencia</dt>
-                  <dd>
-                    {clientQuery.data.emergencyContactPhone || "No registrado"}
-                  </dd>
-                </div>
-              </dl>
-            )}
-          </PortalSection>
+              );
+            })()}
+          </section>
+
+          <PortalSection
+  id="goals-heading"
+  title="Mis objetivos fitness"
+  action={
+    <Link to="perfil#goals" className="member-dashboard-section-link">
+      Ver objetivos →
+    </Link>
+  }
+>
+  {goalsQuery.isLoading && <SectionSkeleton rows={1} />}
+
+  {goalsQuery.isError && (
+    <Alert
+      type="error"
+      message="No pudimos cargar tus objetivos."
+    />
+  )}
+
+  {goalsQuery.isSuccess && (
+    <div className="member-dashboard-stats">
+      <Link
+        to="perfil#goals"
+        className="member-dashboard-stat member-dashboard-stat-link"
+      >
+        <span>Objetivos en progreso</span>
+        <strong>{activeGoalsCount}</strong>
+        <small>Gestionar mis objetivos →</small>
+      </Link>
+
+      <Link
+        to="perfil#goals"
+        className="member-dashboard-stat member-dashboard-stat-link"
+      >
+        <span>Objetivos completados</span>
+        <strong>{completedGoalsCount}</strong>
+        <small>Ver mis logros →</small>
+      </Link>
+
+      <Link
+        to="perfil#progress"
+        className="member-dashboard-stat member-dashboard-stat-link"
+      >
+        <span>Mi progreso físico</span>
+        <strong>Ver gráficos</strong>
+        <small>Consultar evolución →</small>
+      </Link>
+    </div>
+  )}
+</PortalSection>
 
           <PortalSection id="history-heading" title="Historial de membresías">
             {membershipsQuery.isLoading && <SectionSkeleton rows={2} />}
@@ -625,6 +558,6 @@ export default function MemberPortal() {
           </PortalSection>
         </>
       )}
-    </main>
+     </div>
   );
 }

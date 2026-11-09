@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import type {
+  ClientMeasurement,
+  CreateOwnMeasurementInput,
+} from '../types/api';
+import type {
   User,
   Client,
   CreateClientData,
@@ -18,6 +22,9 @@ import type {
   ClientReports,
   MembershipReports,
   PaymentReports,
+  ClientGoal,
+  CreateOwnGoalInput,
+  UpdateOwnGoalInput,
 } from '../types/api';
 
 const QUERY_KEYS = {
@@ -217,6 +224,87 @@ export function useUpdateOwnClientProfile(userId?: number) {
     onSuccess: (client) => {
       if (userId === undefined) return;
       queryClient.setQueryData(['member-portal', 'client', userId], client);
+    },
+  });
+}
+
+export function useOwnMeasurements() {
+  return useQuery<ClientMeasurement[]>({
+    queryKey: ['member-portal', 'measurements'],
+    queryFn: () => api.getOwnMeasurements(20),
+  });
+}
+
+export function useAddOwnMeasurement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateOwnMeasurementInput) =>
+      api.addOwnMeasurement(data),
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['member-portal', 'measurements'],
+      });
+    },
+  });
+}
+
+// ==================== Objetivos del socio ====================
+
+export function useOwnGoals() {
+  return useQuery<ClientGoal[]>({
+    queryKey: ["member-portal", "goals"],
+    queryFn: () => api.getOwnGoals(),
+  });
+}
+
+export function useCreateOwnGoal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateOwnGoalInput) =>
+      api.createOwnGoal(data),
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["member-portal", "goals"],
+      });
+    },
+  });
+}
+
+export function useUpdateOwnGoal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: UpdateOwnGoalInput;
+    }) => api.updateOwnGoal(id, data),
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["member-portal", "goals"],
+      });
+    },
+  });
+}
+
+export function useDeleteOwnGoal() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) =>
+      api.deleteOwnGoal(id),
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["member-portal", "goals"],
+      });
     },
   });
 }

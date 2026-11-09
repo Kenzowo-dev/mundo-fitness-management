@@ -97,19 +97,25 @@ describe('MemberPortal', () => {
     expect(api.getClientMemberships).toHaveBeenCalledTimes(2);
   });
 
-  it('lets a member update contact fields from their own portal', async () => {
-    vi.spyOn(api, 'updateOwnClientProfile').mockResolvedValue({ ...memberClient, phone: '+51999999999' });
-    renderPortal();
+  it('shows the member dashboard without contact editing controls', async () => {
+  renderPortal();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Actualizar datos' }));
-    const phoneField = screen.getByLabelText('Teléfono', { exact: true });
-    fireEvent.change(phoneField, { target: { value: '+51999999999' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar datos' }));
+  expect(
+    await screen.findByRole('heading', { name: 'Mi resumen físico' })
+  ).toBeInTheDocument();
 
-    await waitFor(() => expect(api.updateOwnClientProfile).toHaveBeenCalledWith(42, expect.objectContaining({ phone: '+51999999999' })));
-    expect(await screen.findByRole('status')).toHaveTextContent('Tus datos de contacto se actualizaron.');
-    expect(screen.queryByLabelText('Documento')).not.toBeInTheDocument();
-  });
+  expect(
+    screen.getByRole('heading', { name: 'Mis objetivos fitness' })
+  ).toBeInTheDocument();
+
+  expect(
+    screen.queryByRole('button', { name: 'Actualizar datos' })
+  ).not.toBeInTheDocument();
+
+  expect(
+    screen.getByRole('link', { name: /Ver objetivos/i })
+  ).toHaveAttribute('href', '/perfil#goals');
+});
 
   it('submits a renewal request for the selected plan without activating a membership', async () => {
     vi.spyOn(api, 'getMembershipPlans').mockResolvedValue([{

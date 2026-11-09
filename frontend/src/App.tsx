@@ -26,6 +26,12 @@ const DashboardOverview = lazy(
   () => import("./pages/dashboard/DashboardOverview.tsx"),
 );
 const MemberPortal = lazy(() => import("./pages/member/MemberPortal.tsx"));
+const MemberProfilePage = lazy(
+  () => import("./pages/member/MemberProfilePage.tsx"),
+);
+const MemberLayout = lazy(
+  () => import("./components/member/MemberLayout.tsx"),
+);
 import "./App.css";
 import { useEffect } from "react";
 
@@ -99,12 +105,14 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MemberRoute() {
+function MemberRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAuthenticated } = useAuth();
+
   if (isLoading) return <RouteSkeleton />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
   return user?.role === "member" ? (
-    <MemberPortal />
+    <>{children}</>
   ) : (
     <Navigate to={homeForRole(user?.role)} replace />
   );
@@ -132,6 +140,26 @@ function AccessNotice() {
         </button>
       </section>
     </main>
+  );
+}
+
+function MemberPlaceholder({ title }: { title: string }) {
+  return (
+    <section
+      style={{
+        padding: "2rem",
+        background: "var(--bg-elevated-1)",
+        border: "1px solid var(--border-subtle)",
+        borderRadius: "var(--radius-xl)",
+      }}
+    >
+      <p className="member-eyebrow">PORTAL DEL SOCIO</p>
+      <h2>{title}</h2>
+      <p className="member-muted">
+        Esta sección está en preparación. Próximamente encontrarás aquí
+        toda la información y funcionalidades correspondientes.
+      </p>
+    </section>
   );
 }
 
@@ -183,7 +211,44 @@ function App() {
             />
           </>
         )}
-        <Route path="/portal" element={<MemberRoute />} />
+        <Route
+  path="/portal"
+  element={
+    <MemberRoute>
+      <MemberLayout />
+    </MemberRoute>
+  }
+>
+  <Route index element={<MemberPortal />} />
+  <Route
+    path="membresia"
+    element={<MemberPlaceholder title="Mi membresía" />}
+  />
+  <Route
+    path="pagos"
+    element={<MemberPlaceholder title="Pagos y compras" />}
+  />
+  <Route
+    path="comprobantes"
+    element={<MemberPlaceholder title="Mis comprobantes" />}
+  />
+  <Route
+    path="recomendador"
+    element={<MemberPlaceholder title="Recomendador fitness" />}
+  />
+  <Route
+    path="notificaciones"
+    element={<MemberPlaceholder title="Notificaciones" />}
+  />
+  <Route
+  path="perfil"
+  element={<MemberProfilePage />}
+  />
+  <Route
+    path="soporte"
+    element={<MemberPlaceholder title="Soporte" />}
+  />
+</Route>
         <Route path="/sin-acceso" element={<AccessNotice />} />
         <Route
           element={

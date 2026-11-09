@@ -1165,6 +1165,47 @@ docker compose --env-file .env.docker -f compose.yaml ps
 
 Espera a que estén saludables antes de abrir la página.
 
+## Portal del socio: perfil y seguimiento físico
+
+El módulo cliente de Mundo Fitness Management permite a los socios gestionar su información personal y realizar un seguimiento de su progreso físico desde una interfaz web.
+
+### Funcionalidades implementadas
+
+- **Inicio del socio:** muestra un resumen de información personal, mediciones físicas y objetivos, con accesos directos a las secciones correspondientes.
+- **Perfil personal:** permite consultar y actualizar los datos de contacto autorizados.
+- **Fotografía de perfil:** permite cargar y visualizar una imagen personalizada del socio.
+- **Mediciones corporales:** permite registrar peso, altura, porcentaje de grasa corporal, masa muscular y otras medidas físicas.
+- **Indicadores físicos:** presenta información como el índice de masa corporal (IMC), calculado a partir del peso y la altura registrados.
+- **Gráficos de progreso:** permite visualizar la evolución de las mediciones corporales.
+- **Objetivos fitness:** permite crear, consultar, editar, completar y eliminar objetivos personales.
+- **Navegación integrada:** conecta el inicio del socio con las secciones de mediciones, objetivos y progreso de su perfil.
+
+### Seguridad y control de acceso
+
+Las funcionalidades del perfil utilizan autenticación mediante JWT.
+
+Los objetivos personales se gestionan mediante rutas autenticadas asociadas al cliente que inició sesión. Las operaciones de actualización y eliminación comprueban la propiedad del objetivo directamente en las consultas SQL.
+
+### Integración técnica
+
+- **Frontend:** React, TypeScript, TanStack Query y componentes reutilizables.
+- **Backend:** Express y TypeScript mediante `client-service`.
+- **Base de datos:** PostgreSQL para almacenar los datos del perfil, mediciones y objetivos.
+- **Fotografías:** almacenamiento de archivos configurado mediante `AVATAR_STORAGE_DIR`.
+- **Migración:** `shared/database/migrations/004-client-avatar.sql`, relacionada con la fotografía del cliente.
+
+### Pruebas realizadas
+
+Se verificaron las funcionalidades del portal desde el navegador, incluyendo edición del perfil, fotografía, mediciones, gráficos, objetivos y navegación.
+
+También se ejecutaron correctamente las verificaciones de lint y compilación del frontend y del servicio de clientes.
+
+La suite de pruebas del servicio de clientes finalizó con **20 pruebas aprobadas**, incluyendo cinco pruebas de seguridad y propiedad de objetivos fitness.
+
+### Funcionalidades pendientes
+
+La restricción de funcionalidades según membresías gratuitas o premium, así como su integración con los procesos de pago, se desarrollará en una etapa posterior.
+
 ## Ejemplos de uso
 
 > **Nota:** Todos los endpoints usan el prefijo `/api` a través del API Gateway (puerto 3000). Los ejemplos requieren un token Bearer válido excepto registro y login.
@@ -1343,6 +1384,26 @@ curl -X PATCH http://localhost:3000/api/clients/goals/<goal_id> \
 curl -X DELETE http://localhost:3000/api/clients/goals/<goal_id> \
   -H "Authorization: Bearer <access_token>"
 ```
+
+### Objetivos propios del socio
+
+Los socios autenticados pueden administrar sus propios objetivos sin indicar manualmente el identificador de otro cliente.
+
+```text
+# Crear objetivo propio
+POST /api/clients/me/goals
+
+# Consultar objetivos propios
+GET /api/clients/me/goals
+
+# Actualizar objetivo propio
+PATCH /api/clients/me/goals/<goal_id>
+
+# Eliminar objetivo propio
+DELETE /api/clients/me/goals/<goal_id>
+```
+
+Estas operaciones requieren autenticación y verifican la pertenencia del objetivo al socio.
 
 ### Documentos de cliente
 
@@ -1678,7 +1739,7 @@ Endpoints públicos (no requieren autenticación):
 | Servicio | Ruta base | Endpoints principales |
 |---------|-----------|---------------|
 | Autenticación | `/api/auth` | `POST /register`, `POST /login`, `POST /refresh`, `POST /logout`, `POST /forgot-password`, `POST /reset-password`, `POST /change-password`, `GET /me`, `PATCH /me`, `GET /users`, `GET /users/:id`, `PATCH /users/:id`, `DELETE /users/:id`, `GET /roles` |
-| Clientes | `/api/clients` | `POST /`, `GET /`, `GET /dni/:dni`, `GET /user/:userId`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:clientId/measurements`, `GET /:clientId/measurements`, `GET /:clientId/measurements/latest`, `POST /:clientId/goals`, `GET /:clientId/goals`, `PATCH /goals/:id`, `DELETE /goals/:id`, `POST /:clientId/documents`, `GET /:clientId/documents`, `DELETE /documents/:id` |
+| Clientes | `/api/clients` | `POST /`, `GET /`, `GET /dni/:dni`, `GET /user/:userId`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:clientId/measurements`, `GET /:clientId/measurements`, `GET /:clientId/measurements/latest`, `POST /:clientId/goals`, `GET /:clientId/goals`, `PATCH /goals/:id`, `DELETE /goals/:id`, `POST /:clientId/documents`, `GET /:clientId/documents`, `DELETE /documents/:id` |, `POST /me/goals`, `GET /me/goals`, `PATCH /me/goals/:id`, `DELETE /me/goals/:id`
 | Membresías | `/api/memberships` | `GET /plans`, `GET /plans/:id`, `POST /plans`, `PATCH /plans/:id`, `DELETE /plans/:id`, `GET /expiring`, `GET /client/:clientId`, `POST /`, `GET /:id`, `PATCH /:id`, `POST /:id/cancel`, `POST /:id/renew`, `POST /visits/check-in`, `POST /visits/:visitId/check-out`, `GET /visits/client/:clientId`, `POST /freezes`, `GET /freezes/:membershipId` |
 | Pagos | `/api/payments` | `POST /`, `GET /`, `GET /transaction/:transactionId`, `GET /summary/:clientId`, `GET /:id`, `PATCH /:id`, `POST /invoices`, `GET /invoices`, `GET /invoices/number/:invoiceNumber`, `GET /invoices/:id`, `POST /invoices/:id/pay`, `POST /invoices/:id/cancel`, `POST /methods`, `GET /methods/:clientId`, `POST /methods/:clientId/:methodId/default`, `DELETE /methods/:clientId/:methodId`, `POST /refunds`, `POST /refunds/:refundId/process` |
 

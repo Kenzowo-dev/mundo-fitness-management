@@ -1,0 +1,297 @@
+
+/* ==========================================
+   MUNDO FITNESS - PERFIL FÍSICO DEL SOCIO
+   ========================================== */
+
+.member-physical {
+  display: grid;
+  gap: var(--space-6, 24px);
+  min-width: 0;
+}
+
+.member-physical__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.member-physical__heading h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+  letter-spacing: -0.03em;
+}
+
+.member-physical__subtitle {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* TARJETAS DE MÉTRICAS */
+
+.member-physical__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.member-physical__stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg, 16px);
+  background: var(--bg-elevated-2);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.member-physical__stat:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-primary);
+}
+
+.member-physical__stat-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.member-physical__stat-value {
+  color: var(--text-primary);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.member-physical__stat-unit {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* SECCIONES */
+
+.member-physical__section {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated-1);
+}
+
+.member-physical__section-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* MEDIDAS CORPORALES */
+
+.member-physical__measurements {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.member-physical__measurement {
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated-2);
+}
+
+.member-physical__measurement dt {
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.member-physical__measurement dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* FORMULARIO */
+
+.member-physical__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.member-physical__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.member-physical__field label {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.member-physical__field input,
+.member-physical__field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  color: var(--text-primary);
+  background: var(--bg-elevated-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.member-physical__field input::placeholder,
+.member-physical__field textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.member-physical__field input:focus,
+.member-physical__field textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.member-physical__field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.member-physical__field--full {
+  grid-column: 1 / -1;
+}
+
+.member-physical__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+/* HISTORIAL */
+
+.member-physical__history {
+  display: grid;
+  gap: 12px;
+}
+
+.member-physical__history-item {
+  padding: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated-2);
+}
+
+.member-physical__history-date {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.member-physical__history-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.member-physical__history-values div {
+  min-width: 0;
+}
+
+.member-physical__history-values dt {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.member-physical__history-values dd {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.member-physical__history-notes {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.member-physical__empty {
+  padding: 22px;
+  text-align: center;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .member-physical__measurements {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .member-physical__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .member-physical__form {
+    grid-template-columns: 1fr;
+  }
+
+  .member-physical__measurements,
+  .member-physical__history-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .member-physical__actions {
+    justify-content: stretch;
+  }
+
+  .member-physical__actions .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .member-physical__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .member-physical__history-values {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .member-physical__stat,
+  .member-physical__field input,
+  .member-physical__field textarea {
+    transition: none;
+  }
+}

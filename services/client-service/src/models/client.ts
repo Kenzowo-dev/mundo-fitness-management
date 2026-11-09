@@ -13,6 +13,7 @@ export interface Client {
   emergencyContactPhone?: string;
   medicalConditions?: string;
   notes?: string;
+  avatarUrl?: string;
   status: string;
   joinedAt: Date;
   createdAt: Date;

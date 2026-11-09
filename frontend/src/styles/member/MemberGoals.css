@@ -1,0 +1,140 @@
+.member-goals {
+  scroll-margin-top: 24px;
+}
+
+.member-goals-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.member-goals-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.member-goals-summary strong {
+  font-size: 1.8rem;
+  color: #f97316;
+}
+
+.member-goals-summary span {
+  font-size: 0.85rem;
+  color: #a1a1aa;
+}
+
+.member-goals-form,
+.member-goal-item {
+  padding: 20px;
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.member-goals-form h3,
+.member-goal-item h3 {
+  margin: 0 0 16px;
+}
+
+.member-goals-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.member-goals-form select,
+.member-goals-form input,
+.member-goals-form textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9px;
+  background: #18181b;
+  color: #fafafa;
+  font: inherit;
+}
+
+.member-goals-form textarea {
+  min-height: 85px;
+  resize: vertical;
+}
+
+.member-goals-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.member-goals-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.member-goals-list {
+  display: grid;
+  gap: 12px;
+}
+
+.member-goal-item p {
+  color: #a1a1aa;
+}
+
+.member-goal-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.member-goal-status {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: rgba(249, 115, 22, 0.12);
+  color: #fb923c;
+}
+
+.member-goal-status--achieved {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+
+.member-goal-status--cancelled {
+  background: rgba(161, 161, 170, 0.12);
+  color: #a1a1aa;
+}
+
+.member-goal-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.member-goal-date {
+  font-size: 0.85rem;
+}
+
+.member-goals-empty {
+  padding: 25px;
+  text-align: center;
+  color: #a1a1aa;
+}
+
+@media (max-width: 640px) {
+  .member-goals-summary,
+  .member-goals-fields {
+    grid-template-columns: 1fr;
+  }
+}

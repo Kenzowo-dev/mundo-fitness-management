@@ -22,6 +22,11 @@ import type {
   PaymentReports,
   UpdateMembershipPlanInput,
   MembershipRenewalRequest,
+  ClientMeasurement,
+  CreateOwnMeasurementInput,
+  ClientGoal,
+  CreateOwnGoalInput,
+  UpdateOwnGoalInput,
 } from '../types/api.js';
 
 // URL base de la API obtenida de las variables de entorno de Vite
@@ -167,6 +172,53 @@ class ApiClient {
 
     return response.json();
   }
+
+
+  private async requestAvatar(
+    method: "GET" | "POST" | "DELETE",
+    file?: File,
+  ): Promise<Response> {
+    const endpoint = "/api/clients/me/avatar";
+
+    const send = () => {
+      const headers = new Headers();
+
+      if (this.accessToken) {
+        headers.set("Authorization", `Bearer ${this.accessToken}`);
+      }
+
+      let body: FormData | undefined;
+
+      if (file) {
+        body = new FormData();
+        body.append("avatar", file);
+      }
+
+      return this.fetchResponse(`${API_BASE_URL}${endpoint}`, {
+        method,
+        headers,
+        body,
+        cache: "no-store",
+      });
+    };
+
+    let response = await send();
+
+    if (response.status === 401 && this.refreshToken) {
+      const refreshed = await this.refreshAccessToken();
+
+      if (refreshed) {
+        response = await send();
+      }
+    }
+
+    if (!response.ok) {
+      await this.throwApiError(response);
+    }
+
+    return response;
+  }
+
 
   /**
    * Renueva el token de acceso usando el token de refresco.
@@ -401,6 +453,103 @@ class ApiClient {
     data: Partial<Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>>,
   ) {
     return this.request<Client>(`/api/clients/user/${userId}`, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+
+  // ==================== Fotografía del socio ====================
+
+  async uploadOwnAvatar(file: File): Promise<void> {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      throw new Error("Selecciona una imagen JPG, PNG o WebP.");
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      throw new Error("La fotografía no puede superar los 2 MB.");
+    }
+
+    await this.requestAvatar("POST", file);
+  }
+
+  async getOwnAvatar(): Promise<Blob | null> {
+    try {
+      const response = await this.requestAvatar("GET");
+      return await response.blob();
+    } catch (error) {
+      // No tener fotografía es un estado normal.
+      // No ocultamos errores de autenticación o conexión.
+      if (error instanceof Error && error.message === API_ERROR_MESSAGES[404]) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  async deleteOwnAvatar(): Promise<void> {
+    await this.requestAvatar("DELETE");
+  }
+
+
+  // ==================== Mediciones del socio ====================
+
+async getOwnMeasurements(limit = 20): Promise<ClientMeasurement[]> {
+  return this.request<ClientMeasurement[]>(
+    `/api/clients/me/measurements?limit=${limit}`
+  );
+}
+
+async addOwnMeasurement(
+  data: CreateOwnMeasurementInput
+): Promise<ClientMeasurement> {
+  return this.request<ClientMeasurement>(
+    '/api/clients/me/measurements',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }
+  );
+}
+
+  // ==================== Objetivos del socio ====================
+
+  async getOwnGoals(): Promise<ClientGoal[]> {
+    return this.request<ClientGoal[]>(
+      "/api/clients/me/goals"
+    );
+  }
+
+  async createOwnGoal(
+    data: CreateOwnGoalInput
+  ): Promise<ClientGoal> {
+    return this.request<ClientGoal>(
+      "/api/clients/me/goals",
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async updateOwnGoal(
+    id: number,
+    data: UpdateOwnGoalInput
+  ): Promise<ClientGoal> {
+    return this.request<ClientGoal>(
+      `/api/clients/me/goals/${id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }
+    );
+  }
+
+  async deleteOwnGoal(id: number): Promise<void> {
+    return this.request<void>(
+      `/api/clients/me/goals/${id}`,
+      {
+        method: "DELETE",
+      }
+    );
   }
 
   /**
