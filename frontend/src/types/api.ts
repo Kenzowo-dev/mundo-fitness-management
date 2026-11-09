@@ -261,3 +261,73 @@ export interface PaymentSummary {
   totalOverdue: number;
   currency: string;
 }
+
+export interface ClientMeasurement {
+  id: number;
+  clientId: number;
+  weightKg?: number;
+  heightCm?: number;
+  bodyFatPercentage?: number;
+  muscleMassKg?: number;
+  chestCm?: number;
+  waistCm?: number;
+  hipsCm?: number;
+  bicepCm?: number;
+  thighCm?: number;
+  measuredAt: string;
+  notes?: string;
+}
+
+export type CreateOwnMeasurementInput = Partial<
+  Pick<
+    ClientMeasurement,
+    | 'weightKg'
+    | 'heightCm'
+    | 'bodyFatPercentage'
+    | 'muscleMassKg'
+    | 'chestCm'
+    | 'waistCm'
+    | 'hipsCm'
+    | 'bicepCm'
+    | 'thighCm'
+    | 'notes'
+  >
+>;
+
+export type ClientGoalStatus =
+  | "in_progress"
+  | "achieved"
+  | "cancelled";
+
+export interface ClientGoal {
+  id: number;
+  clientId: number;
+  goalType: string;
+  description?: string;
+  targetValue?: number;
+  currentValue?: number;
+  unit?: string;
+  targetDate?: string;
+  achievedAt?: string;
+  status: ClientGoalStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateOwnGoalInput {
+  goalType: string;
+  description?: string;
+  targetValue?: number;
+  currentValue?: number;
+  unit?: string;
+  targetDate?: string;
+}
+
+export interface UpdateOwnGoalInput {
+  description?: string;
+  targetValue?: number;
+  currentValue?: number;
+  unit?: string;
+  targetDate?: string;
+  status?: ClientGoalStatus;
+}

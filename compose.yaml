@@ -69,7 +69,10 @@ services:
   client-service:
     image: ghcr.io/kenzowo-dev/mundo-fitness-management/client-service:${IMAGE_TAG:-latest}
     restart: unless-stopped
+    volumes:
+      - ./storage/avatars:/app/storage/avatars
     environment:
+      AVATAR_STORAGE_DIR: /app/storage/avatars
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3002
       POSTGRES_HOST: postgres

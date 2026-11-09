@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { z } from 'zod';
+
 import {
   createClient,
   getClientById,
@@ -21,9 +23,11 @@ import {
   getClientDocuments,
   deleteDocument,
 } from '../services/client.service.js';
+
 import {
   ValidationError,
   NotFoundError,
+  AuthenticationError,
 } from '@gym/shared/errors/index.js';
 
 const createClientSchema = z.object({
@@ -81,6 +85,20 @@ const measurementSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Validación de mediciones registradas por el propio socio.
+// El clientId se obtiene de la sesión, nunca del formulario.
+const ownMeasurementSchema = measurementSchema
+  .omit({ clientId: true })
+  .refine(
+    (data) =>
+      Object.values(data).some(
+        (value) => value !== undefined && value !== ''
+      ),
+    {
+      message: 'Debes proporcionar al menos una medición.',
+    }
+  );
+
 const goalSchema = z.object({
   clientId: z.number().int().positive(),
   goalType: z.string().min(1).max(50),
@@ -89,6 +107,10 @@ const goalSchema = z.object({
   currentValue: z.number().optional(),
   unit: z.string().max(20).optional(),
   targetDate: z.string().date().optional(),
+});
+
+const ownGoalSchema = goalSchema.omit({
+  clientId: true,
 });
 
 const updateGoalSchema = z.object({
@@ -265,6 +287,180 @@ export async function getLatestMeasurementController(req: Request, res: Response
   }
 }
 
+// Registrar una medición del socio autenticado
+export async function addOwnMeasurementController(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const userId = Number(req.user?.sub);
+
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      throw new AuthenticationError('Usuario no autenticado');
+    }
+
+    const client = await getClientByUserId(userId);
+
+    if (!client) {
+      throw new NotFoundError('Client', userId);
+    }
+
+    const measurement = await addMeasurement({
+      ...req.body,
+      clientId: client.id,
+    });
+
+    res.status(201).json(measurement);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Consultar el historial del socio autenticado
+export async function getOwnMeasurementsController(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const userId = Number(req.user?.sub);
+
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      throw new AuthenticationError('Usuario no autenticado');
+    }
+
+    const client = await getClientByUserId(userId);
+
+    if (!client) {
+      throw new NotFoundError('Client', userId);
+    }
+
+    const requestedLimit = Number(req.query.limit ?? 10);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(100, Math.trunc(requestedLimit)))
+      : 10;
+
+    const measurements = await getClientMeasurements(client.id, limit);
+
+    res.json(measurements);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getAuthenticatedClient(req: AuthenticatedRequest) {
+  const userId = Number(req.user?.sub);
+
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    throw new AuthenticationError("Usuario no autenticado");
+  }
+
+  const client = await getClientByUserId(userId);
+
+  if (!client) {
+    throw new NotFoundError("Client", userId);
+  }
+
+  return client;
+}
+
+async function getOwnedGoal(req: AuthenticatedRequest, goalId: number) {
+  const client = await getAuthenticatedClient(req);
+  const goals = await getClientGoals(client.id);
+  const goal = goals.find((item) => item.id === goalId);
+
+  if (!goal) {
+    throw new NotFoundError("Goal", goalId);
+  }
+
+  return goal;
+}
+
+export async function createOwnGoalController(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const client = await getAuthenticatedClient(req);
+
+    const goal = await createGoal({
+      ...req.body,
+      clientId: client.id,
+    });
+
+    res.status(201).json(goal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getOwnGoalsController(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const client = await getAuthenticatedClient(req);
+    const goals = await getClientGoals(client.id);
+
+    res.json(goals);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateOwnGoalController(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const goalId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(goalId) || goalId <= 0) {
+      res.status(400).json({ message: "ID de objetivo inválido" });
+      return;
+    }
+
+    const client = await getAuthenticatedClient(req);
+
+    const goal = await updateGoal(
+      goalId,
+      req.body,
+      client.id
+    );
+
+    res.json(goal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteOwnGoalController(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const goalId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(goalId) || goalId <= 0) {
+      res.status(400).json({ message: "ID de objetivo inválido" });
+      return;
+    }
+
+    await getOwnedGoal(req, goalId);
+
+    await deleteGoal(goalId);
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function createGoalController(req: Request, res: Response, next: NextFunction) {
   try {
     const goal = await createGoal(req.body);
@@ -345,6 +541,8 @@ export const createClientValidation = validate(createClientSchema);
 export const updateClientValidation = validate(updateClientSchema);
 export const updateOwnClientValidation = validate(updateOwnClientSchema);
 export const measurementValidation = validate(measurementSchema);
+export const ownMeasurementValidation = validate(ownMeasurementSchema);
 export const goalValidation = validate(goalSchema);
 export const updateGoalValidation = validate(updateGoalSchema);
 export const documentValidation = validate(documentSchema);
+export const ownGoalValidation = validate(ownGoalSchema);

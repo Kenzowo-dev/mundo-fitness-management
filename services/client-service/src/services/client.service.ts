@@ -18,6 +18,7 @@ import {
   ConflictError,
 } from '@gym/shared/errors/index.js';
 
+
 export interface ClientRow {
   id: number;
   user_id: number | null;
@@ -33,6 +34,7 @@ export interface ClientRow {
   emergency_contact_phone: string | null;
   medical_conditions: string | null;
   notes: string | null;
+  avatar_url: string | null;
   status: string;
   joined_at: Date;
   created_at: Date;
@@ -108,11 +110,13 @@ export function mapRowToClient(row: ClientRow): Client {
     emergencyContactPhone: row.emergency_contact_phone ?? undefined,
     medicalConditions: row.medical_conditions ?? undefined,
     notes: row.notes ?? undefined,
+    avatarUrl: row.avatar_url ?? undefined,
     status: row.status,
     joinedAt: new Date(row.joined_at),
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),
   };
+
 }
 
 export function mapRowToMeasurement(row: MeasurementRow): ClientMeasurement {
@@ -466,57 +470,101 @@ export async function getClientGoals(clientId: number): Promise<ClientGoal[]> {
   return result.rows.map(mapRowToGoal);
 }
 
-export async function updateGoal(id: number, data: UpdateGoalData): Promise<ClientGoal> {
+export async function updateGoal(
+  id: number,
+  data: UpdateGoalData,
+  clientId?: number
+): Promise<ClientGoal> {
   const fields: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
 
   const fieldMap: Record<string, string> = {
-    description: 'description',
-    targetValue: 'target_value',
-    currentValue: 'current_value',
-    unit: 'unit',
-    targetDate: 'target_date',
-    status: 'status',
+    description: "description",
+    targetValue: "target_value",
+    currentValue: "current_value",
+    unit: "unit",
+    targetDate: "target_date",
+    status: "status",
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
     const value = data[key as keyof UpdateGoalData];
+
     if (value !== undefined) {
       fields.push(`${dbField} = $${paramIndex++}`);
       values.push(value);
     }
   }
 
-  if (data.status === 'achieved' || (data.currentValue !== undefined && data.targetValue !== undefined && data.currentValue >= data.targetValue)) {
-    fields.push(`achieved_at = NOW()`);
+  // El estado "achieved" se establece explícitamente.
+  // No asumimos que aumentar el valor siempre significa cumplir la meta.
+  if (data.status === "achieved") {
+    fields.push("achieved_at = NOW()");
+  } else if (
+    data.status === "in_progress" ||
+    data.status === "cancelled"
+  ) {
+    fields.push("achieved_at = NULL");
   }
 
+  const ownershipClause =
+    clientId === undefined
+      ? ""
+      : ` AND client_id = $${paramIndex + 1}`;
+
   if (fields.length === 0) {
-    const result = await query<GoalRow>('SELECT * FROM client_goals WHERE id = $1', [id]);
-    if (result.rows.length === 0) throw new NotFoundError('Goal', id);
+    const params =
+      clientId === undefined ? [id] : [id, clientId];
+
+    const result = await query<GoalRow>(
+      `SELECT * FROM client_goals
+       WHERE id = $1${clientId === undefined ? "" : " AND client_id = $2"}`,
+      params
+    );
+
+    if (result.rows.length === 0) {
+      throw new NotFoundError("Goal", id);
+    }
+
     return mapRowToGoal(result.rows[0]);
   }
 
-  fields.push(`updated_at = NOW()`);
+  fields.push("updated_at = NOW()");
   values.push(id);
 
+  if (clientId !== undefined) {
+    values.push(clientId);
+  }
+
   const result = await query<GoalRow>(
-    `UPDATE client_goals SET ${fields.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+    `UPDATE client_goals
+     SET ${fields.join(", ")}
+     WHERE id = $${paramIndex}${ownershipClause}
+     RETURNING *`,
     values
   );
 
   if (result.rows.length === 0) {
-    throw new NotFoundError('Goal', id);
+    throw new NotFoundError("Goal", id);
   }
 
   return mapRowToGoal(result.rows[0]);
 }
 
-export async function deleteGoal(id: number): Promise<void> {
-  const result = await query('DELETE FROM client_goals WHERE id = $1', [id]);
+export async function deleteGoal(
+  id: number,
+  clientId?: number
+): Promise<void> {
+  const result = await query(
+    clientId === undefined
+      ? "DELETE FROM client_goals WHERE id = $1"
+      : "DELETE FROM client_goals WHERE id = $1 AND client_id = $2",
+    clientId === undefined ? [id] : [id, clientId]
+  );
+
   if (result.rowCount === 0) {
-    throw new NotFoundError('Goal', id);
+    throw new NotFoundError("Goal", id);
   }
 }
 
