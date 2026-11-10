@@ -21,11 +21,23 @@ La web tendrá una pausa hasta que termine el primer despliegue. El puerto 80 qu
 
 - Tipo: **Docker Compose**. No selecciones **Stack**.
 - Repositorio: `https://github.com/Kenzowo-dev/mundo-fitness-management.git`
-- Rama: `feature/mundo-fitness-ui-redesign`
+- Rama: `main`
 - Ruta del archivo Compose: `./compose.yaml`
 - Dominio: `gym.kenzowo.dev`, servicio `frontend`, puerto `5173`.
 - Desactiva HTTPS y Let's Encrypt en Dokploy. Cloudflare termina HTTPS.
 - En Cloudflare Tunnel, el servicio de esta ruta debe ser `http://localhost:80`.
+
+## Flujo de despliegue
+
+GitHub Actions construye las seis imágenes de los servicios y las publica en GHCR con las etiquetas `latest` y el SHA del commit. El job `Deploy production on Dokploy` llama al webhook de despliegue **después** de publicar todas las imágenes, para evitar que Dokploy arranque una revisión con imágenes anteriores.
+
+1. En Dokploy, confirma que el origen Git use `main` y que el Compose sea `./compose.yaml`.
+2. En **Deployments**, copia el webhook de despliegue de este Compose.
+3. En GitHub, abre **Settings → Secrets and variables → Actions** y crea el secreto `DOKPLOY_DEPLOY_WEBHOOK` con esa URL.
+4. Desactiva el auto deploy directo por cambios Git en Dokploy y cualquier webhook de GitHub que lo dispare antes que Actions. El workflow de Actions es quien ordena el despliegue al terminar la publicación de imágenes.
+5. Verifica que el registro GHCR esté configurado en Dokploy si los paquetes son privados.
+
+Los merges a `main` activan este flujo una vez que pasan las comprobaciones requeridas. `workflow_dispatch` también reconstruye y despliega la revisión seleccionada, pero debe ejecutarse sobre `main`. El Compose consume `:latest`; las etiquetas SHA quedan disponibles para rastrear el artefacto publicado.
 
 ## Variables de entorno
 
