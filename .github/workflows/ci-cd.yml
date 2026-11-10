@@ -296,22 +296,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-production:
-    name: Deploy production on Dokploy
-    runs-on: ubuntu-latest
-    needs: docker-images
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    steps:
-      - name: Trigger Dokploy deployment
-        env:
-          DOKPLOY_DEPLOY_WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
-        run: |
-          if [[ -z "$DOKPLOY_DEPLOY_WEBHOOK" ]]; then
-            echo "::error::Missing DOKPLOY_DEPLOY_WEBHOOK repository secret"
-            exit 1
-          fi
-          curl --fail --silent --show-error --request POST "$DOKPLOY_DEPLOY_WEBHOOK"
-
   validate-compose:
     name: Validate Docker Compose
     runs-on: ubuntu-latest
