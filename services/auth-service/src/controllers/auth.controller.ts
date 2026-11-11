@@ -13,6 +13,8 @@ import {
   deleteUser,
   listUsers,
   getRoles,
+  changeUserRole,
+  ASSIGNABLE_ROLES,
 } from '../services/auth.service.js';
 import {
   ValidationError,
@@ -79,6 +81,15 @@ const updateUserSchema = z.object({
   gender: z.string().max(20).optional(),
   role: z.enum(['member', 'receptionist', 'admin']).optional(),
   isActive: z.boolean().optional(),
+});
+
+/** `?ids=3,7,12` → [3, 7, 12]. Máximo 100 ids, enteros positivos. */
+const idsFilterSchema = z.object({
+  ids: z
+    .string()
+    .optional()
+    .transform((value) => (value ? value.split(',').map((id) => Number(id.trim())) : undefined))
+    .pipe(z.array(z.number().int().positive()).max(100).optional()),
 });
 
 const paginationSchema = z.object({
@@ -212,6 +223,27 @@ export async function updateUserController(req: Request, res: Response, next: Ne
   }
 }
 
+const changeRoleSchema = z.object({
+  role: z.enum(ASSIGNABLE_ROLES),
+});
+
+export const changeRoleValidation = validate(changeRoleSchema);
+
+/** PATCH /users/:id/role — solo admin. Cambia una cuenta entre socio y recepcionista. */
+export async function changeUserRoleController(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  try {
+    const targetUserId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+    if (!Number.isSafeInteger(targetUserId) || targetUserId <= 0) {
+      throw new ValidationError('ID de usuario inválido');
+    }
+    const actorId = Number(req.user?.sub);
+    const user = await changeUserRole(actorId, targetUserId, req.body.role);
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function deleteUserController(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
@@ -225,7 +257,11 @@ export async function deleteUserController(req: Request, res: Response, next: Ne
 export async function listUsersController(req: Request, res: Response, next: NextFunction) {
   try {
     const { page, limit } = paginationSchema.parse(req.query);
-    const { users, total } = await listUsers(page, limit);
+    const idsFilter = idsFilterSchema.safeParse(req.query);
+    if (!idsFilter.success) {
+      throw new ValidationError('El parámetro ids debe ser una lista de hasta 100 números separados por comas');
+    }
+    const { users, total } = await listUsers(page, limit, idsFilter.data.ids);
     res.json({
       data: users,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },

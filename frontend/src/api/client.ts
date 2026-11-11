@@ -4,6 +4,7 @@ import type {
   ApiError,
   PaginatedResponse,
   User,
+  AssignableRole,
   Client,
   CreateClientData,
   RegisterData,
@@ -364,6 +365,31 @@ class ApiClient {
    */
   async updateCurrentUser(data: Partial<User>) {
     return this.request('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
+  /**
+   * Obtiene la cuenta de acceso de un usuario (solo administrador).
+   * @param userId - ID de la cuenta (users.id), no el ID del socio
+   */
+  async getUserAccount(userId: number): Promise<User> {
+    return this.request(`/api/auth/users/${userId}`);
+  }
+
+  /**
+   * Obtiene varias cuentas por su ID (solo administrador), p. ej. las de los socios
+   * visibles en la tabla para mostrar su rol. Máximo 100 IDs.
+   */
+  async getUserAccounts(userIds: number[]): Promise<PaginatedResponse<User>> {
+    const ids = userIds.slice(0, 100).join(',');
+    return this.request(`/api/auth/users?page=1&limit=100&ids=${ids}`);
+  }
+
+  /**
+   * Cambia el rol de una cuenta entre socio y recepcionista (solo administrador).
+   * El backend cierra las sesiones de esa cuenta para que el cambio se aplique al volver a entrar.
+   */
+  async changeUserRole(userId: number, role: AssignableRole): Promise<User> {
+    return this.request(`/api/auth/users/${userId}/role`, { method: 'PATCH', body: JSON.stringify({ role }) });
   }
 
   /**

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Client } from '../types/api.js'
 import FormField from './FormField'
 
@@ -25,6 +26,8 @@ interface ClientFormFieldsProps {
   errors?: ClientFormErrors
   onChange: (field: ClientFormField, value: string) => void
   includeStatus?: boolean
+  /** Campo extra en "Datos adicionales", junto al teléfono de emergencia (p. ej. el rol de la cuenta). */
+  extraOptionalField?: ReactNode
 }
 
 const DIGIT_FIELDS: Partial<Record<ClientFormField, number>> = {
@@ -60,6 +63,7 @@ export default function ClientFormFields({
   errors = {},
   onChange,
   includeStatus = false,
+  extraOptionalField,
 }: ClientFormFieldsProps) {
       const field = (
       name: ClientFormField,
@@ -151,6 +155,7 @@ export default function ClientFormFields({
             inputMode: 'numeric',
             pattern: '9[0-9]{8}',
           })}
+          {extraOptionalField}
           {field('medicalConditions', 'Información médica relevante', 'textarea')}
           {field('notes', 'Notas internas', 'textarea')}
         </div>
