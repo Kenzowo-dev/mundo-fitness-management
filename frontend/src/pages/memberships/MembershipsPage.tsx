@@ -5,7 +5,6 @@ import { useClients, useMembershipPlans, useAllMemberships, useCreateMembership,
 import type { Client, ClientMembership, CreateMembershipPlanInput, MembershipPlan, MembershipRenewalRequest } from '../../types/api'
 import StatusBadge from '../../components/StatusBadge'
 import Button from '../../components/Button'
-import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import Alert from '../../components/Alert'
 import Tabs, { TabPanel } from '../../components/Tabs'
@@ -13,6 +12,7 @@ import TableContainer from '../../components/TableContainer'
 import PageHeader from '../../components/PageHeader'
 import PlanFormModal from '../../components/PlanFormModal'
 import ClientSearchPicker from '../../components/ClientSearchPicker'
+import PlanSearchPicker from '../../components/PlanSearchPicker'
 import { useAuth } from '../../context/useAuth'
 import '../../styles/dashboard/MembershipsPage.css'
 
@@ -41,7 +41,7 @@ export default function MembershipsPage() {
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null)
   const [assignClient, setAssignClient] = useState<Client | null>(null)
   const [checkInClient, setCheckInClient] = useState<Client | null>(null)
-  const [selectedPlanId, setSelectedPlanId] = useState<number | ''>('')
+  const [assignPlan, setAssignPlan] = useState<MembershipPlan | null>(null)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -90,14 +90,14 @@ export default function MembershipsPage() {
   const openAssign = () => {
     setActionError(null)
     setAssignClient(null)
-    setSelectedPlanId('')
+    setAssignPlan(null)
     setIsAssignOpen(true)
   }
 
   const closeAssign = () => {
     setIsAssignOpen(false)
     setAssignClient(null)
-    setSelectedPlanId('')
+    setAssignPlan(null)
   }
 
   const membershipTag = (client: Client) => clientsWithActiveMembership.has(client.id)
@@ -130,15 +130,14 @@ export default function MembershipsPage() {
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!assignClient || !selectedPlanId) {
+    if (!assignClient || !assignPlan) {
       setActionError('Busca y selecciona un socio, y elige un plan de membresía.')
       return
     }
 
     try {
       setActionError(null)
-      const selPlan = plans.find((p) => p.id === Number(selectedPlanId))
-      const duration = selPlan?.durationDays || 30
+      const duration = assignPlan.durationDays || 30
       const start = new Date()
       const startDate = dateKey(start)
       const endDateObj = new Date()
@@ -147,7 +146,7 @@ export default function MembershipsPage() {
 
       await createMembershipMutation.mutateAsync({
         clientId: assignClient.id,
-        planId: Number(selectedPlanId),
+        planId: assignPlan.id,
         startDate,
         endDate,
         status: 'active',
@@ -372,15 +371,13 @@ export default function MembershipsPage() {
               onSelect={(client) => { setAssignClient(client); setActionError(null) }}
               renderTag={membershipTag}
             />
-            <FormField
+            <PlanSearchPicker
+              id="assign"
               label="Seleccione el plan"
-              type="select"
-              id="assign-plan"
-              value={String(selectedPlanId)}
-              onChange={(value) => setSelectedPlanId(Number(value) || '')}
-              options={plans.filter((plan) => plan.isActive).map(p => ({ value: String(p.id), label: `${p.name} - ${formatPrice(p.price, p.currency)} (${p.durationDays} días)` }))}
-              emptyOptionLabel="-- Seleccionar plan --"
-              required
+              plans={plans}
+              loading={plansLoading}
+              selectedPlan={assignPlan}
+              onSelect={(plan) => { setAssignPlan(plan); setActionError(null) }}
             />
           </div>
         </form>

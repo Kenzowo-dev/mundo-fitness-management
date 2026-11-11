@@ -172,6 +172,15 @@ describe('MembershipsPage - Integration Tests', () => {
     })
   }
 
+  /** Abre el buscador de planes del modal de asignación y elige el plan indicado. */
+  const selectPlan = async (name: RegExp) => {
+    fireEvent.focus(screen.getByRole('combobox', { name: /Seleccione el plan/i, hidden: true }))
+    fireEvent.mouseDown(await screen.findByRole('option', { name, hidden: true }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Cambiar plan seleccionado', hidden: true })).toBeInTheDocument()
+    })
+  }
+
   const openCheckInModal = async () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso de socio' }))
@@ -472,13 +481,41 @@ describe('MembershipsPage - Integration Tests', () => {
       expect(screen.getByRole('heading', { name: 'Asignar membresía' })).toBeInTheDocument()
     })
 
-    it('renders client and plan selects in assign modal', async () => {
+    it('renders client and plan search boxes in assign modal', async () => {
       renderMembershipsPage()
       await openAssignModal()
 
       expect(screen.getByRole('combobox', { name: /Seleccione el socio/i, hidden: true })).toHaveAttribute('placeholder', 'Buscar por nombre o DNI')
-      const planSelect = screen.getByLabelText(/Seleccione el plan/i)
-      expect(planSelect.querySelectorAll('option').length).toBeGreaterThan(0)
+      expect(screen.getByRole('combobox', { name: /Seleccione el plan/i, hidden: true })).toHaveAttribute('placeholder', 'Buscar plan por nombre')
+    })
+
+    it('lists active plans on focus and filters them by name ignoring accents', async () => {
+      renderMembershipsPage()
+      await openAssignModal()
+      const planBox = screen.getByRole('combobox', { name: /Seleccione el plan/i, hidden: true })
+
+      fireEvent.focus(planBox)
+      expect(screen.getByRole('option', { name: /Plan Básico/, hidden: true })).toBeInTheDocument()
+      const premium = screen.getByRole('option', { name: /Plan Premium/, hidden: true })
+      expect(premium).toHaveTextContent('90 días')
+      expect(premium).toHaveTextContent('Clases, Sauna, Entrenador')
+
+      fireEvent.change(planBox, { target: { value: 'basico' } })
+      expect(screen.getByRole('option', { name: /Plan Básico/, hidden: true })).toBeInTheDocument()
+      expect(screen.queryByRole('option', { name: /Plan Premium/, hidden: true })).not.toBeInTheDocument()
+    })
+
+    it('asks for a client and a plan when submitting without them', async () => {
+      const mockCreate = createMockMutation({ mutateAsync: vi.fn() })
+      renderMembershipsPage({ createMutation: mockCreate })
+      await openAssignModal()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Activar Membresía', hidden: true }))
+      })
+
+      expect(screen.getByText('Busca y selecciona un socio, y elige un plan de membresía.')).toBeInTheDocument()
+      expect(mockCreate.mutateAsync).not.toHaveBeenCalled()
     })
 
     it('calls createMembership mutation with correct data', async () => {
@@ -487,7 +524,7 @@ describe('MembershipsPage - Integration Tests', () => {
       await openAssignModal()
 
       await selectClient('Juan', /Juan Pérez/)
-      fireEvent.change(screen.getByLabelText(/Seleccione el plan/i), { target: { value: '2' } })
+      await selectPlan(/Plan Premium/)
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Activar Membresía', hidden: true }))
@@ -509,7 +546,7 @@ describe('MembershipsPage - Integration Tests', () => {
       await openAssignModal()
 
       await selectClient('Juan', /Juan Pérez/)
-      fireEvent.change(screen.getByLabelText(/Seleccione el plan/i), { target: { value: '2' } })
+      await selectPlan(/Plan Premium/)
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Activar Membresía', hidden: true }))
@@ -526,7 +563,7 @@ describe('MembershipsPage - Integration Tests', () => {
       await openAssignModal()
 
       await selectClient('Juan', /Juan Pérez/)
-      fireEvent.change(screen.getByLabelText(/Seleccione el plan/i), { target: { value: '2' } })
+      await selectPlan(/Plan Premium/)
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Activar Membresía', hidden: true }))

@@ -1,10 +1,10 @@
-/* ClientSearchPicker.css — Buscador de socios con lupa (nombre o DNI) */
+/* SearchPicker.css — Campo con lupa y lista desplegable (socios, planes…) */
 
-.client-search-field {
+.search-picker-field {
   position: relative;
 }
 
-.client-search-icon {
+.search-picker-icon {
   position: absolute;
   top: 50%;
   left: var(--space-3);
@@ -14,22 +14,25 @@
   pointer-events: none;
 }
 
-.client-search-input.input {
+.search-picker-input.input {
   padding-left: calc(var(--space-3) + 18px + var(--space-2));
 }
 
 /* Oculta la "x" nativa del input search; el campo se limpia borrando o con Esc */
-.client-search-input::-webkit-search-cancel-button {
+.search-picker-input::-webkit-search-cancel-button {
   -webkit-appearance: none;
   appearance: none;
 }
 
-/* La lista ocupa espacio dentro del modal (no flota encima), así el modal crece
-   y no la recorta. Muestra ~5 socios y el resto con scroll. */
-.client-search-results {
-  max-height: min(20rem, 45vh);
+/* La lista ocupa espacio dentro del modal (no flota encima), así no se recorta.
+   Tiene su propio deslizador: muestra unas 3 opciones y media (para que se note
+   que hay más) y el resto se ve deslizando dentro de la lista, sin mover el modal. */
+.search-picker-results {
+  max-height: 13.5rem;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
   margin: var(--space-2) 0 0;
   padding: var(--space-1);
   list-style: none;
@@ -39,7 +42,29 @@
   box-shadow: var(--shadow-md);
 }
 
-.client-search-option {
+/* Deslizador visible en Chrome/Edge (Firefox usa scrollbar-width/color de arriba) */
+.search-picker-results::-webkit-scrollbar {
+  width: 8px;
+}
+
+.search-picker-results::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+.search-picker-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* El título "Socios"/"Planes disponibles" queda fijo arriba al deslizar */
+.search-picker-heading {
+  position: sticky;
+  top: calc(-1 * var(--space-1));
+  z-index: 1;
+  background: var(--bg-elevated-1);
+}
+
+.search-picker-option {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -48,11 +73,11 @@
   cursor: pointer;
 }
 
-.client-search-option.is-active {
+.search-picker-option.is-active {
   background: var(--bg-hover);
 }
 
-.client-search-heading {
+.search-picker-heading {
   padding: var(--space-2) var(--space-3) var(--space-1);
   color: var(--text-muted);
   font-size: .75rem;
@@ -61,13 +86,13 @@
   text-transform: uppercase;
 }
 
-.client-search-status {
+.search-picker-status {
   padding: var(--space-3);
   color: var(--text-secondary);
   font-size: .875rem;
 }
 
-.client-search-avatar {
+.search-picker-avatar {
   flex: none;
   display: inline-grid;
   place-items: center;
@@ -81,16 +106,14 @@
   text-transform: uppercase;
 }
 
-.client-search-option-text,
-.client-search-selected-text {
+.search-picker-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
   flex: 1;
 }
 
-.client-search-option-text strong,
-.client-search-selected-text strong {
+.search-picker-text strong {
   color: var(--text-primary);
   font-size: .9375rem;
   overflow: hidden;
@@ -98,13 +121,12 @@
   white-space: nowrap;
 }
 
-.client-search-option-text span,
-.client-search-selected-text span {
+.search-picker-text span {
   color: var(--text-secondary);
   font-size: .8125rem;
 }
 
-.client-search-tag {
+.search-picker-tag {
   flex: none;
   padding: 2px var(--space-2);
   border-radius: var(--radius-full);
@@ -112,17 +134,22 @@
   font-weight: 600;
 }
 
-.client-search-tag.is-success {
+.search-picker-tag.is-success {
   background: var(--state-success-soft);
   color: var(--state-success);
 }
 
-.client-search-tag.is-warning {
+.search-picker-tag.is-neutral {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.search-picker-tag.is-warning {
   background: var(--state-warning-soft);
   color: var(--state-warning);
 }
 
-.client-search-selected {
+.search-picker-selected {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -132,7 +159,7 @@
   border-radius: var(--radius-md);
 }
 
-.client-search-clear {
+.search-picker-clear {
   flex: none;
   display: inline-grid;
   place-items: center;
@@ -145,12 +172,12 @@
   cursor: pointer;
 }
 
-.client-search-clear:hover {
+.search-picker-clear:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.client-search-clear:focus-visible {
+.search-picker-clear:focus-visible {
   outline: 3px solid var(--border-focus);
   outline-offset: 2px;
 }
