@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { CircleDollarSign, ReceiptText, RefreshCw, WalletCards } from 'lucide'
 import { api } from '../../api/client'
-import type { CreatePaymentInput } from '../../types/api'
+import type { Client, CreatePaymentInput } from '../../types/api'
 import MorphIcon from '../../components/MorphIcon'
 import { useClients, usePayments, useInvoices, useCreatePayment } from '../../hooks/useApi'
 import StatusBadge from '../../components/StatusBadge'
@@ -15,6 +15,7 @@ import TableContainer from '../../components/TableContainer'
 import PageHeader from '../../components/PageHeader'
 import Pagination from '../../components/Pagination'
 import Skeleton from '../../components/Skeleton'
+import ClientSearchPicker from '../../components/ClientSearchPicker'
 import '../../styles/dashboard/PaymentsPage.css'
 
 const paymentMethods: Record<string, string> = {
@@ -35,6 +36,19 @@ function formatDate(value: string) {
   const date = dateOnly && year && month && day ? new Date(year, month - 1, day) : new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
   return new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+}
+
+/** Monto máximo de un pago registrado en recepción (el backend aplica el mismo límite). */
+const MAX_PAYMENT_AMOUNT = 1000
+
+/**
+ * Acepta lo que se escribe en "Monto" solo si es un número de hasta 2 decimales
+ * que no pase de MAX_PAYMENT_AMOUNT. Vacío también vale (para poder borrar).
+ */
+function isAllowedAmountInput(value: string): boolean {
+  if (value === '') return true
+  if (!/^\d{1,7}(\.\d{0,2})?$/.test(value)) return false
+  return Number(value) <= MAX_PAYMENT_AMOUNT
 }
 
 type PaymentFormState = Omit<CreatePaymentInput, 'clientId' | 'membershipId' | 'amount' | 'transactionId'> & {
@@ -60,7 +74,9 @@ export default function PaymentsPage() {
     description: '',
   })
 
-  const { data: clientsData, isLoading: clientsLoading, isError: clientsIsError, error: clientsError, refetch: refetchClients } = useClients(1, 100)
+  const [paymentClient, setPaymentClient] = useState<Client | null>(null)
+  // Solo para mostrar nombres en las tablas de pagos y comprobantes
+  const { data: clientsData } = useClients(1, 100)
   const { data: paymentsData, isLoading: paymentsLoading, isError: paymentsIsError, error: paymentsError, refetch: refetchPayments } = usePayments(page, 20)
   const { data: invoicesData, isLoading: invoicesLoading, isError: invoicesIsError, error: invoicesError, refetch: refetchInvoices } = useInvoices(invoicesPage, 20)
 
@@ -80,6 +96,35 @@ export default function PaymentsPage() {
 
   const createPaymentMutation = useCreatePayment()
 
+  const resetPaymentForm = () => {
+    setPaymentClient(null)
+    setNewPayment({
+      clientId: '',
+      membershipId: '',
+      amount: '',
+      currency: 'PEN',
+      paymentMethod: 'cash',
+      description: '',
+    })
+  }
+
+  const openPaymentModal = () => {
+    setPaymentError(null)
+    resetPaymentForm()
+    setIsPaymentModalOpen(true)
+  }
+
+  const closePaymentModal = () => {
+    setIsPaymentModalOpen(false)
+    resetPaymentForm()
+  }
+
+  const selectPaymentClient = (client: Client | null) => {
+    setPaymentClient(client)
+    setPaymentError(null)
+    setNewPayment((current) => ({ ...current, clientId: client ? String(client.id) : '', membershipId: '' }))
+  }
+
   const handleCreatePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const amount = Number(newPayment.amount)
@@ -90,11 +135,11 @@ export default function PaymentsPage() {
       !newPayment.amount.trim() ||
       !Number.isFinite(amount) ||
       amount <= 0 ||
-      amount > 1000000 ||
+      amount > MAX_PAYMENT_AMOUNT ||
       Math.round(amount * 100) !== amount * 100
     ) {
       setPaymentError(
-        'Seleccione un socio y una membresía. Ingrese un monto mayor que cero, máximo de S/ 1,000,000 y con hasta dos decimales.'
+        `Seleccione un socio y una membresía. Ingrese un monto mayor que cero, máximo de ${MAX_PAYMENT_AMOUNT} y con hasta dos decimales.`
       )
       return
     }
@@ -111,16 +156,8 @@ export default function PaymentsPage() {
         description: newPayment.description.trim() || 'Pago de membresía registrado en recepción',
       })
 
-      setPaymentSuccess('Pago registrado como recibido. No se procesó ningún cobro electrónico.')
-      setIsPaymentModalOpen(false)
-      setNewPayment({
-        clientId: '',
-        membershipId: '',
-        amount: '',
-        currency: 'PEN',
-        paymentMethod: 'cash',
-        description: '',
-      })
+      setPaymentSuccess(`Pago de ${paymentClient ? `${paymentClient.firstName} ${paymentClient.lastName}` : 'el socio'} registrado como recibido. No se procesó ningún cobro electrónico.`)
+      closePaymentModal()
     } catch (err) {
       setPaymentError(err instanceof Error ? err.message : 'Error al procesar el pago')
     }
@@ -158,7 +195,7 @@ export default function PaymentsPage() {
         actions={[
           {
             label: 'Registrar pago',
-            onClick: () => { setPaymentError(null); setIsPaymentModalOpen(true); },
+            onClick: openPaymentModal,
             ariaLabel: 'Registrar nuevo pago',
             variant: 'primary',
             icon: <MorphIcon icon={CircleDollarSign} size={18} aria-hidden="true" />,
@@ -187,7 +224,7 @@ export default function PaymentsPage() {
             icon: <MorphIcon icon={WalletCards} size={24} aria-hidden="true" />,
             title: 'Todavía no hay pagos registrados',
             description: 'Los pagos recibidos aparecerán aquí para que puedas consultarlos.',
-            action: { label: 'Registrar pago', onClick: () => { setPaymentError(null); setIsPaymentModalOpen(true) }, variant: 'primary' },
+            action: { label: 'Registrar pago', onClick: openPaymentModal, variant: 'primary' },
           }}
         />}
         {totalPages > 1 && (
@@ -226,12 +263,12 @@ export default function PaymentsPage() {
 
       <Modal
         open={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
+        onClose={closePaymentModal}
         title="Registrar pago"
         size="md"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsPaymentModalOpen(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={closePaymentModal}>Cancelar</Button>
             <Button variant="primary" disabled={createPaymentMutation.isPending} onClick={handleCreatePaymentSubmit}>
               {createPaymentMutation.isPending ? 'Registrando...' : 'Confirmar Cobro'}
             </Button>
@@ -243,19 +280,12 @@ export default function PaymentsPage() {
             {paymentError && <Alert type="error" message={paymentError} onDismiss={() => setPaymentError(null)} dismissible />}
             <p className="payment-form-note">Registra un pago que ya recibió recepción. Este formulario no realiza cobros electrónicos.</p>
 
-            {clientsIsError && <div className="payment-query-error"><Alert type="error" title="No se pudieron cargar los socios" message={clientsError instanceof Error ? clientsError.message : 'Inténtalo de nuevo.'} /><Button variant="secondary" onClick={() => void refetchClients()}>Reintentar</Button></div>}
-            {clientsLoading && <div className="payment-field-skeleton" aria-busy="true"><span>Socio</span><Skeleton height={44} ariaLabel="Cargando socios" /></div>}
-            {!clientsLoading && !clientsIsError && allClients.length === 0 && <Alert type="warning" message="Aún no hay socios. Registra primero a un socio antes de registrar un pago." />}
-            {!clientsLoading && !clientsIsError && allClients.length > 0 && <FormField
+            <ClientSearchPicker
+              id="payment"
               label="Socio"
-              type="select"
-              id="payment-client"
-              value={newPayment.clientId}
-              onChange={(value) => setNewPayment({ ...newPayment, clientId: value, membershipId: '' })}
-              options={allClients.map(c => ({ value: String(c.id), label: `${c.firstName} ${c.lastName} · DNI ${c.dni}` }))}
-              emptyOptionLabel="Selecciona un socio"
-              required
-            />}
+              selectedClient={paymentClient}
+              onSelect={selectPaymentClient}
+            />
 
             {newPayment.clientId && membershipsQuery.isLoading && <div className="payment-field-skeleton" aria-busy="true"><span>Membresía asociada</span><Skeleton height={44} ariaLabel="Cargando membresías del socio" /></div>}
             {newPayment.clientId && !membershipsQuery.isLoading && !membershipsQuery.isError && clientMemberships.length > 0 && <FormField
@@ -281,11 +311,15 @@ export default function PaymentsPage() {
                 type="number"
                 id="payment-amount"
                 value={newPayment.amount}
-                onChange={(value) => setNewPayment({ ...newPayment, amount: value })}
+                onChange={(value) => {
+                  // No deja escribir más de 1000 ni más de 2 decimales
+                  if (isAllowedAmountInput(value)) setNewPayment({ ...newPayment, amount: value })
+                }}
                 placeholder="Ej: 49.90"
                 min="0.01"
-                max="1000000"
+                max={String(MAX_PAYMENT_AMOUNT)}
                 step="0.01"
+                helperText={`Máximo ${MAX_PAYMENT_AMOUNT} por pago.`}
                 required
               />
               <FormField
