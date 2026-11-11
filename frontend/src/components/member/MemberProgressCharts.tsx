@@ -22,9 +22,8 @@ export default function MemberProgressCharts() {
   const measurementsQuery = useOwnMeasurements();
   const [selectedMetric, setSelectedMetric] = useState("weightKg");
 
-  const metric = metrics.find(
-    (item) => item.key === selectedMetric
-  ) ?? metrics[0];
+  const metric =
+    metrics.find((item) => item.key === selectedMetric) ?? metrics[0];
 
   const points = (measurementsQuery.data ?? [])
     .filter((measurement) => {
@@ -35,10 +34,7 @@ export default function MemberProgressCharts() {
       date: measurement.measuredAt,
       value: measurement[metric.key] as number,
     }))
-    .sort(
-      (a, b) =>
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const values = points.map((point) => point.value);
   const min = values.length ? Math.min(...values) : 0;
@@ -61,14 +57,12 @@ export default function MemberProgressCharts() {
       : (index / (points.length - 1)) * (width - left - right));
 
   const y = (value: number) =>
-    top +
-    (1 - (value - lower) / (upper - lower)) *
-      (height - top - bottom);
+    top + (1 - (value - lower) / (upper - lower)) * (height - top - bottom);
 
   const path = points
     .map(
       (point, index) =>
-        `${index === 0 ? "M" : "L"} ${x(index)} ${y(point.value)}`
+        `${index === 0 ? "M" : "L"} ${x(index)} ${y(point.value)}`,
     )
     .join(" ");
 
@@ -115,11 +109,15 @@ export default function MemberProgressCharts() {
           <div className="member-progress-stats">
             <div>
               <span>Primera medición</span>
-              <strong>{first.value} {metric.unit}</strong>
+              <strong>
+                {first.value} {metric.unit}
+              </strong>
             </div>
             <div>
               <span>Última medición</span>
-              <strong>{last.value} {metric.unit}</strong>
+              <strong>
+                {last.value} {metric.unit}
+              </strong>
             </div>
             <div>
               <span>Variación</span>
@@ -192,8 +190,8 @@ export default function MemberProgressCharts() {
           </div>
 
           <p className="member-progress-caption">
-            {points.length} medición(es) registradas. La variación
-            indica el cambio numérico, no necesariamente una mejora.
+            {points.length} medición(es) registradas. La variación indica el
+            cambio numérico, no necesariamente una mejora.
           </p>
         </>
       )}

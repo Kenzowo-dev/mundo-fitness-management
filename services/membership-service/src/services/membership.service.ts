@@ -338,7 +338,7 @@ export async function createPlan(data: CreatePlanData): Promise<MembershipPlan> 
       data.description ?? null,
       data.durationDays,
       data.price,
-      data.currency ?? 'USD',
+      data.currency ?? 'PEN',
       JSON.stringify(data.features ?? []),
       data.maxVisitsPerWeek ?? null,
       data.includesPersonalTrainer ?? false,

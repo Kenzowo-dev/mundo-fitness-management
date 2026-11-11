@@ -1,0 +1,175 @@
+
+/* ==========================================
+   MUNDO FITNESS - PERFIL AZUL DEPORTIVO
+   Compatible con tema claro y oscuro
+   ========================================== */
+
+/* Tema claro */
+:root {
+  --member-blue-surface: #ffffff;
+  --member-blue-card: #e7f2fa;
+  --member-blue-card-hover: #d9eaf6;
+  --member-blue-border: #c9dfef;
+  --member-blue-primary: #153650;
+  --member-blue-secondary: #52718b;
+  --member-blue-accent: #087eaf;
+  --member-blue-accent-hover: #03658e;
+  --member-blue-ring: rgba(8, 126, 175, 0.2);
+}
+
+/* Tema oscuro */
+:root[data-theme="dark"] {
+  --member-blue-surface: #172b43;
+  --member-blue-card: #23415d;
+  --member-blue-card-hover: #294c6a;
+  --member-blue-border: #35536e;
+  --member-blue-primary: #f0f7ff;
+  --member-blue-secondary: #b6c9dc;
+  --member-blue-accent: #38bdf8;
+  --member-blue-accent-hover: #7dd3fc;
+  --member-blue-ring: rgba(56, 189, 248, 0.2);
+}
+
+/* Tarjetas generales del perfil */
+.member-profile-page .member-card {
+  background: var(--member-blue-surface);
+  border-color: var(--member-blue-border);
+  color: var(--member-blue-primary);
+}
+
+/* Informacion personal */
+.member-profile-page .member-details > div {
+  background: var(--member-blue-card);
+  border: 1px solid var(--member-blue-border);
+  transition: background 0.2s ease;
+}
+
+.member-profile-page .member-details > div:hover {
+  background: var(--member-blue-card-hover);
+}
+
+.member-profile-page .member-details dt {
+  color: var(--member-blue-secondary);
+}
+
+.member-profile-page .member-details dd {
+  color: var(--member-blue-primary);
+}
+
+.member-profile-page .member-section-header h2,
+.member-profile-page .member-section-header p {
+  color: var(--member-blue-primary);
+}
+
+/* Fotografia */
+.member-profile-page .member-avatar-profile {
+  background: var(--member-blue-surface);
+  border-color: var(--member-blue-border);
+  color: var(--member-blue-primary);
+}
+
+.member-profile-page .member-avatar-profile-image {
+  background: var(--member-blue-card);
+  border-color: var(--member-blue-accent);
+  box-shadow: 0 0 0 5px var(--member-blue-ring);
+}
+
+.member-profile-page .member-avatar-profile-description,
+.member-profile-page .member-avatar-profile-filename {
+  color: var(--member-blue-secondary);
+}
+
+.member-profile-page .member-avatar-profile-action {
+  color: var(--member-blue-primary);
+  border-color: var(--member-blue-border);
+  background: transparent;
+}
+
+.member-profile-page .member-avatar-profile-action:hover:not(:disabled) {
+  background: var(--member-blue-card-hover);
+}
+
+.member-profile-page .member-avatar-profile-select,
+.member-profile-page .member-avatar-profile-action--save {
+  background: #087eaf;
+  border-color: #087eaf;
+  color: #ffffff;
+}
+
+.member-profile-page .member-avatar-profile-select:hover:not(:disabled),
+.member-profile-page .member-avatar-profile-action--save:hover:not(:disabled) {
+  background: #03658e;
+  border-color: #03658e;
+}
+
+.member-profile-page .member-avatar-profile-action--delete {
+  color: #dc3545;
+  border-color: rgba(220, 53, 69, 0.4);
+}
+
+:root[data-theme="dark"]
+  .member-profile-page .member-avatar-profile-action--delete {
+  color: #fca5a5;
+}
+
+/* Perfil fisico */
+.member-profile-page .member-physical__stat,
+.member-profile-page .member-physical__measurement,
+.member-profile-page .member-physical__history-item {
+  background: var(--member-blue-card);
+  border-color: var(--member-blue-border);
+}
+
+.member-profile-page .member-physical__section {
+  background: var(--member-blue-surface);
+  border-color: var(--member-blue-border);
+}
+
+.member-profile-page .member-physical__stat:hover {
+  background: var(--member-blue-card-hover);
+  border-color: var(--member-blue-accent);
+}
+
+.member-profile-page .member-physical__stat-value,
+.member-profile-page .member-physical__measurement dd,
+.member-profile-page .member-physical__history-date,
+.member-profile-page .member-physical__history-values dd,
+.member-profile-page .member-physical__section-title {
+  color: var(--member-blue-primary);
+}
+
+.member-profile-page .member-physical__stat-label,
+.member-profile-page .member-physical__stat-unit,
+.member-profile-page .member-physical__measurement dt,
+.member-profile-page .member-physical__history-values dt,
+.member-profile-page .member-physical__history-notes {
+  color: var(--member-blue-secondary);
+}
+
+.member-profile-page .member-physical__field label {
+  color: var(--member-blue-primary);
+}
+
+.member-profile-page .member-physical__field input,
+.member-profile-page .member-physical__field textarea {
+  background: var(--member-blue-card);
+  border-color: var(--member-blue-border);
+  color: var(--member-blue-primary);
+}
+
+.member-profile-page .member-physical__field input::placeholder,
+.member-profile-page .member-physical__field textarea::placeholder {
+  color: var(--member-blue-secondary);
+}
+
+.member-profile-page .member-physical__field input:focus,
+.member-profile-page .member-physical__field textarea:focus {
+  border-color: var(--member-blue-accent);
+  box-shadow: 0 0 0 3px var(--member-blue-ring);
+}
+
+.member-profile-page .member-physical__empty {
+  background: var(--member-blue-card);
+  border-color: var(--member-blue-border);
+  color: var(--member-blue-secondary);
+}

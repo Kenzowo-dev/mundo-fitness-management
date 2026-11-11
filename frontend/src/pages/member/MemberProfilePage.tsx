@@ -14,6 +14,7 @@ import MemberPhysicalProfile from "../../components/member/MemberPhysicalProfile
 import MemberAvatarProfile from "../../components/member/MemberAvatarProfile";
 import MemberGoals from "../../components/member/MemberGoals";
 import MemberProgressCharts from "../../components/member/MemberProgressCharts";
+import "../../styles/member/MemberProfileTheme.css";
 
 type ContactDetails = Pick<
   Client,
@@ -105,7 +106,7 @@ const location = useLocation();
   };
 
   return (
-    <div className="member-portal">
+    <div className="member-portal member-profile-page">
       <header className="member-portal-header">
         <div>
           <p className="member-eyebrow">

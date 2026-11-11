@@ -1,5 +1,4 @@
-
-import { Router } from 'express';
+import { Router } from "express";
 import {
   addOwnMeasurementController,
   getOwnMeasurementsController,
@@ -36,20 +35,20 @@ import {
   updateOwnGoalController,
   deleteOwnGoalController,
   ownGoalValidation,
-} from '../controllers/client.controller.js';
+} from "../controllers/client.controller.js";
 
 import {
   authenticate,
   authorize,
   requireClientAccess,
   requireUserSelf,
-} from '../middleware/auth.middleware.js';
+} from "../middleware/auth.middleware.js";
 import {
   uploadAvatarMiddleware,
   uploadAvatarController,
   getAvatarController,
   deleteAvatarController,
-} from '../controllers/avatar.controller.js';
+} from "../controllers/avatar.controller.js";
 
 const router: Router = Router();
 
@@ -58,39 +57,39 @@ const router: Router = Router();
 // ==================================================
 
 router.post(
-  '/',
+  "/",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   createClientValidation,
-  createClientController
+  createClientController,
 );
 
 router.get(
-  '/',
+  "/",
   authenticate,
-  authorize('admin', 'receptionist'),
-  listClientsController
+  authorize("admin", "receptionist"),
+  listClientsController,
 );
 
 router.get(
-  '/stats',
+  "/stats",
   authenticate,
-  authorize('admin', 'receptionist'),
-  getClientStatsController
+  authorize("admin", "receptionist"),
+  getClientStatsController,
 );
 
 router.get(
-  '/reports',
+  "/reports",
   authenticate,
-  authorize('admin', 'receptionist'),
-  getClientReportsController
+  authorize("admin", "receptionist"),
+  getClientReportsController,
 );
 
 router.get(
-  '/dni/:dni',
+  "/dni/:dni",
   authenticate,
-  authorize('admin', 'receptionist'),
-  getClientByDniController
+  authorize("admin", "receptionist"),
+  getClientByDniController,
 );
 
 // ==================================================
@@ -98,18 +97,18 @@ router.get(
 // ==================================================
 
 router.get(
-  '/user/:userId',
+  "/user/:userId",
   authenticate,
   requireUserSelf,
-  getClientByUserIdController
+  getClientByUserIdController,
 );
 
 router.patch(
-  '/user/:userId',
+  "/user/:userId",
   authenticate,
   requireUserSelf,
   updateOwnClientValidation,
-  updateOwnClientController
+  updateOwnClientController,
 );
 
 // ==================================================
@@ -117,23 +116,15 @@ router.patch(
 // ==================================================
 
 router.post(
-  '/me/avatar',
+  "/me/avatar",
   authenticate,
   uploadAvatarMiddleware,
-  uploadAvatarController
+  uploadAvatarController,
 );
 
-router.get(
-  '/me/avatar',
-  authenticate,
-  getAvatarController
-);
+router.get("/me/avatar", authenticate, getAvatarController);
 
-router.delete(
-  '/me/avatar',
-  authenticate,
-  deleteAvatarController
-);
+router.delete("/me/avatar", authenticate, deleteAvatarController);
 
 // ==================================================
 // MEDICIONES DEL SOCIO AUTENTICADO
@@ -141,17 +132,13 @@ router.delete(
 // ==================================================
 
 router.post(
-  '/me/measurements',
+  "/me/measurements",
   authenticate,
   ownMeasurementValidation,
-  addOwnMeasurementController
+  addOwnMeasurementController,
 );
 
-router.get(
-  '/me/measurements',
-  authenticate,
-  getOwnMeasurementsController
-);
+router.get("/me/measurements", authenticate, getOwnMeasurementsController);
 
 // ==================================================
 // OBJETIVOS DEL SOCIO AUTENTICADO
@@ -161,55 +148,47 @@ router.post(
   "/me/goals",
   authenticate,
   ownGoalValidation,
-  createOwnGoalController
+  createOwnGoalController,
 );
 
-router.get(
-  "/me/goals",
-  authenticate,
-  getOwnGoalsController
-);
+router.get("/me/goals", authenticate, getOwnGoalsController);
 
 router.patch(
   "/me/goals/:id",
   authenticate,
   updateGoalValidation,
-  updateOwnGoalController
+  updateOwnGoalController,
 );
 
-router.delete(
-  "/me/goals/:id",
-  authenticate,
-  deleteOwnGoalController
-);
+router.delete("/me/goals/:id", authenticate, deleteOwnGoalController);
 
 // ==================================================
 // MEDICIONES ADMINISTRATIVAS
 // ==================================================
 
 router.post(
-  '/:clientId/measurements',
+  "/:clientId/measurements",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
   measurementValidation,
-  addMeasurementController
+  addMeasurementController,
 );
 
 router.get(
-  '/:clientId/measurements',
+  "/:clientId/measurements",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
-  getClientMeasurementsController
+  getClientMeasurementsController,
 );
 
 router.get(
-  '/:clientId/measurements/latest',
+  "/:clientId/measurements/latest",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
-  getLatestMeasurementController
+  getLatestMeasurementController,
 );
 
 // ==================================================
@@ -217,20 +196,20 @@ router.get(
 // ==================================================
 
 router.post(
-  '/:clientId/goals',
+  "/:clientId/goals",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
   goalValidation,
-  createGoalController
+  createGoalController,
 );
 
 router.get(
-  '/:clientId/goals',
+  "/:clientId/goals",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
-  getClientGoalsController
+  getClientGoalsController,
 );
 
 // ==================================================
@@ -238,20 +217,20 @@ router.get(
 // ==================================================
 
 router.post(
-  '/:clientId/documents',
+  "/:clientId/documents",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
   documentValidation,
-  addDocumentController
+  addDocumentController,
 );
 
 router.get(
-  '/:clientId/documents',
+  "/:clientId/documents",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
-  getClientDocumentsController
+  getClientDocumentsController,
 );
 
 // ==================================================
@@ -259,18 +238,18 @@ router.get(
 // ==================================================
 
 router.patch(
-  '/goals/:id',
+  "/goals/:id",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   updateGoalValidation,
-  updateGoalController
+  updateGoalController,
 );
 
 router.delete(
-  '/goals/:id',
+  "/goals/:id",
   authenticate,
-  authorize('admin', 'receptionist'),
-  deleteGoalController
+  authorize("admin", "receptionist"),
+  deleteGoalController,
 );
 
 // ==================================================
@@ -278,10 +257,10 @@ router.delete(
 // ==================================================
 
 router.delete(
-  '/documents/:id',
+  "/documents/:id",
   authenticate,
-  authorize('admin', 'receptionist'),
-  deleteDocumentController
+  authorize("admin", "receptionist"),
+  deleteDocumentController,
 );
 
 // ==================================================
@@ -290,29 +269,29 @@ router.delete(
 // ==================================================
 
 router.get(
-  '/:id',
+  "/:id",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
-  getClientController
+  getClientController,
 );
 
 router.patch(
-  '/:id',
+  "/:id",
   authenticate,
-  authorize('admin', 'receptionist'),
+  authorize("admin", "receptionist"),
   requireClientAccess,
   updateClientValidation,
-  updateClientController
+  updateClientController,
 );
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   router.delete(
-    '/:id',
+    "/:id",
     authenticate,
-    authorize('admin'),
+    authorize("admin"),
     requireClientAccess,
-    deleteClientController
+    deleteClientController,
   );
 }
 

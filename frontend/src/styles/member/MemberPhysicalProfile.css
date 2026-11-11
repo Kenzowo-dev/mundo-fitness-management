@@ -295,3 +295,120 @@
     transition: none;
   }
 }
+
+
+/* ==========================================
+   MUNDO FITNESS - AZUL DEPORTIVO
+   Perfil fisico y mediciones
+   ========================================== */
+
+.member-physical {
+  --physical-bg: #101c2c;
+  --physical-card: #1b3048;
+  --physical-card-hover: #23415d;
+  --physical-border: #35536e;
+  --physical-accent: #38bdf8;
+  --physical-text: #f0f7ff;
+  --physical-muted: #b6c9dc;
+}
+
+.member-physical__heading h2 {
+  color: var(--text-primary);
+}
+
+.member-physical__stat {
+  background: linear-gradient(
+    145deg,
+    var(--physical-card),
+    #203953
+  );
+  border-color: var(--physical-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.member-physical__stat:hover {
+  border-color: var(--physical-accent);
+  background: var(--physical-card-hover);
+}
+
+.member-physical__stat-label,
+.member-physical__stat-unit {
+  color: var(--physical-muted);
+}
+
+.member-physical__stat-value {
+  color: var(--physical-text);
+}
+
+.member-physical__section {
+  background: linear-gradient(
+    145deg,
+    var(--physical-bg),
+    #172b43
+  );
+  border-color: var(--physical-border);
+}
+
+.member-physical__section-title {
+  color: var(--physical-text);
+}
+
+.member-physical__measurement {
+  background: var(--physical-card);
+  border: 1px solid var(--physical-border);
+}
+
+.member-physical__measurement dt {
+  color: var(--physical-muted);
+}
+
+.member-physical__measurement dd {
+  color: var(--physical-text);
+}
+
+.member-physical__field label {
+  color: var(--physical-text);
+}
+
+.member-physical__field input,
+.member-physical__field textarea {
+  background: var(--physical-card);
+  border-color: var(--physical-border);
+  color: var(--physical-text);
+}
+
+.member-physical__field input::placeholder,
+.member-physical__field textarea::placeholder {
+  color: var(--physical-muted);
+}
+
+.member-physical__field input:focus,
+.member-physical__field textarea:focus {
+  border-color: var(--physical-accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+.member-physical__history-item {
+  background: var(--physical-card);
+  border-color: var(--physical-border);
+}
+
+.member-physical__history-date,
+.member-physical__history-values dd {
+  color: var(--physical-text);
+}
+
+.member-physical__history-values dt,
+.member-physical__history-notes {
+  color: var(--physical-muted);
+}
+
+.member-physical__history-notes {
+  border-top-color: var(--physical-border);
+}
+
+.member-physical__empty {
+  background: rgba(27, 48, 72, 0.45);
+  border-color: var(--physical-border);
+  color: var(--physical-muted);
+}

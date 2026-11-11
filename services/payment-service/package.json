@@ -16,6 +16,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
+    "mercadopago": "^3.6.1",
     "pg": "^8.23.0",
     "redis": "^5.0.0",
     "zod": "^4.6.7"

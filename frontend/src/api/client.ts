@@ -28,7 +28,9 @@ import type {
   ClientGoal,
   CreateOwnGoalInput,
   UpdateOwnGoalInput,
-} from '../types/api.js';
+  CreateMembershipCheckoutResponse,
+  MembershipCheckoutStatusResponse,
+} from "../types/api.js";
 
 // URL base de la API obtenida de las variables de entorno de Vite
 const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
@@ -78,7 +80,10 @@ class ApiClient {
     this.loadTokens();
   }
 
-  private async fetchResponse(url: string, options: RequestInit): Promise<Response> {
+  private async fetchResponse(
+    url: string,
+    options: RequestInit,
+  ): Promise<Response> {
     try {
       return await fetch(url, options);
     } catch {
@@ -87,13 +92,16 @@ class ApiClient {
   }
 
   private async throwApiError(response: Response): Promise<never> {
-    const payload = await response.json().catch(() => null) as ApiError | null;
+    const payload = (await response
+      .json()
+      .catch(() => null)) as ApiError | null;
     const code = payload?.error?.code;
-    const message = response.status === 422
-      ? API_ERROR_MESSAGES[422]
-      : (code && API_ERROR_MESSAGES_BY_CODE[code])
-        || API_ERROR_MESSAGES[response.status]
-        || 'No se pudo completar la solicitud. Inténtalo de nuevo.';
+    const message =
+      response.status === 422
+        ? API_ERROR_MESSAGES[422]
+        : (code && API_ERROR_MESSAGES_BY_CODE[code]) ||
+          API_ERROR_MESSAGES[response.status] ||
+          "No se pudo completar la solicitud. Inténtalo de nuevo.";
 
     throw new Error(message);
   }
@@ -103,8 +111,8 @@ class ApiClient {
    * Se llama durante la inicialización del cliente.
    */
   private loadTokens(): void {
-    this.accessToken = localStorage.getItem('accessToken');
-    this.refreshToken = localStorage.getItem('refreshToken');
+    this.accessToken = localStorage.getItem("accessToken");
+    this.refreshToken = localStorage.getItem("refreshToken");
   }
 
   /**
@@ -115,8 +123,8 @@ class ApiClient {
     this.sessionVersion += 1;
     this.accessToken = tokens.accessToken;
     this.refreshToken = tokens.refreshToken;
-    localStorage.setItem('accessToken', tokens.accessToken);
-    localStorage.setItem('refreshToken', tokens.refreshToken);
+    localStorage.setItem("accessToken", tokens.accessToken);
+    localStorage.setItem("refreshToken", tokens.refreshToken);
   }
 
   /**
@@ -127,8 +135,8 @@ class ApiClient {
     this.sessionVersion += 1;
     this.accessToken = null;
     this.refreshToken = null;
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   }
 
   /**
@@ -139,14 +147,18 @@ class ApiClient {
    * @param options - Opciones de la petición (método, body, headers, etc.)
    * @returns Promesa que resuelve con los datos parseados de la respuesta JSON
    */
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+  ): Promise<T> {
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     };
 
     if (this.accessToken) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${this.accessToken}`;
+      (headers as Record<string, string>)["Authorization"] =
+        `Bearer ${this.accessToken}`;
     }
 
     const response = await this.fetchResponse(`${API_BASE_URL}${endpoint}`, {
@@ -173,7 +185,6 @@ class ApiClient {
 
     return response.json();
   }
-
 
   private async requestAvatar(
     method: "GET" | "POST" | "DELETE",
@@ -220,7 +231,6 @@ class ApiClient {
     return response;
   }
 
-
   /**
    * Renueva el token de acceso usando el token de refresco.
    * Si el refresco falla, limpia los tokens y retorna false.
@@ -242,8 +252,8 @@ class ApiClient {
     if (!refreshToken) return false;
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
       });
 
@@ -270,12 +280,18 @@ class ApiClient {
    * @param password - Contraseña del usuario
    * @returns Promesa con los datos del usuario y los tokens JWT
    */
-  async login(email: string, password: string): Promise<{ user: User; tokens: TokenPair }> {
-    const response = await this.fetchResponse(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{ user: User; tokens: TokenPair }> {
+    const response = await this.fetchResponse(
+      `${API_BASE_URL}/api/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      },
+    );
 
     if (!response.ok) {
       await this.throwApiError(response);
@@ -292,12 +308,17 @@ class ApiClient {
    * @param data - Datos del cliente a registrar
    * @returns Promesa con los datos del usuario creado y los tokens JWT
    */
-  async register(data: RegisterData): Promise<{ user: User; tokens: TokenPair }> {
-    const response = await this.fetchResponse(`${API_BASE_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+  async register(
+    data: RegisterData,
+  ): Promise<{ user: User; tokens: TokenPair }> {
+    const response = await this.fetchResponse(
+      `${API_BASE_URL}/api/auth/register`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      },
+    );
 
     if (!response.ok) {
       await this.throwApiError(response);
@@ -319,9 +340,9 @@ class ApiClient {
     try {
       if (refreshToken && accessToken) {
         await fetch(`${API_BASE_URL}/api/auth/logout`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({ refreshToken }),
@@ -355,7 +376,7 @@ class ApiClient {
    * @returns Promesa con los datos del usuario
    */
   async getCurrentUser(): Promise<User> {
-    return this.request('/api/auth/me');
+    return this.request("/api/auth/me");
   }
 
   /**
@@ -364,7 +385,10 @@ class ApiClient {
    * @returns Promesa con los datos actualizados del usuario
    */
   async updateCurrentUser(data: Partial<User>) {
-    return this.request('/api/auth/me', { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request("/api/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -399,8 +423,8 @@ class ApiClient {
    * @returns Promesa con el resultado de la operación
    */
   async changePassword(currentPassword: string, newPassword: string) {
-    const result = await this.request('/api/auth/change-password', {
-      method: 'POST',
+    const result = await this.request("/api/auth/change-password", {
+      method: "POST",
       body: JSON.stringify({ currentPassword, newPassword }),
     });
     // The backend revokes every refresh token after a password change.
@@ -414,8 +438,8 @@ class ApiClient {
    * @returns Promesa con la respuesta del servidor
    */
   async forgotPassword(email: string) {
-    return this.request('/api/auth/forgot-password', {
-      method: 'POST',
+    return this.request("/api/auth/forgot-password", {
+      method: "POST",
       body: JSON.stringify({ email }),
     });
   }
@@ -427,8 +451,8 @@ class ApiClient {
    * @returns Promesa con la respuesta del servidor
    */
   async resetPassword(token: string, newPassword: string) {
-    return this.request('/api/auth/reset-password', {
-      method: 'POST',
+    return this.request("/api/auth/reset-password", {
+      method: "POST",
       body: JSON.stringify({ token, newPassword }),
     });
   }
@@ -447,18 +471,21 @@ class ApiClient {
     limit = 20,
     filters?: { status?: string; search?: string },
   ) {
-    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.search) params.append('search', filters.search);
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.search) params.append("search", filters.search);
     return this.request<PaginatedResponse<Client>>(`/api/clients?${params}`);
   }
 
   async getClientDashboardStats() {
-    return this.request<ClientDashboardStats>('/api/clients/stats');
+    return this.request<ClientDashboardStats>("/api/clients/stats");
   }
 
   async getClientReports() {
-    return this.request<ClientReports>('/api/clients/reports');
+    return this.request<ClientReports>("/api/clients/reports");
   }
 
   /**
@@ -476,11 +503,18 @@ class ApiClient {
 
   async updateOwnClientProfile(
     userId: number,
-    data: Partial<Pick<Client, 'phone' | 'address' | 'emergencyContactName' | 'emergencyContactPhone'>>,
+    data: Partial<
+      Pick<
+        Client,
+        "phone" | "address" | "emergencyContactName" | "emergencyContactPhone"
+      >
+    >,
   ) {
-    return this.request<Client>(`/api/clients/user/${userId}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<Client>(`/api/clients/user/${userId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
-
 
   // ==================== Fotografía del socio ====================
 
@@ -515,67 +549,82 @@ class ApiClient {
     await this.requestAvatar("DELETE");
   }
 
+  /**
+   * Crea una orden de compra de membresía o recupera una pendiente.
+   * El backend genera la preferencia de Mercado Pago.
+   *
+   * @param planId - Identificador del plan seleccionado.
+   */
+  async createMembershipCheckout(
+    planId: number,
+  ): Promise<CreateMembershipCheckoutResponse> {
+    return this.request<CreateMembershipCheckoutResponse>(
+      "/api/payments/checkout",
+      {
+        method: "POST",
+        body: JSON.stringify({ planId }),
+      },
+    );
+  }
+
+  /**
+   * Consulta el estado de una orden perteneciente al cliente autenticado.
+   * No confirma pagos desde el navegador: consulta al backend.
+   *
+   * @param orderId - Identificador de la orden de compra.
+   */
+  async getMembershipCheckoutStatus(
+    orderId: number,
+  ): Promise<MembershipCheckoutStatusResponse> {
+    return this.request<MembershipCheckoutStatusResponse>(
+      `/api/payments/checkout/${orderId}`,
+    );
+  }
 
   // ==================== Mediciones del socio ====================
 
-async getOwnMeasurements(limit = 20): Promise<ClientMeasurement[]> {
-  return this.request<ClientMeasurement[]>(
-    `/api/clients/me/measurements?limit=${limit}`
-  );
-}
+  async getOwnMeasurements(limit = 20): Promise<ClientMeasurement[]> {
+    return this.request<ClientMeasurement[]>(
+      `/api/clients/me/measurements?limit=${limit}`,
+    );
+  }
 
-async addOwnMeasurement(
-  data: CreateOwnMeasurementInput
-): Promise<ClientMeasurement> {
-  return this.request<ClientMeasurement>(
-    '/api/clients/me/measurements',
-    {
-      method: 'POST',
+  async addOwnMeasurement(
+    data: CreateOwnMeasurementInput,
+  ): Promise<ClientMeasurement> {
+    return this.request<ClientMeasurement>("/api/clients/me/measurements", {
+      method: "POST",
       body: JSON.stringify(data),
-    }
-  );
-}
+    });
+  }
 
   // ==================== Objetivos del socio ====================
 
   async getOwnGoals(): Promise<ClientGoal[]> {
-    return this.request<ClientGoal[]>(
-      "/api/clients/me/goals"
-    );
+    return this.request<ClientGoal[]>("/api/clients/me/goals");
   }
 
-  async createOwnGoal(
-    data: CreateOwnGoalInput
-  ): Promise<ClientGoal> {
-    return this.request<ClientGoal>(
-      "/api/clients/me/goals",
-      {
-        method: "POST",
-        body: JSON.stringify(data),
-      }
-    );
+  async createOwnGoal(data: CreateOwnGoalInput): Promise<ClientGoal> {
+    return this.request<ClientGoal>("/api/clients/me/goals", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   async updateOwnGoal(
     id: number,
-    data: UpdateOwnGoalInput
+    data: UpdateOwnGoalInput,
   ): Promise<ClientGoal> {
-    return this.request<ClientGoal>(
-      `/api/clients/me/goals/${id}`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }
-    );
+    return this.request<ClientGoal>(`/api/clients/me/goals/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   async deleteOwnGoal(id: number): Promise<void> {
-    return this.request<void>(
-      `/api/clients/me/goals/${id}`,
-      {
-        method: "DELETE",
-      }
-    );
+    return this.request<void>(`/api/clients/me/goals/${id}`, {
+      method: "DELETE",
+    });
   }
 
   /**
@@ -593,7 +642,10 @@ async addOwnMeasurement(
    * @returns Promesa con los datos del cliente creado
    */
   async createClient(data: CreateClientData) {
-    return this.request('/api/clients', { method: 'POST', body: JSON.stringify(data) });
+    return this.request("/api/clients", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -603,7 +655,10 @@ async addOwnMeasurement(
    * @returns Promesa con los datos actualizados del cliente
    */
   async updateClient(id: number, data: Partial<Client>) {
-    return this.request(`/api/clients/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request(`/api/clients/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -612,7 +667,7 @@ async addOwnMeasurement(
    * @returns Promesa con el resultado de la eliminación
    */
   async deleteClient(id: number) {
-    return this.request(`/api/clients/${id}`, { method: 'DELETE' });
+    return this.request(`/api/clients/${id}`, { method: "DELETE" });
   }
 
   // ==================== Endpoints de Membresías ====================
@@ -623,38 +678,46 @@ async addOwnMeasurement(
    * @returns Promesa con la lista de planes de membresía
    */
   async getMembershipPlans(
-  activeOnly = true,
-  page?: number,
-  limit?: number
-): Promise<MembershipPlan[] | PaginatedResponse<MembershipPlan>> {
-  const pagination =
-    page !== undefined && limit !== undefined
-      ? `&page=${page}&limit=${limit}`
-      : '';
+    activeOnly = true,
+    page?: number,
+    limit?: number,
+  ): Promise<MembershipPlan[] | PaginatedResponse<MembershipPlan>> {
+    const pagination =
+      page !== undefined && limit !== undefined
+        ? `&page=${page}&limit=${limit}`
+        : "";
 
-  return this.request<MembershipPlan[] | PaginatedResponse<MembershipPlan>>(
-    `/api/memberships/plans?activeOnly=${activeOnly}${pagination}`
-  );
-}
+    return this.request<MembershipPlan[] | PaginatedResponse<MembershipPlan>>(
+      `/api/memberships/plans?activeOnly=${activeOnly}${pagination}`,
+    );
+  }
 
   async getPublicMembershipPlans(): Promise<PublicMembershipPlan[]> {
-    return this.request<PublicMembershipPlan[]>('/api/memberships/plans/public');
+    return this.request<PublicMembershipPlan[]>(
+      "/api/memberships/plans/public",
+    );
   }
 
   async getMembershipDashboardStats() {
-    return this.request<MembershipDashboardStats>('/api/memberships/stats');
+    return this.request<MembershipDashboardStats>("/api/memberships/stats");
   }
 
   async getMembershipReports() {
-    return this.request<MembershipReports>('/api/memberships/reports');
+    return this.request<MembershipReports>("/api/memberships/reports");
   }
 
   async createMembershipPlan(data: CreateMembershipPlanInput) {
-    return this.request('/api/memberships/plans', { method: 'POST', body: JSON.stringify(data) });
+    return this.request("/api/memberships/plans", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   async updateMembershipPlan(id: number, data: UpdateMembershipPlanInput) {
-    return this.request(`/api/memberships/plans/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request(`/api/memberships/plans/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -667,18 +730,18 @@ async addOwnMeasurement(
   }
 
   async getAllMemberships(
-  page?: number,
-  limit?: number
-): Promise<ClientMembership[] | PaginatedResponse<ClientMembership>> {
-  const pagination =
-    page !== undefined && limit !== undefined
-      ? `?page=${page}&limit=${limit}`
-      : '';
+    page?: number,
+    limit?: number,
+  ): Promise<ClientMembership[] | PaginatedResponse<ClientMembership>> {
+    const pagination =
+      page !== undefined && limit !== undefined
+        ? `?page=${page}&limit=${limit}`
+        : "";
 
-  return this.request<ClientMembership[] | PaginatedResponse<ClientMembership>>(
-    `/api/memberships${pagination}`
-  );
-}
+    return this.request<
+      ClientMembership[] | PaginatedResponse<ClientMembership>
+    >(`/api/memberships${pagination}`);
+  }
 
   /**
    * Obtiene todas las membresías asociadas a un cliente.
@@ -686,33 +749,49 @@ async addOwnMeasurement(
    * @returns Promesa con la lista de membresías del cliente
    */
   async getClientMemberships(clientId: number): Promise<ClientMembership[]> {
-    return this.request<ClientMembership[]>(`/api/memberships/client/${clientId}`);
+    return this.request<ClientMembership[]>(
+      `/api/memberships/client/${clientId}`,
+    );
   }
 
-  async createMembershipRenewalRequest(data: { planId: number; memberNote?: string }) {
-    return this.request('/api/memberships/requests', { method: 'POST', body: JSON.stringify(data) });
+  async createMembershipRenewalRequest(data: {
+    planId: number;
+    memberNote?: string;
+  }) {
+    return this.request("/api/memberships/requests", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   async getMyMembershipRenewalRequests() {
-    return this.request('/api/memberships/requests/mine');
+    return this.request("/api/memberships/requests/mine");
   }
 
   async getMembershipRenewalRequests(
-  page?: number,
-  limit?: number
-): Promise<MembershipRenewalRequest[] | PaginatedResponse<MembershipRenewalRequest>> {
-  const pagination =
-    page !== undefined && limit !== undefined
-      ? `?page=${page}&limit=${limit}`
-      : '';
-
-  return this.request<
+    page?: number,
+    limit?: number,
+  ): Promise<
     MembershipRenewalRequest[] | PaginatedResponse<MembershipRenewalRequest>
-  >(`/api/memberships/requests${pagination}`);
-}
+  > {
+    const pagination =
+      page !== undefined && limit !== undefined
+        ? `?page=${page}&limit=${limit}`
+        : "";
 
-  async updateMembershipRenewalRequest(id: number, data: { status: 'contacted' | 'closed'; staffNote?: string }) {
-    return this.request(`/api/memberships/requests/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request<
+      MembershipRenewalRequest[] | PaginatedResponse<MembershipRenewalRequest>
+    >(`/api/memberships/requests${pagination}`);
+  }
+
+  async updateMembershipRenewalRequest(
+    id: number,
+    data: { status: "contacted" | "closed"; staffNote?: string },
+  ) {
+    return this.request(`/api/memberships/requests/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -723,10 +802,18 @@ async addOwnMeasurement(
   async createMembership(
     data: Omit<
       ClientMembership,
-      'id' | 'plan' | 'createdAt' | 'updatedAt' | 'cancelledAt' | 'cancellationReason'
+      | "id"
+      | "plan"
+      | "createdAt"
+      | "updatedAt"
+      | "cancelledAt"
+      | "cancellationReason"
     >,
   ) {
-    return this.request('/api/memberships', { method: 'POST', body: JSON.stringify(data) });
+    return this.request("/api/memberships", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -736,7 +823,10 @@ async addOwnMeasurement(
    * @returns Promesa con los datos actualizados
    */
   async updateMembership(id: number, data: Partial<ClientMembership>) {
-    return this.request(`/api/memberships/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    return this.request(`/api/memberships/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -747,7 +837,7 @@ async addOwnMeasurement(
    */
   async cancelMembership(id: number, reason?: string) {
     return this.request(`/api/memberships/${id}/cancel`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify({ cancellationReason: reason }),
     });
   }
@@ -758,8 +848,8 @@ async addOwnMeasurement(
    * @returns Promesa con el resultado del check-in
    */
   async checkIn(data: { clientId: number; clientMembershipId: number }) {
-    return this.request('/api/memberships/visits/check-in', {
-      method: 'POST',
+    return this.request("/api/memberships/visits/check-in", {
+      method: "POST",
       body: JSON.stringify(data),
     });
   }
@@ -770,7 +860,9 @@ async addOwnMeasurement(
    * @returns Promesa con el resultado del check-out
    */
   async checkOut(visitId: number) {
-    return this.request(`/api/memberships/visits/${visitId}/check-out`, { method: 'POST' });
+    return this.request(`/api/memberships/visits/${visitId}/check-out`, {
+      method: "POST",
+    });
   }
 
   /**
@@ -780,7 +872,9 @@ async addOwnMeasurement(
    * @returns Promesa con la lista de visitas del cliente
    */
   async getClientVisits(clientId: number, limit = 50) {
-    return this.request(`/api/memberships/visits/client/${clientId}?limit=${limit}`);
+    return this.request(
+      `/api/memberships/visits/client/${clientId}?limit=${limit}`,
+    );
   }
 
   // ==================== Endpoints de Pagos ====================
@@ -797,18 +891,21 @@ async addOwnMeasurement(
     limit = 20,
     filters?: { clientId?: number; status?: string },
   ) {
-    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-    if (filters?.clientId) params.append('clientId', String(filters.clientId));
-    if (filters?.status) params.append('status', filters.status);
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (filters?.clientId) params.append("clientId", String(filters.clientId));
+    if (filters?.status) params.append("status", filters.status);
     return this.request<PaginatedResponse<Payment>>(`/api/payments?${params}`);
   }
 
   async getPaymentDashboardStats() {
-    return this.request<PaymentDashboardStats>('/api/payments/stats');
+    return this.request<PaymentDashboardStats>("/api/payments/stats");
   }
 
   async getPaymentReports() {
-    return this.request<PaymentReports>('/api/payments/reports');
+    return this.request<PaymentReports>("/api/payments/reports");
   }
 
   /**
@@ -826,7 +923,10 @@ async addOwnMeasurement(
    * @returns Promesa con los datos del pago creado
    */
   async createPayment(data: CreatePaymentInput) {
-    return this.request('/api/payments', { method: 'POST', body: JSON.stringify(data) });
+    return this.request("/api/payments", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -841,10 +941,15 @@ async addOwnMeasurement(
     limit = 20,
     filters?: { clientId?: number; status?: string },
   ) {
-    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-    if (filters?.clientId) params.append('clientId', String(filters.clientId));
-    if (filters?.status) params.append('status', filters.status);
-    return this.request<PaginatedResponse<Invoice>>(`/api/payments/invoices?${params}`);
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    if (filters?.clientId) params.append("clientId", String(filters.clientId));
+    if (filters?.status) params.append("status", filters.status);
+    return this.request<PaginatedResponse<Invoice>>(
+      `/api/payments/invoices?${params}`,
+    );
   }
 
   /**
@@ -867,7 +972,10 @@ async addOwnMeasurement(
     token: string;
     isDefault?: boolean;
   }) {
-    return this.request('/api/payments/methods', { method: 'POST', body: JSON.stringify(data) });
+    return this.request("/api/payments/methods", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
   }
 
   /**
@@ -880,9 +988,11 @@ async addOwnMeasurement(
   }
 
   async getClientPayments(clientId: number) {
-    return this.request<{ data: Payment[]; pagination: PaginatedResponse<Payment>['pagination'] }>(`/api/payments/client/${clientId}`);
+    return this.request<{
+      data: Payment[];
+      pagination: PaginatedResponse<Payment>["pagination"];
+    }>(`/api/payments/client/${clientId}`);
   }
-
 }
 
 // Instancia singleton del cliente API para uso en toda la aplicación

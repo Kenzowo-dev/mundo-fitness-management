@@ -1,18 +1,11 @@
-
 import { useState, type FormEvent } from "react";
-import {
-  useAddOwnMeasurement,
-  useOwnMeasurements,
-} from "../../hooks/useApi";
+import { useAddOwnMeasurement, useOwnMeasurements } from "../../hooks/useApi";
 import type { CreateOwnMeasurementInput } from "../../types/api";
 import Button from "../Button";
 import Alert from "../Alert";
 import "../../styles/member/MemberPhysicalProfile.css";
 
-type NumericField = Exclude<
-  keyof CreateOwnMeasurementInput,
-  "notes"
->;
+type NumericField = Exclude<keyof CreateOwnMeasurementInput, "notes">;
 
 const measurementFields: {
   key: NumericField;
@@ -32,7 +25,7 @@ const measurementFields: {
 ];
 
 const initialValues = Object.fromEntries(
-  measurementFields.map(({ key }) => [key, ""])
+  measurementFields.map(({ key }) => [key, ""]),
 ) as Record<NumericField, string>;
 
 export default function MemberPhysicalProfile() {
@@ -49,10 +42,8 @@ export default function MemberPhysicalProfile() {
   const latestValues = Object.fromEntries(
     measurementFields.map(({ key }) => [
       key,
-      measurements.find(
-        (measurement) => measurement[key] != null
-      )?.[key],
-    ])
+      measurements.find((measurement) => measurement[key] != null)?.[key],
+    ]),
   ) as Partial<Record<NumericField, number>>;
 
   const weightKg = latestValues.weightKg;
@@ -77,11 +68,7 @@ export default function MemberPhysicalProfile() {
 
       const value = Number(rawValue);
 
-      if (
-        !Number.isFinite(value) ||
-        value <= 0 ||
-        value > field.max
-      ) {
+      if (!Number.isFinite(value) || value <= 0 || value > field.max) {
         setError(`Revisa el valor de ${field.label.toLowerCase()}.`);
         return;
       }
@@ -119,15 +106,10 @@ export default function MemberPhysicalProfile() {
         </div>
       </header>
 
-      {measurementsQuery.isLoading && (
-        <p>Cargando tus mediciones...</p>
-      )}
+      {measurementsQuery.isLoading && <p>Cargando tus mediciones...</p>}
 
       {measurementsQuery.isError && (
-        <Alert
-          type="error"
-          message="No pudimos cargar tus mediciones."
-        />
+        <Alert type="error" message="No pudimos cargar tus mediciones." />
       )}
 
       {message && (
@@ -150,9 +132,7 @@ export default function MemberPhysicalProfile() {
 
       <div className="member-physical__stats">
         <div className="member-physical__stat">
-          <span className="member-physical__stat-label">
-            Peso actual
-          </span>
+          <span className="member-physical__stat-label">Peso actual</span>
           <strong className="member-physical__stat-value">
             {weightKg != null ? weightKg : "—"}
           </strong>
@@ -160,9 +140,7 @@ export default function MemberPhysicalProfile() {
         </div>
 
         <div className="member-physical__stat">
-          <span className="member-physical__stat-label">
-            Altura
-          </span>
+          <span className="member-physical__stat-label">Altura</span>
           <strong className="member-physical__stat-value">
             {heightCm != null ? heightCm : "—"}
           </strong>
@@ -204,10 +182,7 @@ export default function MemberPhysicalProfile() {
           Registrar nuevas mediciones
         </h3>
 
-        <form
-          className="member-physical__form"
-          onSubmit={handleSubmit}
-        >
+        <form className="member-physical__form" onSubmit={handleSubmit}>
           {measurementFields.map(({ key, label, unit, max }) => (
             <div className="member-physical__field" key={key}>
               <label htmlFor={`measurement-${key}`}>
@@ -233,9 +208,7 @@ export default function MemberPhysicalProfile() {
           ))}
 
           <div className="member-physical__field member-physical__field--full">
-            <label htmlFor="measurement-notes">
-              Observaciones (opcional)
-            </label>
+            <label htmlFor="measurement-notes">Observaciones (opcional)</label>
 
             <textarea
               id="measurement-notes"
@@ -248,10 +221,7 @@ export default function MemberPhysicalProfile() {
           </div>
 
           <div className="member-physical__actions">
-            <Button
-              type="submit"
-              loading={addMeasurement.isPending}
-            >
+            <Button type="submit" loading={addMeasurement.isPending}>
               Guardar mediciones
             </Button>
           </div>
@@ -263,12 +233,11 @@ export default function MemberPhysicalProfile() {
           Historial de mediciones
         </h3>
 
-        {measurementsQuery.isSuccess &&
-          measurements.length === 0 && (
-            <p className="member-physical__empty">
-              Todavía no tienes mediciones registradas.
-            </p>
-          )}
+        {measurementsQuery.isSuccess && measurements.length === 0 && (
+          <p className="member-physical__empty">
+            Todavía no tienes mediciones registradas.
+          </p>
+        )}
 
         <div className="member-physical__history">
           {measurements.map((measurement) => (
@@ -280,9 +249,7 @@ export default function MemberPhysicalProfile() {
                 className="member-physical__history-date"
                 dateTime={measurement.measuredAt}
               >
-                {new Date(
-                  measurement.measuredAt
-                ).toLocaleDateString("es-PE")}
+                {new Date(measurement.measuredAt).toLocaleDateString("es-PE")}
               </time>
 
               <dl className="member-physical__history-values">
