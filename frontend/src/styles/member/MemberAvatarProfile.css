@@ -177,3 +177,91 @@
     flex: 1;
   }
 }
+
+
+/* ==========================================
+   MUNDO FITNESS - AZUL DEPORTIVO
+   Fotografia de perfil
+   ========================================== */
+
+.member-avatar-profile {
+  --avatar-blue-bg: #101c2c;
+  --avatar-blue-card: #1b3048;
+  --avatar-blue-border: #35536e;
+  --avatar-blue-accent: #38bdf8;
+  --avatar-blue-text: #f0f7ff;
+  --avatar-blue-muted: #b6c9dc;
+
+  background: linear-gradient(
+    135deg,
+    var(--avatar-blue-bg),
+    #172b43
+  );
+  border: 1px solid var(--avatar-blue-border);
+  border-radius: 18px;
+  color: var(--avatar-blue-text);
+}
+
+.member-avatar-profile .member-section-header h2 {
+  color: var(--avatar-blue-text);
+}
+
+.member-avatar-profile .member-section-header p,
+.member-avatar-profile-description {
+  color: var(--avatar-blue-muted);
+}
+
+.member-avatar-profile-image {
+  background: linear-gradient(135deg, #294862, #101c2c);
+  border: 3px solid var(--avatar-blue-accent);
+  box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.12);
+}
+
+.member-avatar-profile-placeholder {
+  color: #62d6b1;
+}
+
+.member-avatar-profile-select,
+.member-avatar-profile-action--save {
+  background: #087eaf;
+  border-color: #087eaf;
+  color: #ffffff;
+}
+
+.member-avatar-profile-select:hover:not(:disabled),
+.member-avatar-profile-action--save:hover:not(:disabled) {
+  background: #03658e;
+  border-color: #03658e;
+}
+
+.member-avatar-profile-action {
+  border-color: var(--avatar-blue-border);
+  color: var(--avatar-blue-text);
+}
+
+.member-avatar-profile-action:hover:not(:disabled) {
+  background: #294862;
+}
+
+.member-avatar-profile-action--delete {
+  color: #ffb4b4;
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.member-avatar-profile-action--delete:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.14);
+}
+
+.member-avatar-profile-filename {
+  color: var(--avatar-blue-muted);
+}
+
+.member-avatar-profile-notice--success {
+  color: #a7f3d0;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.member-avatar-profile-notice--error {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.15);
+}

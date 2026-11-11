@@ -543,3 +543,29 @@ export function useAllMemberships(enabled = true) {
     enabled,
   });
 }
+
+
+/**
+ * Inicia la compra de una membresía mediante Mercado Pago.
+ * El servidor es responsable de generar la orden y la preferencia.
+ */
+export function useCreateMembershipCheckout() {
+  return useMutation({
+    mutationFn: (planId: number) =>
+      api.createMembershipCheckout(planId),
+  });
+}
+
+/**
+ * Consulta el estado real de una orden de compra.
+ * Solo se ejecuta cuando se proporciona un identificador válido.
+ */
+export function useMembershipCheckoutStatus(orderId: number | null) {
+  return useQuery({
+    queryKey: ["membership-checkout", orderId],
+    queryFn: () => api.getMembershipCheckoutStatus(orderId!),
+    enabled: orderId !== null && orderId > 0,
+    refetchInterval: (query) =>
+      query.state.data?.order.status === "pending" ? 5000 : false,
+  });
+}

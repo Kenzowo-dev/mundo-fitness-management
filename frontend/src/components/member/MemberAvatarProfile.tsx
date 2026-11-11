@@ -1,11 +1,7 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
-import {
-  memberAvatarQueryKey,
-  useMemberAvatar,
-} from "./useMemberAvatar";
+import { memberAvatarQueryKey, useMemberAvatar } from "./useMemberAvatar";
 import "../../styles/member/MemberAvatarProfile.css";
 
 interface MemberAvatarProfileProps {
@@ -13,11 +9,7 @@ interface MemberAvatarProfileProps {
 }
 
 const MAX_SIZE = 2 * 1024 * 1024;
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function MemberAvatarProfile({
   userId,
@@ -32,10 +24,8 @@ export default function MemberAvatarProfile({
     error: avatarLoadError,
   } = useMemberAvatar(userId);
 
-  const [selectedFile, setSelectedFile] =
-    useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] =
-    useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -170,15 +160,14 @@ export default function MemberAvatarProfile({
             <span
               className="member-avatar-profile-placeholder"
               aria-hidden="true"
-            >
-            </span>
+            ></span>
           )}
         </div>
 
         <div className="member-avatar-profile-controls">
           <p className="member-avatar-profile-description">
-            Personaliza tu perfil con una fotografía.
-            Formatos JPG, PNG o WebP. Máximo 2 MB.
+            Personaliza tu perfil con una fotografía. Formatos JPG, PNG o WebP.
+            Máximo 2 MB.
           </p>
 
           <input
@@ -188,9 +177,7 @@ export default function MemberAvatarProfile({
             accept="image/jpeg,image/png,image/webp"
             aria-label="Seleccionar fotografía de perfil"
             disabled={saving || loading}
-            onChange={(event) =>
-              handleSelect(event.target.files?.[0])
-            }
+            onChange={(event) => handleSelect(event.target.files?.[0])}
           />
 
           <button
@@ -199,7 +186,7 @@ export default function MemberAvatarProfile({
             disabled={saving || loading}
             onClick={() => inputRef.current?.click()}
           >
-             {avatarUrl ? "Cambiar fotografía" : "Subir fotografía"}
+            {avatarUrl ? "Cambiar fotografía" : "Subir fotografía"}
           </button>
 
           {selectedFile && (
@@ -245,9 +232,7 @@ export default function MemberAvatarProfile({
         </div>
       </div>
 
-      {loading && (
-        <p role="status">Cargando fotografía...</p>
-      )}
+      {loading && <p role="status">Cargando fotografía...</p>}
 
       {avatarLoadError && (
         <p

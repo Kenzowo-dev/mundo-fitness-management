@@ -6,10 +6,7 @@ vi.mock("@gym/shared/database/index.js", () => ({
   query: queryMock,
 }));
 
-import {
-  updateGoal,
-  deleteGoal,
-} from "../src/services/client.service.js";
+import { updateGoal, deleteGoal } from "../src/services/client.service.js";
 
 describe("Seguridad de objetivos fitness", () => {
   beforeEach(() => {
@@ -23,21 +20,13 @@ describe("Seguridad de objetivos fitness", () => {
     });
 
     await expect(
-      updateGoal(
-        10,
-        { description: "Nueva descripción" },
-        5
-      )
+      updateGoal(10, { description: "Nueva descripción" }, 5),
     ).rejects.toThrow();
 
     const [sql, params] = queryMock.mock.calls[0];
 
     expect(sql).toMatch(/WHERE id = \$2 AND client_id = \$3/);
-    expect(params).toEqual([
-      "Nueva descripción",
-      10,
-      5,
-    ]);
+    expect(params).toEqual(["Nueva descripción", 10, 5]);
   });
 
   it("impide eliminar objetivos de otro cliente", async () => {
@@ -46,13 +35,11 @@ describe("Seguridad de objetivos fitness", () => {
       rowCount: 0,
     });
 
-    await expect(
-      deleteGoal(10, 99)
-    ).rejects.toThrow();
+    await expect(deleteGoal(10, 99)).rejects.toThrow();
 
     expect(queryMock).toHaveBeenCalledWith(
       "DELETE FROM client_goals WHERE id = $1 AND client_id = $2",
-      [10, 99]
+      [10, 99],
     );
   });
 
@@ -62,13 +49,11 @@ describe("Seguridad de objetivos fitness", () => {
       rowCount: 1,
     });
 
-    await expect(
-      deleteGoal(10, 5)
-    ).resolves.toBeUndefined();
+    await expect(deleteGoal(10, 5)).resolves.toBeUndefined();
 
     expect(queryMock).toHaveBeenCalledWith(
       "DELETE FROM client_goals WHERE id = $1 AND client_id = $2",
-      [10, 5]
+      [10, 5],
     );
   });
 
@@ -79,11 +64,7 @@ describe("Seguridad de objetivos fitness", () => {
     });
 
     await expect(
-      updateGoal(
-        10,
-        { currentValue: 85, targetValue: 78 },
-        5
-      )
+      updateGoal(10, { currentValue: 85, targetValue: 78 }, 5),
     ).rejects.toThrow();
 
     const [sql] = queryMock.mock.calls[0];
@@ -97,9 +78,7 @@ describe("Seguridad de objetivos fitness", () => {
       rowCount: 0,
     });
 
-    await expect(
-      updateGoal(10, { status: "achieved" }, 5)
-    ).rejects.toThrow();
+    await expect(updateGoal(10, { status: "achieved" }, 5)).rejects.toThrow();
 
     const [sql] = queryMock.mock.calls[0];
 

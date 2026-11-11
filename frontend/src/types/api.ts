@@ -85,9 +85,18 @@ export interface MembershipPlan {
   updatedAt: string;
 }
 
-export type PublicMembershipPlan = Pick<MembershipPlan,
-  'id' | 'name' | 'description' | 'durationDays' | 'price' | 'currency' | 'features' |
-  'maxVisitsPerWeek' | 'includesClasses' | 'includesSauna'
+export type PublicMembershipPlan = Pick<
+  MembershipPlan,
+  | "id"
+  | "name"
+  | "description"
+  | "durationDays"
+  | "price"
+  | "currency"
+  | "features"
+  | "maxVisitsPerWeek"
+  | "includesClasses"
+  | "includesSauna"
 >;
 
 export interface CreateMembershipPlanInput {
@@ -95,7 +104,7 @@ export interface CreateMembershipPlanInput {
   description?: string;
   durationDays: number;
   price: number;
-  currency: 'PEN' | 'USD';
+  currency: "PEN" | "USD";
   features: string[];
   maxVisitsPerWeek?: number;
   includesClasses: boolean;
@@ -103,9 +112,11 @@ export interface CreateMembershipPlanInput {
   sortOrder: number;
 }
 
-export type UpdateMembershipPlanInput = Partial<CreateMembershipPlanInput> & { isActive?: boolean };
+export type UpdateMembershipPlanInput = Partial<CreateMembershipPlanInput> & {
+  isActive?: boolean;
+};
 
-export type MembershipRenewalRequestStatus = 'pending' | 'contacted' | 'closed';
+export type MembershipRenewalRequestStatus = "pending" | "contacted" | "closed";
 
 export interface MembershipRenewalRequest {
   id: number;
@@ -158,8 +169,13 @@ export interface CreatePaymentInput {
   clientId: number;
   membershipId: number;
   amount: number;
-  currency: 'PEN' | 'USD';
-  paymentMethod: 'cash' | 'bank_transfer' | 'digital_wallet' | 'credit_card' | 'debit_card';
+  currency: "PEN" | "USD";
+  paymentMethod:
+    | "cash"
+    | "bank_transfer"
+    | "digital_wallet"
+    | "credit_card"
+    | "debit_card";
   transactionId?: string;
   description?: string;
 }
@@ -219,7 +235,11 @@ export interface MembershipReports {
   visitsByDay: Array<{ date: string; count: number }>;
 }
 
-export type PaymentReports = Array<{ month: string; currency: string; amount: number }>;
+export type PaymentReports = Array<{
+  month: string;
+  currency: string;
+  amount: number;
+}>;
 
 export interface ApiError {
   error: {
@@ -281,23 +301,20 @@ export interface ClientMeasurement {
 export type CreateOwnMeasurementInput = Partial<
   Pick<
     ClientMeasurement,
-    | 'weightKg'
-    | 'heightCm'
-    | 'bodyFatPercentage'
-    | 'muscleMassKg'
-    | 'chestCm'
-    | 'waistCm'
-    | 'hipsCm'
-    | 'bicepCm'
-    | 'thighCm'
-    | 'notes'
+    | "weightKg"
+    | "heightCm"
+    | "bodyFatPercentage"
+    | "muscleMassKg"
+    | "chestCm"
+    | "waistCm"
+    | "hipsCm"
+    | "bicepCm"
+    | "thighCm"
+    | "notes"
   >
 >;
 
-export type ClientGoalStatus =
-  | "in_progress"
-  | "achieved"
-  | "cancelled";
+export type ClientGoalStatus = "in_progress" | "achieved" | "cancelled";
 
 export interface ClientGoal {
   id: number;
@@ -330,4 +347,51 @@ export interface UpdateOwnGoalInput {
   unit?: string;
   targetDate?: string;
   status?: ClientGoalStatus;
+}
+
+
+/**
+ * Estados posibles de una orden de compra de membresía.
+ * El estado aprobado solo lo confirma el backend.
+ */
+export type MembershipCheckoutStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "cancelled"
+  | "requires_review";
+
+/**
+ * Información pública de la orden de compra.
+ */
+export interface MembershipCheckoutOrder {
+  id: number;
+  planId: number;
+  planName: string;
+  amount: number;
+  currency: string;
+  status: MembershipCheckoutStatus;
+  reference?: string;
+  requiresReview?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Respuesta al crear o recuperar una compra pendiente.
+ */
+export interface CreateMembershipCheckoutResponse {
+  message: string;
+  order: MembershipCheckoutOrder;
+  checkout: {
+    preferenceId: string;
+    checkoutUrl: string;
+  };
+}
+
+/**
+ * Respuesta al consultar el estado de una compra.
+ */
+export interface MembershipCheckoutStatusResponse {
+  order: MembershipCheckoutOrder;
 }

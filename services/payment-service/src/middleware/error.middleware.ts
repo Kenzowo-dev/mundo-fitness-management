@@ -4,6 +4,27 @@ import { isAppError } from '@gym/shared/errors/index.js';
 
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
   const requestLogger = getRequestLogger(req);
+  // Los errores de JSON malformado son errores del cliente.
+  const parseError = err as Error & {
+    status?: number;
+    statusCode?: number;
+    type?: string;
+  };
+
+  if (
+    parseError.type === 'entity.parse.failed' &&
+    (parseError.status === 400 || parseError.statusCode === 400)
+  ) {
+    requestLogger.warn({ err }, 'Invalid JSON request body');
+    res.status(400).json({
+      error: {
+        message: 'Invalid JSON request body',
+        code: 'INVALID_JSON',
+      },
+    });
+    return;
+  }
+
   if (isAppError(err)) {
     const statusCode = err.statusCode;
     const errorResponse: { message: string; code?: string; details?: unknown } = {
