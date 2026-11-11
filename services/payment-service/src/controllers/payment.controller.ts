@@ -27,10 +27,17 @@ import {
   NotFoundError,
 } from '@gym/shared/errors/index.js';
 
+/** Monto máximo de un pago registrado en recepción (en la moneda elegida). */
+export const MAX_RECEPTION_PAYMENT_AMOUNT = 1000;
+
 const createPaymentSchema = z.object({
   clientId: z.number().int().positive(),
   membershipId: z.number().int().positive(),
-  amount: z.number().positive().max(1_000_000).multipleOf(0.01),
+  amount: z
+    .number()
+    .positive()
+    .max(MAX_RECEPTION_PAYMENT_AMOUNT, `El monto máximo por pago es ${MAX_RECEPTION_PAYMENT_AMOUNT}`)
+    .multipleOf(0.01),
   currency: z.enum(['PEN', 'USD']).default('PEN'),
   paymentMethod: z.enum(['cash', 'bank_transfer', 'digital_wallet', 'credit_card', 'debit_card']),
   transactionId: z.string().trim().max(100).optional(),

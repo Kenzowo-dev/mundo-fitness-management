@@ -169,6 +169,15 @@ describe('PaymentsPage - Integration Tests', () => {
     }, { timeout: 3000 })
   }
 
+  /** Abre el buscador de socios del modal de pago y elige el socio indicado. */
+  const selectPaymentClient = async (name: RegExp) => {
+    fireEvent.focus(screen.getByRole('combobox', { name: /Socio/, hidden: true }))
+    fireEvent.mouseDown(await screen.findByRole('option', { name, hidden: true }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Cambiar socio seleccionado', hidden: true })).toBeInTheDocument()
+    })
+  }
+
   const switchToInvoicesTab = async () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('tab', { name: 'Comprobantes' }))
@@ -217,19 +226,18 @@ describe('PaymentsPage - Integration Tests', () => {
   })
 
   describe('Loading State', () => {
-    it('shows a skeleton while socios load in the payment form', async () => {
+    it('shows "Buscando…" in the socio search while socios load', async () => {
       renderPaymentsPage({ clients: createMockQuery() })
       await openPaymentModal()
-      const loadingField = screen.getByText('Socio', { selector: '.payment-field-skeleton > span' }).parentElement
-      expect(loadingField).toHaveAttribute('aria-busy', 'true')
-      expect(loadingField.querySelector('.skeleton')).toHaveAttribute('aria-hidden', 'true')
+      fireEvent.focus(screen.getByRole('combobox', { name: /Socio/, hidden: true }))
+      expect(screen.getByText('Buscando…')).toBeInTheDocument()
     })
 
     it('shows a skeleton while the selected socio memberships load', async () => {
       vi.spyOn(api, 'getClientMemberships').mockReturnValue(new Promise(() => {}))
       renderPaymentsPage()
       await openPaymentModal()
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await selectPaymentClient(/Juan Pérez/)
       const label = await screen.findByText('Membresía asociada', { selector: '.payment-field-skeleton > span' })
       expect(label.parentElement).toHaveAttribute('aria-busy', 'true')
       expect(label.parentElement.querySelector('.skeleton')).toHaveAttribute('aria-hidden', 'true')
@@ -351,9 +359,30 @@ describe('PaymentsPage - Integration Tests', () => {
       expect(screen.getByText(/no realiza cobros electrónicos/)).toBeInTheDocument()
       fireEvent.click(screen.getByText('Agregar descripción (opcional)'))
       expect(screen.getByLabelText(/Descripción del pago/)).toBeInTheDocument()
-      // Verify select has options
-      const clientSelect = screen.getByLabelText(/^Socio/)
-      expect(clientSelect.querySelectorAll('option').length).toBeGreaterThan(0)
+      expect(screen.getByRole('combobox', { name: /Socio/, hidden: true })).toHaveAttribute('placeholder', 'Buscar por nombre o DNI')
+    })
+
+    it('lists socios on focus and filters them in the search box', async () => {
+      renderPaymentsPage()
+      await openPaymentModal()
+      fireEvent.focus(screen.getByRole('combobox', { name: /Socio/, hidden: true }))
+
+      const option = await screen.findByRole('option', { name: /María García/, hidden: true })
+      expect(option).toHaveTextContent('DNI 72345678')
+      expect(screen.getByRole('option', { name: /Juan Pérez/, hidden: true })).toBeInTheDocument()
+    })
+
+    it('changing the socio clears the selected membership', async () => {
+      renderPaymentsPage()
+      await openPaymentModal()
+      await selectPaymentClient(/Juan Pérez/)
+      await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
+      fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar socio seleccionado', hidden: true }))
+      await selectPaymentClient(/María García/)
+
+      await waitFor(() => expect(api.getClientMemberships).toHaveBeenCalledWith(2))
     })
 
     it('calls createPayment mutation with correct data', async () => {
@@ -361,7 +390,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await selectPaymentClient(/Juan Pérez/)
       await waitFor(() => expect(api.getClientMemberships).toHaveBeenCalledWith(1))
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
@@ -390,7 +419,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await selectPaymentClient(/Juan Pérez/)
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
@@ -401,7 +430,7 @@ describe('PaymentsPage - Integration Tests', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText('Pago registrado como recibido. No se procesó ningún cobro electrónico.')).toBeInTheDocument()
+        expect(screen.getByText('Pago de Juan Pérez registrado como recibido. No se procesó ningún cobro electrónico.')).toBeInTheDocument()
       })
     })
 
@@ -410,7 +439,7 @@ describe('PaymentsPage - Integration Tests', () => {
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
 
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await selectPaymentClient(/Juan Pérez/)
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
@@ -425,21 +454,48 @@ describe('PaymentsPage - Integration Tests', () => {
       })
     })
 
-    it('rejects amounts with more than two decimal places before sending', async () => {
-      const mockCreate = createMockMutation()
+    it('does not let you type more than two decimal places', async () => {
+      renderPaymentsPage()
+      await openPaymentModal()
+      const amount = screen.getByLabelText(/Monto/)
+
+      fireEvent.change(amount, { target: { value: '49.9' } })
+      fireEvent.change(amount, { target: { value: '49.905' } })
+
+      expect(amount).toHaveValue(49.9)
+    })
+
+    it('does not let the amount go over 1000', async () => {
+      renderPaymentsPage()
+      await openPaymentModal()
+      const amount = screen.getByLabelText(/Monto/)
+
+      fireEvent.change(amount, { target: { value: '1000' } })
+      expect(amount).toHaveValue(1000)
+
+      fireEvent.change(amount, { target: { value: '10000' } })
+      expect(amount).toHaveValue(1000)
+
+      fireEvent.change(amount, { target: { value: '1000.01' } })
+      expect(amount).toHaveValue(1000)
+      expect(amount).toHaveAttribute('max', '1000')
+      expect(screen.getByText('Máximo 1000 por pago.')).toBeInTheDocument()
+    })
+
+    it('sends a payment of exactly 1000', async () => {
+      const mockCreate = createMockMutation({ mutateAsync: vi.fn().mockResolvedValue(undefined) })
       renderPaymentsPage({ createPaymentMutation: mockCreate })
       await openPaymentModal()
-      fireEvent.change(screen.getByLabelText(/^Socio/), { target: { value: '1' } })
+      await selectPaymentClient(/Juan Pérez/)
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
-      fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '1.005' } })
+      fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '1000' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Confirmar Cobro', hidden: true }))
       })
 
-      expect(screen.getByText(/hasta dos decimales/i)).toBeInTheDocument()
-      expect(mockCreate.mutateAsync).not.toHaveBeenCalled()
+      await waitFor(() => expect(mockCreate.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ amount: 1000 })))
     })
 
     it('closes modal on cancel', async () => {
