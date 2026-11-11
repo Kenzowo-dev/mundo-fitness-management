@@ -325,13 +325,17 @@ export async function listClients(
   }
 
   if (filters?.search) {
+    // Nombre completo sin tildes ni mayúsculas: "perez", "Juan P" o "maria garcia" encuentran
+    // "Juan Pérez" y "María García". translate() es nativo de PostgreSQL (no requiere extensiones).
+    const param = `$${values.length + 1}`;
+    const withoutAccents = (expr: string) =>
+      `translate(lower(${expr}), 'áàäâéèëêíìïîóòöôúùüûñ', 'aaaaeeeeiiiioooouuuun')`;
     conditions.push(`(
-      first_name ILIKE $${values.length + 1} OR
-      last_name ILIKE $${values.length + 1} OR
-      dni ILIKE $${values.length + 1} OR
-      email ILIKE $${values.length + 1}
+      ${withoutAccents(`CONCAT_WS(' ', first_name, last_name)`)} LIKE ${withoutAccents(param)} OR
+      dni ILIKE ${param} OR
+      email ILIKE ${param}
     )`);
-    values.push(`%${filters.search}%`);
+    values.push(`%${filters.search.trim()}%`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

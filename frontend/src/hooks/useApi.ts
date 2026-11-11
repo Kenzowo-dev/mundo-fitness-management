@@ -123,11 +123,17 @@ export function useResetPassword() {
   });
 }
 
-export function useClients(page = 1, limit = 20, filters?: { status?: string; search?: string }) {
+export function useClients(
+  page = 1,
+  limit = 20,
+  filters?: { status?: string; search?: string },
+  options?: { enabled?: boolean },
+) {
   return useQuery<PaginatedResponse<Client>, Error, PaginatedResponse<Client>>({
     queryKey: QUERY_KEYS.clients(page, limit, filters),
     queryFn: () => api.getClients(page, limit, filters) as Promise<PaginatedResponse<Client>>,
     placeholderData: (prev) => prev,
+    enabled: options?.enabled ?? true,
   });
 }
 

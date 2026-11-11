@@ -347,7 +347,7 @@ describe('PaymentsPage - Integration Tests', () => {
 
       expect(screen.getByLabelText(/^Socio/)).toBeInTheDocument()
       expect(screen.getByLabelText(/Monto/)).toBeInTheDocument()
-      expect(screen.getByLabelText(/Método de Pago/)).toBeInTheDocument()
+      expect(screen.getByLabelText(/Método de pago/i)).toBeInTheDocument()
       expect(screen.getByText(/no realiza cobros electrónicos/)).toBeInTheDocument()
       fireEvent.click(screen.getByText('Agregar descripción (opcional)'))
       expect(screen.getByLabelText(/Descripción del pago/)).toBeInTheDocument()
@@ -366,7 +366,7 @@ describe('PaymentsPage - Integration Tests', () => {
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
-      fireEvent.change(screen.getByLabelText(/Método de Pago/), { target: { value: 'credit_card' } })
+      fireEvent.change(screen.getByLabelText(/Método de pago/i), { target: { value: 'credit_card' } })
       fireEvent.click(screen.getByText('Agregar descripción (opcional)'))
       fireEvent.change(screen.getByLabelText(/Descripción del pago/), { target: { value: 'Pago mensualidad' } })
 
@@ -394,7 +394,7 @@ describe('PaymentsPage - Integration Tests', () => {
       await waitFor(() => expect(screen.getByLabelText(/Membresía asociada/).querySelectorAll('option').length).toBeGreaterThan(1))
       fireEvent.change(screen.getByLabelText(/Membresía asociada/), { target: { value: '11' } })
       fireEvent.change(screen.getByLabelText(/Monto/), { target: { value: '50' } })
-      fireEvent.change(screen.getByLabelText(/Método de Pago/), { target: { value: 'credit_card' } })
+      fireEvent.change(screen.getByLabelText(/Método de pago/i), { target: { value: 'credit_card' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Confirmar Cobro', hidden: true }))

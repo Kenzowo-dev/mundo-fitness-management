@@ -5,13 +5,14 @@ import { useClients, useMembershipPlans, useAllMemberships, useCreateMembership,
 import type { Client, ClientMembership, CreateMembershipPlanInput, MembershipPlan, MembershipRenewalRequest } from '../../types/api'
 import StatusBadge from '../../components/StatusBadge'
 import Button from '../../components/Button'
-import FormField from '../../components/FormField'
 import Modal from '../../components/Modal'
 import Alert from '../../components/Alert'
 import Tabs, { TabPanel } from '../../components/Tabs'
 import TableContainer from '../../components/TableContainer'
 import PageHeader from '../../components/PageHeader'
 import PlanFormModal from '../../components/PlanFormModal'
+import ClientSearchPicker from '../../components/ClientSearchPicker'
+import PlanSearchPicker from '../../components/PlanSearchPicker'
 import { useAuth } from '../../context/useAuth'
 import '../../styles/dashboard/MembershipsPage.css'
 
@@ -38,8 +39,9 @@ export default function MembershipsPage() {
   const [isAssignOpen, setIsAssignOpen] = useState(false)
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null)
-  const [selectedClientId, setSelectedClientId] = useState<number | ''>('')
-  const [selectedPlanId, setSelectedPlanId] = useState<number | ''>('')
+  const [assignClient, setAssignClient] = useState<Client | null>(null)
+  const [checkInClient, setCheckInClient] = useState<Client | null>(null)
+  const [assignPlan, setAssignPlan] = useState<MembershipPlan | null>(null)
   const [actionSuccess, setActionSuccess] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -72,31 +74,54 @@ export default function MembershipsPage() {
   const activeMemberships = allMemberships.filter((membership) => membership.status === 'active' && membership.startDate.slice(0, 10) <= todayKey && membership.endDate.slice(0, 10) >= todayKey)
   const endingSoon = activeMemberships.filter((membership) => daysFromToday(membership.endDate) <= 7)
   const openRenewalRequests = renewalRequestsQuery.data?.filter((request) => request.status !== 'closed').length ?? 0
+  const clientsWithActiveMembership = useMemo(() => new Set(activeMemberships.map((m) => m.clientId)), [activeMemberships])
+
+  const openCheckIn = () => {
+    setActionError(null)
+    setCheckInClient(null)
+    setIsCheckInOpen(true)
+  }
+
+  const closeCheckIn = () => {
+    setIsCheckInOpen(false)
+    setCheckInClient(null)
+  }
+
+  const openAssign = () => {
+    setActionError(null)
+    setAssignClient(null)
+    setAssignPlan(null)
+    setIsAssignOpen(true)
+  }
+
+  const closeAssign = () => {
+    setIsAssignOpen(false)
+    setAssignClient(null)
+    setAssignPlan(null)
+  }
+
+  const membershipTag = (client: Client) => clientsWithActiveMembership.has(client.id)
+    ? { text: 'Membresía vigente', tone: 'success' as const }
+    : { text: 'Sin membresía vigente', tone: 'warning' as const }
 
   const handleCheckInSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedClientId) {
-      setActionError('Selecciona un socio para registrar el ingreso.')
+    if (!checkInClient) {
+      setActionError('Busca y selecciona un socio para registrar el ingreso.')
       return
     }
 
     try {
       setActionError(null)
-      const clientMem = allMemberships.find((m) =>
-        m.clientId === Number(selectedClientId) &&
-        m.status === 'active' &&
-        m.startDate.slice(0, 10) <= todayKey &&
-        m.endDate.slice(0, 10) >= todayKey
-      )
+      const clientMem = activeMemberships.find((m) => m.clientId === checkInClient.id)
       if (!clientMem) {
         setActionError('Este socio no tiene una membresía vigente. Asigna o renueva una membresía antes de registrar el ingreso.')
         return
       }
 
-      await checkInMutation.mutateAsync({ clientId: Number(selectedClientId), clientMembershipId: clientMem.id })
-      setActionSuccess('Ingreso registrado. El acceso al gimnasio está habilitado.')
-      setIsCheckInOpen(false)
-      setSelectedClientId('')
+      await checkInMutation.mutateAsync({ clientId: checkInClient.id, clientMembershipId: clientMem.id })
+      setActionSuccess(`Ingreso de ${checkInClient.firstName} ${checkInClient.lastName} registrado. El acceso al gimnasio está habilitado.`)
+      closeCheckIn()
       setTimeout(() => setActionSuccess(null), 4000)
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Error al registrar el check-in')
@@ -105,15 +130,14 @@ export default function MembershipsPage() {
 
   const handleAssignSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedClientId || !selectedPlanId) {
-      setActionError('Selecciona un socio y un plan de membresía.')
+    if (!assignClient || !assignPlan) {
+      setActionError('Busca y selecciona un socio, y elige un plan de membresía.')
       return
     }
 
     try {
       setActionError(null)
-      const selPlan = plans.find((p) => p.id === Number(selectedPlanId))
-      const duration = selPlan?.durationDays || 30
+      const duration = assignPlan.durationDays || 30
       const start = new Date()
       const startDate = dateKey(start)
       const endDateObj = new Date()
@@ -121,18 +145,16 @@ export default function MembershipsPage() {
       const endDate = dateKey(endDateObj)
 
       await createMembershipMutation.mutateAsync({
-        clientId: Number(selectedClientId),
-        planId: Number(selectedPlanId),
+        clientId: assignClient.id,
+        planId: assignPlan.id,
         startDate,
         endDate,
         status: 'active',
         autoRenew: true,
       })
 
-      setActionSuccess('Membresía asignada correctamente al socio.')
-      setIsAssignOpen(false)
-      setSelectedClientId('')
-      setSelectedPlanId('')
+      setActionSuccess(`Membresía asignada correctamente a ${assignClient.firstName} ${assignClient.lastName}.`)
+      closeAssign()
       setTimeout(() => setActionSuccess(null), 4000)
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Error al asignar la membresía')
@@ -205,14 +227,14 @@ export default function MembershipsPage() {
         actions={[
           {
             label: 'Registrar ingreso',
-            onClick: () => { setActionError(null); setIsCheckInOpen(true) },
+            onClick: openCheckIn,
             ariaLabel: 'Registrar ingreso de socio',
             variant: 'primary',
             icon: <MorphIcon icon={ScanLine} size={18} aria-hidden="true" />,
           },
           {
             label: 'Asignar membresía',
-            onClick: () => { setActionError(null); setIsAssignOpen(true) },
+            onClick: openAssign,
             ariaLabel: 'Asignar membresía a socio',
             variant: 'secondary',
             icon: <MorphIcon icon={Plus} size={18} aria-hidden="true" />,
@@ -282,7 +304,7 @@ export default function MembershipsPage() {
             icon: <MorphIcon icon={CalendarDays} size={24} aria-hidden="true" />,
             title: 'Aún no hay membresías asignadas',
             description: 'Asigna un plan a un socio para iniciar su vigencia.',
-            action: { label: 'Asignar membresía', onClick: () => { setActionError(null); setIsAssignOpen(true) }, variant: 'primary' },
+            action: { label: 'Asignar membresía', onClick: openAssign, variant: 'primary' },
           }}
         />
       </TabPanel>
@@ -299,12 +321,12 @@ export default function MembershipsPage() {
 
       <Modal
         open={isCheckInOpen}
-        onClose={() => setIsCheckInOpen(false)}
+        onClose={closeCheckIn}
         title="Registrar ingreso de socio"
         size="md"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsCheckInOpen(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={closeCheckIn}>Cancelar</Button>
             <Button variant="primary" disabled={checkInMutation.isPending} onClick={handleCheckInSubmit}>
               {checkInMutation.isPending ? 'Registrando...' : 'Registrar Ingreso'}
             </Button>
@@ -314,15 +336,12 @@ export default function MembershipsPage() {
         <form onSubmit={handleCheckInSubmit}>
           <div className="modal-body">
             {actionError && isCheckInOpen && <Alert type="error" message={actionError} onDismiss={() => setActionError(null)} dismissible />}
-            <FormField
-              label="Seleccione el Socio *"
-              type="select"
-              id="checkin-client"
-              value={String(selectedClientId)}
-              onChange={(value) => setSelectedClientId(Number(value) || '')}
-              options={allClients.map(c => ({ value: String(c.id), label: `${c.firstName} ${c.lastName} - DNI: ${c.dni}` }))}
-              emptyOptionLabel="-- Seleccionar socio --"
-              required
+            <ClientSearchPicker
+              id="checkin"
+              label="Socio"
+              selectedClient={checkInClient}
+              onSelect={(client) => { setCheckInClient(client); setActionError(null) }}
+              renderTag={membershipTag}
             />
           </div>
         </form>
@@ -330,12 +349,12 @@ export default function MembershipsPage() {
 
       <Modal
         open={isAssignOpen}
-        onClose={() => setIsAssignOpen(false)}
+        onClose={closeAssign}
         title="Asignar membresía"
         size="md"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setIsAssignOpen(false)}>Cancelar</Button>
+            <Button variant="secondary" onClick={closeAssign}>Cancelar</Button>
             <Button variant="primary" disabled={createMembershipMutation.isPending} onClick={handleAssignSubmit}>
               {createMembershipMutation.isPending ? 'Activando...' : 'Activar Membresía'}
             </Button>
@@ -345,25 +364,20 @@ export default function MembershipsPage() {
         <form onSubmit={handleAssignSubmit}>
           <div className="modal-body">
             {actionError && isAssignOpen && <Alert type="error" message={actionError} onDismiss={() => setActionError(null)} dismissible />}
-            <FormField
-              label="Seleccione el Socio *"
-              type="select"
-              id="assign-client"
-              value={String(selectedClientId)}
-              onChange={(value) => setSelectedClientId(Number(value) || '')}
-              options={allClients.map(c => ({ value: String(c.id), label: `${c.firstName} ${c.lastName} - DNI: ${c.dni}` }))}
-              emptyOptionLabel="-- Seleccionar socio --"
-              required
+            <ClientSearchPicker
+              id="assign"
+              label="Seleccione el socio"
+              selectedClient={assignClient}
+              onSelect={(client) => { setAssignClient(client); setActionError(null) }}
+              renderTag={membershipTag}
             />
-            <FormField
-              label="Seleccione el Plan *"
-              type="select"
-              id="assign-plan"
-              value={String(selectedPlanId)}
-              onChange={(value) => setSelectedPlanId(Number(value) || '')}
-              options={plans.filter((plan) => plan.isActive).map(p => ({ value: String(p.id), label: `${p.name} - ${formatPrice(p.price, p.currency)} (${p.durationDays} días)` }))}
-              emptyOptionLabel="-- Seleccionar plan --"
-              required
+            <PlanSearchPicker
+              id="assign"
+              label="Seleccione el plan"
+              plans={plans}
+              loading={plansLoading}
+              selectedPlan={assignPlan}
+              onSelect={(plan) => { setAssignPlan(plan); setActionError(null) }}
             />
           </div>
         </form>

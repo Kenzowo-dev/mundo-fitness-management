@@ -1,0 +1,183 @@
+/* SearchPicker.css — Campo con lupa y lista desplegable (socios, planes…) */
+
+.search-picker-field {
+  position: relative;
+}
+
+.search-picker-icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-picker-input.input {
+  padding-left: calc(var(--space-3) + 18px + var(--space-2));
+}
+
+/* Oculta la "x" nativa del input search; el campo se limpia borrando o con Esc */
+.search-picker-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* La lista ocupa espacio dentro del modal (no flota encima), así no se recorta.
+   Tiene su propio deslizador: muestra unas 3 opciones y media (para que se note
+   que hay más) y el resto se ve deslizando dentro de la lista, sin mover el modal. */
+.search-picker-results {
+  max-height: 13.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+/* Deslizador visible en Chrome/Edge (Firefox usa scrollbar-width/color de arriba) */
+.search-picker-results::-webkit-scrollbar {
+  width: 8px;
+}
+
+.search-picker-results::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+.search-picker-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* El título "Socios"/"Planes disponibles" queda fijo arriba al deslizar */
+.search-picker-heading {
+  position: sticky;
+  top: calc(-1 * var(--space-1));
+  z-index: 1;
+  background: var(--bg-elevated-1);
+}
+
+.search-picker-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.search-picker-option.is-active {
+  background: var(--bg-hover);
+}
+
+.search-picker-heading {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  color: var(--text-muted);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.search-picker-status {
+  padding: var(--space-3);
+  color: var(--text-secondary);
+  font-size: .875rem;
+}
+
+.search-picker-avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.search-picker-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.search-picker-text strong {
+  color: var(--text-primary);
+  font-size: .9375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-picker-text span {
+  color: var(--text-secondary);
+  font-size: .8125rem;
+}
+
+.search-picker-tag {
+  flex: none;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.search-picker-tag.is-success {
+  background: var(--state-success-soft);
+  color: var(--state-success);
+}
+
+.search-picker-tag.is-neutral {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.search-picker-tag.is-warning {
+  background: var(--state-warning-soft);
+  color: var(--state-warning);
+}
+
+.search-picker-selected {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.search-picker-clear {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.search-picker-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.search-picker-clear:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
