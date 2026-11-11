@@ -1,0 +1,156 @@
+/* ClientSearchPicker.css — Buscador de socios con lupa (nombre o DNI) */
+
+.client-search-field {
+  position: relative;
+}
+
+.client-search-icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.client-search-input.input {
+  padding-left: calc(var(--space-3) + 18px + var(--space-2));
+}
+
+/* Oculta la "x" nativa del input search; el campo se limpia borrando o con Esc */
+.client-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* La lista ocupa espacio dentro del modal (no flota encima), así el modal crece
+   y no la recorta. Muestra ~5 socios y el resto con scroll. */
+.client-search-results {
+  max-height: min(20rem, 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-1);
+  list-style: none;
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.client-search-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.client-search-option.is-active {
+  background: var(--bg-hover);
+}
+
+.client-search-heading {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  color: var(--text-muted);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.client-search-status {
+  padding: var(--space-3);
+  color: var(--text-secondary);
+  font-size: .875rem;
+}
+
+.client-search-avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: .75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.client-search-option-text,
+.client-search-selected-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.client-search-option-text strong,
+.client-search-selected-text strong {
+  color: var(--text-primary);
+  font-size: .9375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-search-option-text span,
+.client-search-selected-text span {
+  color: var(--text-secondary);
+  font-size: .8125rem;
+}
+
+.client-search-tag {
+  flex: none;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: .75rem;
+  font-weight: 600;
+}
+
+.client-search-tag.is-success {
+  background: var(--state-success-soft);
+  color: var(--state-success);
+}
+
+.client-search-tag.is-warning {
+  background: var(--state-warning-soft);
+  color: var(--state-warning);
+}
+
+.client-search-selected {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+}
+
+.client-search-clear {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.client-search-clear:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.client-search-clear:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}

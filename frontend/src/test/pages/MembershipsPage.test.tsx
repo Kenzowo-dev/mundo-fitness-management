@@ -162,6 +162,16 @@ describe('MembershipsPage - Integration Tests', () => {
     return render(<MembershipsPage />, { wrapper: createWrapper() })
   }
 
+  /** Escribe en el buscador de socios del modal abierto y elige el socio indicado. */
+  const selectClient = async (term: string, name: RegExp) => {
+    fireEvent.change(screen.getByRole('combobox', { name: /socio/i, hidden: true }), { target: { value: term } })
+    const option = await screen.findByRole('option', { name, hidden: true })
+    fireEvent.mouseDown(option)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Cambiar socio seleccionado', hidden: true })).toBeInTheDocument()
+    })
+  }
+
   const openCheckInModal = async () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso de socio' }))
@@ -335,15 +345,56 @@ describe('MembershipsPage - Integration Tests', () => {
       expect(screen.getByRole('heading', { name: 'Registrar ingreso de socio' })).toBeInTheDocument()
     })
 
-    it('renders client select in check-in modal', async () => {
+    it('renders the client search box in check-in modal', async () => {
       renderMembershipsPage()
       await openCheckInModal()
-      // FormField label includes required asterisk, use partial match
-      expect(screen.getByLabelText(/Seleccione el Socio/)).toBeInTheDocument()
-      // Verify select has options
-      const select = screen.getByLabelText(/Seleccione el Socio/)
-      expect(select).toBeInTheDocument()
-      expect(select.querySelectorAll('option').length).toBeGreaterThan(0)
+      const search = screen.getByRole('combobox', { name: /socio/i, hidden: true })
+      expect(search).toHaveAttribute('placeholder', 'Buscar por nombre o DNI')
+    })
+
+    it('finds clients by name or DNI and shows their membership status', async () => {
+      renderMembershipsPage()
+      await openCheckInModal()
+      const search = screen.getByRole('combobox', { name: /socio/i, hidden: true })
+
+      fireEvent.change(search, { target: { value: '7123' } })
+
+      const option = await screen.findByRole('option', { name: /Juan Pérez/, hidden: true })
+      expect(option).toHaveTextContent('DNI 71234567')
+      expect(option).toHaveTextContent('Membresía vigente')
+    })
+
+    it('lists clients as soon as the search box is focused, without typing', async () => {
+      renderMembershipsPage()
+      await openCheckInModal()
+      fireEvent.focus(screen.getByRole('combobox', { name: /socio/i, hidden: true }))
+
+      expect(await screen.findByRole('option', { name: /Juan Pérez/, hidden: true })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: /María García/, hidden: true })).toBeInTheDocument()
+    })
+
+    it('picks a client from the initial list with the mouse', async () => {
+      renderMembershipsPage()
+      await openCheckInModal()
+      fireEvent.focus(screen.getByRole('combobox', { name: /socio/i, hidden: true }))
+
+      fireEvent.mouseDown(await screen.findByRole('option', { name: /María García/, hidden: true }))
+
+      expect(await screen.findByRole('button', { name: 'Cambiar socio seleccionado', hidden: true })).toBeInTheDocument()
+      expect(screen.getByText('DNI 72345678')).toBeInTheDocument()
+    })
+
+    it('asks to pick a client when submitting without one', async () => {
+      const mockCheckIn = createMockMutation({ mutateAsync: vi.fn() })
+      renderMembershipsPage({ checkInMutation: mockCheckIn })
+      await openCheckInModal()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
+      })
+
+      expect(screen.getByText('Busca y selecciona un socio para registrar el ingreso.')).toBeInTheDocument()
+      expect(mockCheckIn.mutateAsync).not.toHaveBeenCalled()
     })
 
     it('calls checkIn mutation on valid submit', async () => {
@@ -352,7 +403,7 @@ describe('MembershipsPage - Integration Tests', () => {
       await openCheckInModal()
 
       // Use screen.getByLabelText since label is associated with select in dialog
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await selectClient('Juan', /Juan Pérez/)
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
@@ -371,14 +422,14 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ checkInMutation: mockCheckIn })
       await openCheckInModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await selectClient('Juan', /Juan Pérez/)
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByText('Ingreso registrado. El acceso al gimnasio está habilitado.')).toBeInTheDocument()
+        expect(screen.getByText('Ingreso de Juan Pérez registrado. El acceso al gimnasio está habilitado.')).toBeInTheDocument()
       })
     })
 
@@ -387,7 +438,7 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ checkInMutation: mockCheckIn })
       await openCheckInModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
+      await selectClient('Juan', /Juan Pérez/)
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Registrar Ingreso', hidden: true }))
@@ -425,12 +476,8 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage()
       await openAssignModal()
 
-      expect(screen.getByLabelText(/Seleccione el Socio/)).toBeInTheDocument()
-      expect(screen.getByLabelText(/Seleccione el Plan/)).toBeInTheDocument()
-      // Verify selects have options
-      const clientSelect = screen.getByLabelText(/Seleccione el Socio/)
-      const planSelect = screen.getByLabelText(/Seleccione el Plan/)
-      expect(clientSelect.querySelectorAll('option').length).toBeGreaterThan(0)
+      expect(screen.getByRole('combobox', { name: /Seleccione el socio/i, hidden: true })).toHaveAttribute('placeholder', 'Buscar por nombre o DNI')
+      const planSelect = screen.getByLabelText(/Seleccione el plan/i)
       expect(planSelect.querySelectorAll('option').length).toBeGreaterThan(0)
     })
 
@@ -439,8 +486,8 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ createMutation: mockCreate })
       await openAssignModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
-      fireEvent.change(screen.getByLabelText(/Seleccione el Plan/), { target: { value: '2' } })
+      await selectClient('Juan', /Juan Pérez/)
+      fireEvent.change(screen.getByLabelText(/Seleccione el plan/i), { target: { value: '2' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Activar Membresía', hidden: true }))
@@ -461,15 +508,15 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ createMutation: mockCreate })
       await openAssignModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
-      fireEvent.change(screen.getByLabelText(/Seleccione el Plan/), { target: { value: '2' } })
+      await selectClient('Juan', /Juan Pérez/)
+      fireEvent.change(screen.getByLabelText(/Seleccione el plan/i), { target: { value: '2' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Activar Membresía', hidden: true }))
       })
 
       await waitFor(() => {
-        expect(screen.getByText('Membresía asignada correctamente al socio.')).toBeInTheDocument()
+        expect(screen.getByText('Membresía asignada correctamente a Juan Pérez.')).toBeInTheDocument()
       })
     })
 
@@ -478,8 +525,8 @@ describe('MembershipsPage - Integration Tests', () => {
       renderMembershipsPage({ createMutation: mockCreate })
       await openAssignModal()
 
-      fireEvent.change(screen.getByLabelText(/Seleccione el Socio/), { target: { value: '1' } })
-      fireEvent.change(screen.getByLabelText(/Seleccione el Plan/), { target: { value: '2' } })
+      await selectClient('Juan', /Juan Pérez/)
+      fireEvent.change(screen.getByLabelText(/Seleccione el plan/i), { target: { value: '2' } })
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Activar Membresía', hidden: true }))

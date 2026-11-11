@@ -277,7 +277,7 @@ export default function PaymentsPage() {
 
             <div className="payment-form-grid">
               <FormField
-                label="Monto *"
+                label="Monto"
                 type="number"
                 id="payment-amount"
                 value={newPayment.amount}
@@ -289,7 +289,7 @@ export default function PaymentsPage() {
                 required
               />
               <FormField
-                label="Moneda *"
+                label="Moneda"
                 type="select"
                 id="payment-currency"
                 value={newPayment.currency}
@@ -298,7 +298,7 @@ export default function PaymentsPage() {
                 required
               />
               <FormField
-                label="Método de Pago *"
+                label="Método de pago"
                 type="select"
                 id="payment-method"
                 value={newPayment.paymentMethod}
