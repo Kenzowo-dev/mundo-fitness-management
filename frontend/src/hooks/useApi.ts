@@ -6,6 +6,7 @@ import type {
 } from '../types/api';
 import type {
   User,
+  AssignableRole,
   Client,
   CreateClientData,
   RegisterData,
@@ -202,6 +203,43 @@ export function useCreateClient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats', 'clients'] });
+    },
+  });
+}
+
+/** Cuenta de acceso vinculada a un socio (solo admin). Solo consulta si `enabled`. */
+export function useUserAccount(userId: number | undefined, enabled: boolean) {
+  return useQuery<User, Error>({
+    queryKey: ['userAccount', userId],
+    queryFn: () => api.getUserAccount(userId as number),
+    enabled: enabled && typeof userId === 'number',
+    retry: false,
+  });
+}
+
+/** Roles de varias cuentas a la vez, como mapa { userId: rol } (solo admin). */
+export function useUserRoles(userIds: number[], enabled: boolean) {
+  const ids = [...new Set(userIds)].sort((a, b) => a - b);
+  return useQuery<Record<number, string>, Error>({
+    queryKey: ['userAccounts', ids],
+    queryFn: async () => {
+      const response = await api.getUserAccounts(ids);
+      return Object.fromEntries(response.data.map((user) => [Number(user.id), user.role]));
+    },
+    enabled: enabled && ids.length > 0,
+    retry: false,
+    placeholderData: (prev) => prev,
+  });
+}
+
+/** Cambia el rol de una cuenta entre socio y recepcionista (solo admin). */
+export function useChangeUserRole() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: AssignableRole }) => api.changeUserRole(userId, role),
+    onSuccess: (user) => {
+      queryClient.setQueryData(['userAccount', Number(user.id)], user);
+      queryClient.invalidateQueries({ queryKey: ['userAccounts'] });
     },
   });
 }

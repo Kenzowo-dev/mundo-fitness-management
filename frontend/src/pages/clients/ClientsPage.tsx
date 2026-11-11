@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Eye, Pencil, Search, UserRoundPlus } from 'lucide'
 import { MorphIcon } from 'morphicons/react'
-import { useClients, useCreateClient, useUpdateClient } from '../../hooks/useApi'
-import type { Client, CreateClientData } from '../../types/api.js'
+import { useChangeUserRole, useClients, useCreateClient, useUpdateClient, useUserAccount, useUserRoles } from '../../hooks/useApi'
+import type { AssignableRole, Client, CreateClientData } from '../../types/api.js'
 import ClientFormFields, { type ClientFormErrors, type ClientFormValues } from '../../components/ClientFormFields'
+import AccountRoleField from '../../components/AccountRoleField'
+import { useAuth } from '../../context/useAuth'
 import StatusBadge from '../../components/StatusBadge.tsx'
 import Button from '../../components/Button'
 import FormField from '../../components/FormField'
@@ -159,6 +161,12 @@ function fullName(client: Client) {
   return `${client.firstName} ${client.lastName}`.trim()
 }
 
+const ROLE_BADGE_LABELS: Record<string, string> = {
+  member: 'Socio',
+  receptionist: 'Recepcionista',
+  admin: 'Administrador',
+}
+
 export default function ClientsPage() {
   const [page, setPage] = useState(1)
   const [searchInput, setSearchInput] = useState('')
@@ -181,6 +189,20 @@ export default function ClientsPage() {
   })
   const createClientMutation = useCreateClient()
   const updateClientMutation = useUpdateClient()
+
+  // Rol de la cuenta del socio: solo lo ve y lo cambia el administrador
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+  const [editRole, setEditRole] = useState<AssignableRole | ''>('')
+  const editAccountQuery = useUserAccount(editClient?.userId, isAdmin && Boolean(editClient))
+  const changeRoleMutation = useChangeUserRole()
+  const isSavingEdit = updateClientMutation.isPending || changeRoleMutation.isPending
+  // En la tabla, el admin ve si la cuenta de cada socio es de Socio o de Recepcionista
+  const accountRolesQuery = useUserRoles(
+    (data?.data ?? []).flatMap((client) => (typeof client.userId === 'number' ? [client.userId] : [])),
+    isAdmin,
+  )
+  const accountRoles = accountRolesQuery.data ?? {}
 
   const clients = data?.data ?? []
   const total = data?.pagination.total ?? 0
@@ -257,6 +279,7 @@ export default function ClientsPage() {
     })
     setEditErrors({})
     setEditError(null)
+    setEditRole('')
   }
 
   const handleEditSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -277,12 +300,26 @@ export default function ClientsPage() {
         id: editClient.id,
         data: serializeClientUpdate(editForm),
       })
-      setEditClient(null)
-      setEditForm({})
-      setEditErrors({})
     } catch (error) {
       setEditError(error instanceof Error ? error.message : 'No se pudieron guardar los cambios del socio.')
+      return
     }
+
+    const account = editAccountQuery.data
+    if (isAdmin && account && editRole && editRole !== account.role) {
+      try {
+        await changeRoleMutation.mutateAsync({ userId: Number(account.id), role: editRole })
+      } catch (error) {
+        // La ficha ya se guardó; solo falló el rol. El modal sigue abierto para reintentar.
+        setEditError(`Los datos del socio se guardaron, pero no se pudo cambiar el rol: ${error instanceof Error ? error.message : 'error desconocido'}.`)
+        return
+      }
+    }
+
+    setEditClient(null)
+    setEditForm({})
+    setEditErrors({})
+    setEditRole('')
   }
 
   const updateCreateField = (field: keyof ClientFormValues, value: string) => {
@@ -296,11 +333,12 @@ export default function ClientsPage() {
   }
 
   const closeEdit = () => {
-    if (updateClientMutation.isPending) return
+    if (isSavingEdit) return
     setEditClient(null)
     setEditForm({})
     setEditErrors({})
     setEditError(null)
+    setEditRole('')
   }
 
   return (
@@ -389,7 +427,14 @@ export default function ClientsPage() {
                     {client.firstName?.[0]}{client.lastName?.[0]}
                   </span>
                   <span className="clients-person-copy">
-                    <strong>{fullName(client)}</strong>
+                    <strong>
+                      {fullName(client)}
+                      {isAdmin && typeof client.userId === 'number' && accountRoles[client.userId] && (
+                        <span className={`clients-role-badge is-${accountRoles[client.userId]}`}>
+                          {ROLE_BADGE_LABELS[accountRoles[client.userId]] ?? accountRoles[client.userId]}
+                        </span>
+                      )}
+                    </strong>
                     <span>DNI {client.dni}</span>
                   </span>
                 </div>
@@ -521,8 +566,8 @@ export default function ClientsPage() {
         className="client-form-modal"
         footer={(
           <>
-            <Button type="button" variant="secondary" disabled={updateClientMutation.isPending} onClick={closeEdit}>Cancelar</Button>
-            <Button type="submit" form="edit-client-form" variant="primary" loading={updateClientMutation.isPending}>Guardar cambios</Button>
+            <Button type="button" variant="secondary" disabled={isSavingEdit} onClick={closeEdit}>Cancelar</Button>
+            <Button type="submit" form="edit-client-form" variant="primary" loading={isSavingEdit}>Guardar cambios</Button>
           </>
         )}
       >
@@ -539,6 +584,17 @@ export default function ClientsPage() {
               errors={editErrors}
               onChange={updateEditField}
               includeStatus
+              extraOptionalField={isAdmin ? (
+                <AccountRoleField
+                  hasAccount={typeof editClient.userId === 'number'}
+                  account={editAccountQuery.data}
+                  loading={editAccountQuery.isLoading}
+                  loadError={editAccountQuery.isError}
+                  value={editRole}
+                  onChange={setEditRole}
+                  currentUserId={user?.id}
+                />
+              ) : undefined}
             />
           </form>
         )}

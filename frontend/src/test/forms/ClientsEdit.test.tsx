@@ -5,11 +5,13 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ClientsPage from '@/pages/clients/ClientsPage'
 import * as useApiModule from '@/hooks/useApi'
+import * as authModule from '@/context/useAuth'
 import * as apiModule from '@/api/client'
 
 const mockClients = [
   {
     id: 1,
+    userId: 3,
     dni: '71234567',
     firstName: 'Juan',
     lastName: 'Pérez',
@@ -79,6 +81,17 @@ describe('ClientsPage - Edit Client', () => {
   let mockUpdateClient: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
+    // Por defecto entra la recepcionista (no ve el rol de la cuenta)
+    vi.spyOn(authModule, 'useAuth').mockReturnValue({
+      user: { id: 2, email: 'recepcion@mundofitness.com', firstName: 'Laura', lastName: 'Recepción', role: 'receptionist', isActive: true, emailVerified: true, createdAt: '', updatedAt: '' },
+      isLoading: false,
+      isAuthenticated: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      updateUser: vi.fn(),
+    } as ReturnType<typeof authModule.useAuth>)
     vi.clearAllMocks()
     localStorage.clear()
 
@@ -331,6 +344,142 @@ describe('ClientsPage - Edit Client', () => {
       await waitFor(() => {
         expect(screen.queryByRole('dialog', { hidden: true })).not.toBeInTheDocument()
       })
+    })
+  })
+
+  describe('Rol de la cuenta (solo admin)', () => {
+    const memberAccount = { id: 3, email: 'juan@test.com', firstName: 'Juan', lastName: 'Pérez', role: 'member', isActive: true, emailVerified: true, createdAt: '', updatedAt: '' }
+    let mockChangeRole: ReturnType<typeof vi.fn>
+
+    const loginAs = (role: 'admin' | 'receptionist') => {
+      vi.spyOn(authModule, 'useAuth').mockReturnValue({
+        user: { id: role === 'admin' ? 1 : 2, email: `${role}@mundofitness.com`, firstName: 'X', lastName: 'Y', role, isActive: true, emailVerified: true, createdAt: '', updatedAt: '' },
+        isLoading: false, isAuthenticated: true, login: vi.fn(), register: vi.fn(), logout: vi.fn(), refreshUser: vi.fn(), updateUser: vi.fn(),
+      } as ReturnType<typeof authModule.useAuth>)
+    }
+
+    const mockAccount = (account: typeof memberAccount | undefined) => {
+      vi.spyOn(useApiModule, 'useUserAccount').mockReturnValue({
+        data: account, isLoading: false, isError: false,
+      } as unknown as ReturnType<typeof useApiModule.useUserAccount>)
+    }
+
+    beforeEach(() => {
+      mockChangeRole = vi.fn().mockResolvedValue({ ...memberAccount, role: 'receptionist' })
+      vi.spyOn(useApiModule, 'useChangeUserRole').mockReturnValue({
+        mutateAsync: mockChangeRole, isPending: false,
+      } as unknown as ReturnType<typeof useApiModule.useChangeUserRole>)
+      mockAccount(memberAccount)
+      mockRoles({ 3: 'receptionist' })
+    })
+
+    const mockRoles = (roles: Record<number, string>) => {
+      vi.spyOn(useApiModule, 'useUserRoles').mockReturnValue({
+        data: roles, isLoading: false, isError: false,
+      } as unknown as ReturnType<typeof useApiModule.useUserRoles>)
+    }
+
+    it('el admin ve en la tabla si la cuenta del socio es de recepcionista', () => {
+      loginAs('admin')
+      renderPage()
+
+      const row = screen.getByText('Juan Pérez', { exact: false }).closest('tr') as HTMLElement
+      expect(within(row).getByText('Recepcionista')).toHaveClass('clients-role-badge', 'is-receptionist')
+      // María no tiene cuenta: sin etiqueta de rol
+      const otherRow = screen.getByText('María García', { exact: false }).closest('tr') as HTMLElement
+      expect(otherRow.querySelector('.clients-role-badge')).toBeNull()
+    })
+
+    it('el admin ve "Socio" cuando la cuenta es de socio', () => {
+      loginAs('admin')
+      mockRoles({ 3: 'member' })
+      renderPage()
+
+      const row = screen.getByText('Juan Pérez', { exact: false }).closest('tr') as HTMLElement
+      expect(within(row).getByText('Socio')).toHaveClass('clients-role-badge', 'is-member')
+    })
+
+    it('la recepcionista no ve las etiquetas de rol en la tabla', () => {
+      loginAs('receptionist')
+      renderPage()
+
+      expect(document.querySelector('.clients-role-badge')).toBeNull()
+    })
+
+    it('la recepcionista no ve el rol de la cuenta', async () => {
+      loginAs('receptionist')
+      renderPage()
+      await openEditModal(1)
+
+      expect(within(getDialog()).queryByLabelText('Rol de la cuenta')).not.toBeInTheDocument()
+    })
+
+    it('el admin ve el rol actual de la cuenta del socio', async () => {
+      loginAs('admin')
+      renderPage()
+      await openEditModal(1)
+
+      const select = within(getDialog()).getByLabelText('Rol de la cuenta')
+      expect(select).toHaveValue('member')
+      expect(within(select).getAllByRole('option', { hidden: true }).map((o) => o.textContent)).toEqual(['Socio', 'Recepcionista'])
+    })
+
+    it('el admin cambia socio a recepcionista y se guarda junto con la ficha', async () => {
+      loginAs('admin')
+      renderPage()
+      await openEditModal(1)
+
+      fireEvent.change(within(getDialog()).getByLabelText('Rol de la cuenta'), { target: { value: 'receptionist' } })
+      expect(within(getDialog()).getByText(/pasará de Socio a Recepcionista/)).toBeInTheDocument()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
+      })
+
+      await waitFor(() => {
+        expect(mockChangeRole).toHaveBeenCalledWith({ userId: 3, role: 'receptionist' })
+      })
+      expect(mockUpdateClient).toHaveBeenCalled()
+    })
+
+    it('no llama al cambio de rol si el admin no lo modificó', async () => {
+      loginAs('admin')
+      renderPage()
+      await openEditModal(1)
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
+      })
+
+      await waitFor(() => expect(mockUpdateClient).toHaveBeenCalled())
+      expect(mockChangeRole).not.toHaveBeenCalled()
+    })
+
+    it('si el socio no tiene cuenta, lo indica y no permite cambiar el rol', async () => {
+      loginAs('admin')
+      mockAccount(undefined)
+      renderPage()
+      await openEditModal(2)
+
+      expect(within(getDialog()).getByLabelText('Rol de la cuenta')).toHaveValue('Sin cuenta de acceso')
+      expect(within(getDialog()).getByLabelText('Rol de la cuenta')).toBeDisabled()
+    })
+
+    it('muestra el error si falla el cambio de rol y mantiene el modal abierto', async () => {
+      loginAs('admin')
+      mockChangeRole.mockRejectedValue(new Error('No se puede cambiar el rol de una cuenta de administrador.'))
+      renderPage()
+      await openEditModal(1)
+
+      fireEvent.change(within(getDialog()).getByLabelText('Rol de la cuenta'), { target: { value: 'receptionist' } })
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios', hidden: true }))
+      })
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Los datos del socio se guardaron, pero no se pudo cambiar el rol')
+      })
+      expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument()
     })
   })
 })

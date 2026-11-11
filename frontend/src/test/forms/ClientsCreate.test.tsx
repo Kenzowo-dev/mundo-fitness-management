@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ClientsPage from '@/pages/clients/ClientsPage'
 import * as useApiModule from '@/hooks/useApi'
+import * as authModule from '@/context/useAuth'
 import * as apiModule from '@/api/client'
 
 const mockClients = [
@@ -77,6 +78,17 @@ describe('ClientsPage - Create Client', () => {
   let mockCreateClient: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
+    // Por defecto entra la recepcionista (no ve el rol de la cuenta)
+    vi.spyOn(authModule, 'useAuth').mockReturnValue({
+      user: { id: 2, email: 'recepcion@mundofitness.com', firstName: 'Laura', lastName: 'Recepción', role: 'receptionist', isActive: true, emailVerified: true, createdAt: '', updatedAt: '' },
+      isLoading: false,
+      isAuthenticated: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      updateUser: vi.fn(),
+    } as ReturnType<typeof authModule.useAuth>)
     vi.clearAllMocks()
     localStorage.clear()
 
