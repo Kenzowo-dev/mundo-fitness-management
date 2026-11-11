@@ -2029,3 +2029,44 @@ Este proyecto está bajo la Licencia MIT; consulta el archivo [LICENSE](LICENSE)
 - [TanStack Query](https://tanstack.com/query) para la gestión de estado del servidor
 - [Pino](https://getpino.io/) por su registro rápido y estructurado
 - [Zod](https://zod.dev/) para la validación de esquemas
+
+## Integracion con Mercado Pago
+
+El sistema permite comprar membresias mediante Mercado Pago.
+Los pagos aprobados se verifican antes de activar la membresia.
+
+### Nueva dependencia
+
+- mercadopago: version ^3.6.1
+- Servicio: payment-service
+- Funcion: integracion con la API de Mercado Pago.
+
+### Variables de entorno
+
+- MERCADOPAGO_ACCESS_TOKEN
+- MERCADOPAGO_WEBHOOK_SECRET
+- MERCADOPAGO_COLLECTOR_ID
+- FRONTEND_URL
+
+Las credenciales deben mantenerse privadas y fuera de Git.
+
+### Funcionalidades implementadas
+
+- Creacion de ordenes de compra.
+- Generacion de preferencias de pago.
+- Recepcion y validacion de webhooks.
+- Verificacion de pagos aprobados.
+- Activacion automatica de membresias.
+- Conciliacion de pagos.
+- Proteccion contra pagos duplicados.
+- Historial de pagos del socio.
+
+### Migraciones
+
+- 005-payment-checkout.sql
+- 006-payment-reconciliation.sql
+
+### Pruebas
+
+Ejecutar: pnpm --filter payment-service test
+
