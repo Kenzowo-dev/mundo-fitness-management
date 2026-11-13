@@ -14,6 +14,7 @@ interface PageHeaderProps {
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost'
     icon?: ReactNode
     ariaLabel?: string
+    disabled?: boolean
   }>
   /** Clase CSS adicional */
   className?: string
@@ -42,6 +43,7 @@ export default function PageHeader({
               variant={action.variant || 'primary'}
               onClick={action.onClick}
               aria-label={action.ariaLabel}
+              disabled={action.disabled}
             >
               {action.icon}
               {action.label}
