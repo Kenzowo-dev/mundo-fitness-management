@@ -3,7 +3,10 @@ import { useAddOwnMeasurement, useOwnMeasurements } from "../../hooks/useApi";
 import type { CreateOwnMeasurementInput } from "../../types/api";
 import Button from "../Button";
 import Alert from "../Alert";
+import { numberInputGuards } from "../../utils/fieldValidation";
 import "../../styles/member/MemberPhysicalProfile.css";
+
+const decimalGuards = numberInputGuards(true);
 
 type NumericField = Exclude<keyof CreateOwnMeasurementInput, "notes">;
 
@@ -195,6 +198,7 @@ export default function MemberPhysicalProfile() {
                 min="0.1"
                 max={max}
                 step="any"
+                {...decimalGuards}
                 value={form[key]}
                 onChange={(event) =>
                   setForm((current) => ({

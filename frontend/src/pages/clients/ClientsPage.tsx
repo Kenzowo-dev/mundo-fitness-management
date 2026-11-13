@@ -14,6 +14,7 @@ import Alert from '../../components/Alert'
 import PageHeader from '../../components/PageHeader'
 import Pagination from '../../components/Pagination'
 import TableContainer from '../../components/TableContainer'
+import { ADDRESS_MESSAGE, MIN_BIRTH_DATE, MIN_BIRTH_DATE_MESSAGE, VALID_ADDRESS, VALID_PERSON_NAME, sanitizeClientListSearch } from '../../utils/fieldValidation'
 import '../../styles/dashboard/ClientsPage.css'
 
 const createEmptyClientForm = (): CreateClientData => ({
@@ -80,8 +81,10 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
   const emergencyContactPhone = values.emergencyContactPhone?.trim() ?? ''
   const birthDate = values.birthDate?.trim() ?? ''
 
-  // Validación de nombres y apellidos
-  const validName = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u
+  const address = values.address?.trim() ?? ''
+
+  // Nombres y apellidos: solo letras y espacios (igual que en el registro)
+  const validName = VALID_PERSON_NAME
 
   // DNI: exactamente 8 dígitos
   if (!/^\d{8}$/.test(dni)) {
@@ -92,14 +95,14 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
   if (!firstName) {
     errors.firstName = 'Ingresa los nombres del socio.'
   } else if (!validName.test(firstName)) {
-    errors.firstName = 'Los nombres solo deben contener letras, espacios o guiones.'
+    errors.firstName = 'Los nombres solo deben contener letras y espacios.'
   }
 
   // Apellidos obligatorios
   if (!lastName) {
     errors.lastName = 'Ingresa los apellidos del socio.'
   } else if (!validName.test(lastName)) {
-    errors.lastName = 'Los apellidos solo deben contener letras, espacios o guiones.'
+    errors.lastName = 'Los apellidos solo deben contener letras y espacios.'
   }
 
   // Correo electrónico
@@ -116,7 +119,12 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
 
   // Contacto de emergencia
   if (emergencyContactName && !validName.test(emergencyContactName)) {
-    errors.emergencyContactName = 'Ingresa un nombre válido para el contacto de emergencia.'
+    errors.emergencyContactName = 'El contacto de emergencia solo debe contener letras y espacios.'
+  }
+
+  // Dirección
+  if (address && !VALID_ADDRESS.test(address)) {
+    errors.address = `${ADDRESS_MESSAGE}.`
   }
 
   // Teléfono de emergencia
@@ -143,6 +151,8 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
 
       if (parsedDate > today) {
         errors.birthDate = 'La fecha de nacimiento no puede ser futura.'
+      } else if (birthDate < MIN_BIRTH_DATE) {
+        errors.birthDate = MIN_BIRTH_DATE_MESSAGE
       }
     }
   }
@@ -364,7 +374,8 @@ export default function ClientsPage() {
               name="search"
               placeholder="Nombre, DNI o correo"
               value={searchInput}
-              onChange={setSearchInput}
+              onChange={(value) => setSearchInput(sanitizeClientListSearch(value))}
+              maxLength={100}
               autoComplete="off"
             />
           </div>

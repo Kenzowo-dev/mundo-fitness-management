@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import SearchPicker from './SearchPicker'
 import { useClients } from '../hooks/useApi'
 import type { Client } from '../types/api'
+import { sanitizeSearchTerm } from '../utils/fieldValidation'
 
 interface ClientSearchPickerProps {
   /** Prefijo para los ids del campo (ej: "checkin" → "checkin-client"). */
@@ -65,7 +66,11 @@ export default function ClientSearchPicker({
         tag: renderTag?.(client),
       })}
       term={term}
-      onTermChange={(value) => { setTerm(value); if (!value) setDebouncedTerm('') }}
+      onTermChange={(value) => {
+        const clean = sanitizeSearchTerm(value)
+        setTerm(clean)
+        if (!clean) setDebouncedTerm('')
+      }}
       onOpenChange={setIsOpen}
       loading={isFetching || term.trim() !== debouncedTerm}
       isError={isError}

@@ -191,7 +191,7 @@ describe('ClientsPage - Create Client', () => {
       })
     })
 
-    it('filters letters out of DNI and phone, and digits out of names', async () => {
+    it('filters letters out of DNI and phone, and digits or signs out of names', async () => {
       renderPage()
       await openCreateModal()
       const dialog = within(getDialog())
@@ -209,7 +209,38 @@ describe('ClientsPage - Create Client', () => {
       expect(dni).toHaveValue('71234567')
       expect(phone).toHaveValue('987654321')
       expect(firstName).toHaveValue('Juan José')
-      expect(lastName).toHaveValue('Pérez-Ñúñez ')
+      expect(lastName).toHaveValue('PérezÑúñez ')
+    })
+
+    it('limits the birth date calendar to 1950 and rejects older dates', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+      const birthDate = dialog.getByLabelText(/Fecha de nacimiento/)
+      expect(birthDate).toHaveAttribute('min', '1950-01-01')
+
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '71234567' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Ana' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Ríos' } })
+      fireEvent.change(birthDate, { target: { value: '1949-12-31' } })
+      fireEvent.click(dialog.getByRole('button', { name: /Crear|Guardar|Registrar/ }))
+
+      expect(await dialog.findByText('La fecha de nacimiento debe ser desde el año 1950.')).toBeInTheDocument()
+    })
+
+    it('keeps only letters in the emergency contact and usual characters in the address', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      const address = dialog.getByPlaceholderText('Av. Las Camelias 450')
+      const emergencyName = dialog.getByPlaceholderText('Nombre y apellido')
+
+      fireEvent.change(address, { target: { value: 'Av. Perú 450, Dpto. 3-B $%&!' } })
+      fireEvent.change(emergencyName, { target: { value: "Rosa2 O'Neill!" } })
+
+      expect(address).toHaveValue('Av. Perú 450, Dpto. 3-B ')
+      expect(emergencyName).toHaveValue('Rosa ONeill')
     })
 
     it('requires the @ symbol in the email', async () => {

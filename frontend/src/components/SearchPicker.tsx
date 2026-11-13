@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Search, X } from 'lucide'
 import MorphIcon from './MorphIcon'
+import '@/styles/components/Input.css'
 import '@/styles/components/SearchPicker.css'
 
 export interface SearchPickerItemView {

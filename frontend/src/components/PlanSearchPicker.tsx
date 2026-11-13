@@ -3,6 +3,7 @@ import { Dumbbell } from 'lucide'
 import MorphIcon from './MorphIcon'
 import SearchPicker from './SearchPicker'
 import type { MembershipPlan } from '../types/api'
+import { sanitizeLettersSearch } from '../utils/fieldValidation'
 
 interface PlanSearchPickerProps {
   /** Prefijo para los ids del campo (ej: "assign" → "assign-plan"). */
@@ -73,7 +74,7 @@ export default function PlanSearchPicker({
         }
       }}
       term={term}
-      onTermChange={setTerm}
+      onTermChange={(value) => setTerm(sanitizeLettersSearch(value))}
       loading={loading}
       emptyText={(t) => (t ? `Ningún plan coincide con “${t}”.` : 'No hay planes activos. Crea uno en la pestaña Planes.')}
       error={error}

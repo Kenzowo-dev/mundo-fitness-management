@@ -15,7 +15,10 @@
 }
 
 .search-picker-input.input {
+  width: 100%;
+  box-sizing: border-box;
   padding-left: calc(var(--space-3) + 18px + var(--space-2));
+  text-overflow: ellipsis;
 }
 
 /* Oculta la "x" nativa del input search; el campo se limpia borrando o con Esc */

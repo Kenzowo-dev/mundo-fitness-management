@@ -9,6 +9,14 @@ import type { ClientGoal, CreateOwnGoalInput } from "../../types/api";
 import Button from "../Button";
 import Alert from "../Alert";
 import "@/styles/member/MemberGoals.css";
+import {
+  UNIT_MESSAGE,
+  VALID_UNIT,
+  numberInputGuards,
+  sanitizeUnit,
+} from "../../utils/fieldValidation";
+
+const decimalGuards = numberInputGuards(true);
 
 const initialForm: CreateOwnGoalInput = {
   goalType: "weight",
@@ -94,6 +102,20 @@ export default function MemberGoals() {
       form.targetValue < 0
     ) {
       setError("El valor objetivo no puede ser negativo.");
+      return;
+    }
+
+    if (
+      (form.currentValue !== undefined && form.currentValue < 0) ||
+      (form.targetValue !== undefined && form.targetValue < 0)
+    ) {
+      setError("Los valores no pueden ser negativos.");
+      return;
+    }
+
+    const unit = form.unit?.trim() ?? "";
+    if (unit && !VALID_UNIT.test(unit)) {
+      setError(UNIT_MESSAGE);
       return;
     }
 
@@ -239,7 +261,9 @@ export default function MemberGoals() {
               Valor actual
               <input
                 type="number"
+                min="0"
                 step="any"
+                {...decimalGuards}
                 value={form.currentValue ?? ""}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -256,7 +280,9 @@ export default function MemberGoals() {
               Valor objetivo
               <input
                 type="number"
+                min="0"
                 step="any"
+                {...decimalGuards}
                 value={form.targetValue ?? ""}
                 onChange={(event) =>
                   setForm((current) => ({
@@ -278,7 +304,7 @@ export default function MemberGoals() {
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
-                    unit: event.target.value,
+                    unit: sanitizeUnit(event.target.value),
                   }))
                 }
                 placeholder="kg, %, km..."
