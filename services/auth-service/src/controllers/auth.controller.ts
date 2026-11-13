@@ -29,16 +29,32 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+/** Fecha de nacimiento más antigua permitida al registrarse (formato AAAA-MM-DD). */
+const MIN_BIRTH_DATE = '1950-01-01';
+
+/** Nombres y apellidos: solo letras (con tildes y ñ) separadas por un espacio. */
+const personNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+)*$/u, 'Solo se permiten letras y espacios');
+
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
+  firstName: personNameSchema,
+  lastName: personNameSchema,
   phone: z.string().trim().regex(
   /^9\d{8}$/,
   'El teléfono debe tener exactamente 9 dígitos y comenzar con 9'
   ),
-  birthDate: z.string().date().optional(),
+  birthDate: z
+    .string()
+    .date()
+    .refine((value) => value >= MIN_BIRTH_DATE, 'La fecha de nacimiento debe ser desde el año 1950')
+    .refine((value) => value <= new Date().toISOString().slice(0, 10), 'La fecha de nacimiento no puede ser futura')
+    .optional(),
   gender: z.string().max(20).optional(),
 });
 

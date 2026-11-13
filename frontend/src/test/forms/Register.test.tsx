@@ -75,7 +75,7 @@ describe('Register', () => {
 
     it('renders password toggle button', () => {
       renderForm()
-      expect(screen.getByRole('button', { name: 'Mostrar contraseña' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Mostrar contraseñas' })).toBeInTheDocument()
     })
   })
 
@@ -297,7 +297,7 @@ describe('Register', () => {
       expect(screen.getByLabelText('Número de teléfono')).toBeDisabled()
       expect(screen.getByLabelText('Fecha de nacimiento')).toBeDisabled()
       expect(screen.getByLabelText('Género')).toBeDisabled()
-      expect(screen.getByRole('button', { name: 'Mostrar contraseña' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Mostrar contraseñas' })).toBeDisabled()
       expect(screen.getByRole('button', { name: 'Creando cuenta...' })).toBeDisabled()
 
       await act(async () => {
@@ -352,13 +352,128 @@ describe('Register', () => {
     })
   })
 
+  describe('Nombres y apellidos', () => {
+    it('no deja escribir números ni signos', () => {
+      renderForm()
+      const firstName = screen.getByLabelText('Nombre')
+      const lastName = screen.getByLabelText('Apellido')
+
+      fireEvent.change(firstName, { target: { value: 'Juan2 Carlos!@#' } })
+      fireEvent.change(lastName, { target: { value: "Pérez-Ñúñez_99.'" } })
+
+      expect(firstName).toHaveValue('Juan Carlos')
+      expect(lastName).toHaveValue('PérezÑúñez')
+    })
+
+    it('acepta tildes, ñ y nombres compuestos con un solo espacio', () => {
+      renderForm()
+      const firstName = screen.getByLabelText('Nombre')
+
+      fireEvent.change(firstName, { target: { value: 'María  José' } })
+      expect(firstName).toHaveValue('María José')
+
+      fireEvent.blur(firstName)
+      expect(screen.queryByText('Solo se permiten letras y espacios')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Teléfono', () => {
+    it('solo acepta números y como máximo 9', () => {
+      renderForm()
+      const phone = screen.getByLabelText('Número de teléfono')
+
+      fireEvent.change(phone, { target: { value: 'sffsf' } })
+      expect(phone).toHaveValue('')
+
+      fireEvent.change(phone, { target: { value: '9a8-7 6.5+4321999' } })
+      expect(phone).toHaveValue('987654321')
+    })
+
+    it('pide que empiece con 9', () => {
+      renderForm()
+      const phone = screen.getByLabelText('Número de teléfono')
+
+      fireEvent.change(phone, { target: { value: '123456789' } })
+      fireEvent.blur(phone)
+
+      expect(screen.getByText('Ingresa un celular válido de 9 dígitos que comience con 9')).toBeInTheDocument()
+    })
+  })
+
+  describe('Fecha de nacimiento', () => {
+    it('el calendario solo permite desde 1950 hasta hoy', () => {
+      renderForm()
+      const birthDate = screen.getByLabelText('Fecha de nacimiento')
+      const now = new Date()
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+      expect(birthDate).toHaveAttribute('min', '1950-01-01')
+      expect(birthDate).toHaveAttribute('max', today)
+    })
+
+    it('acepta 1980 y 1950', () => {
+      renderForm()
+      const birthDate = screen.getByLabelText('Fecha de nacimiento')
+
+      fireEvent.change(birthDate, { target: { value: '1980-06-15' } })
+      fireEvent.blur(birthDate)
+      expect(screen.queryByText(/año 1950|no puede ser futura/)).not.toBeInTheDocument()
+
+      fireEvent.change(birthDate, { target: { value: '1950-01-01' } })
+      fireEvent.blur(birthDate)
+      expect(screen.queryByText(/año 1950|no puede ser futura/)).not.toBeInTheDocument()
+    })
+
+    it('rechaza fechas antes de 1950', () => {
+      renderForm()
+      const birthDate = screen.getByLabelText('Fecha de nacimiento')
+
+      fireEvent.change(birthDate, { target: { value: '1949-12-31' } })
+      fireEvent.blur(birthDate)
+
+      expect(screen.getByText('La fecha debe ser desde el año 1950')).toBeInTheDocument()
+    })
+
+    it('rechaza fechas futuras', () => {
+      renderForm()
+      const birthDate = screen.getByLabelText('Fecha de nacimiento')
+
+      fireEvent.change(birthDate, { target: { value: '2999-01-01' } })
+      fireEvent.blur(birthDate)
+
+      expect(screen.getByText('La fecha no puede ser futura')).toBeInTheDocument()
+    })
+  })
+
+  describe('Mostrar contraseñas (botón fuera de los campos)', () => {
+    it('el botón no está dentro del campo de contraseña', () => {
+      renderForm()
+      const toggle = screen.getByRole('button', { name: 'Mostrar contraseñas' })
+
+      expect(screen.getByLabelText('Contraseña').parentElement).not.toContainElement(toggle)
+      expect(screen.getByLabelText('Confirmar contraseña').parentElement).not.toContainElement(toggle)
+    })
+
+    it('muestra las dos contraseñas a la vez para compararlas', () => {
+      renderForm()
+      fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'ClaveSegura1' } })
+      fireEvent.change(screen.getByLabelText('Confirmar contraseña'), { target: { value: 'ClaveSegura2' } })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Mostrar contraseñas' }))
+
+      expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'text')
+      expect(screen.getByLabelText('Confirmar contraseña')).toHaveAttribute('type', 'text')
+      expect(screen.getByRole('button', { name: 'Ocultar contraseñas' })).toHaveAttribute('aria-pressed', 'true')
+    })
+  })
+
   describe('Password visibility toggle', () => {
     it('toggles both password fields visibility', () => {
       renderForm()
 
       const passwordInput = screen.getByLabelText('Contraseña')
       const confirmInput = screen.getByLabelText('Confirmar contraseña')
-      const toggleBtn = screen.getByRole('button', { name: 'Mostrar contraseña' })
+      const toggleBtn = screen.getByRole('button', { name: 'Mostrar contraseñas' })
 
       expect(passwordInput).toHaveAttribute('type', 'password')
       expect(confirmInput).toHaveAttribute('type', 'password')
@@ -367,9 +482,9 @@ describe('Register', () => {
 
       expect(passwordInput).toHaveAttribute('type', 'text')
       expect(confirmInput).toHaveAttribute('type', 'text')
-      expect(screen.getByRole('button', { name: 'Ocultar contraseña' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Ocultar contraseñas' })).toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: 'Ocultar contraseña' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Ocultar contraseñas' }))
       expect(passwordInput).toHaveAttribute('type', 'password')
       expect(confirmInput).toHaveAttribute('type', 'password')
     })
@@ -394,7 +509,7 @@ describe('Register', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
       })
 
-      expect(screen.getByRole('button', { name: 'Mostrar contraseña' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Mostrar contraseñas' })).toBeDisabled()
 
       await act(async () => {
         resolveRegister!()
