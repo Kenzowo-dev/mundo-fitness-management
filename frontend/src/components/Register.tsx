@@ -8,6 +8,35 @@ import { selectedPlanId } from "../utils/planSelection";
 import { useAuth } from "@/context/useAuth";
 import "@/styles/auth/Register.css";
 
+/** Año más antiguo permitido en la fecha de nacimiento. */
+const MIN_BIRTH_DATE = "1950-01-01";
+
+/** Hoy en formato AAAA-MM-DD según la hora local (no UTC). */
+function todayKey(): string {
+  const now = new Date();
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+/** Teléfono: solo dígitos y como máximo 9 (letras y signos no se escriben). */
+function sanitizePhone(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 9);
+}
+
+/**
+ * Nombres y apellidos: solo letras (incluye tildes y ñ) y espacios.
+ * Números y signos no se escriben; no se permiten dos espacios seguidos.
+ */
+function sanitizeName(value: string): string {
+  return value.replace(/[^\p{L}\p{M} ]/gu, "").replace(/ {2,}/g, " ").replace(/^ /, "");
+}
+
+/** Nombre válido: palabras de letras separadas por un solo espacio. */
+const VALID_NAME = /^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+)*$/u;
+
 export default function Register() {
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -44,7 +73,14 @@ export default function Register() {
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value } = event.target;
+    const { name } = event.target;
+    const raw = event.target.value;
+    const value =
+      name === "phone"
+        ? sanitizePhone(raw)
+        : name === "firstName" || name === "lastName"
+          ? sanitizeName(raw)
+          : raw;
 
     setFormData((previousData) => ({
       ...previousData,
@@ -69,6 +105,7 @@ export default function Register() {
       case "firstName":
       case "lastName":
         if (!value.trim()) return "Este campo es obligatorio";
+        if (!VALID_NAME.test(value.trim())) return "Solo se permiten letras y espacios";
         return null;
       case "email":
         if (!value.trim()) return "El correo es obligatorio";
@@ -91,6 +128,10 @@ export default function Register() {
         return null;
       case "birthDate":
         if (!value) return "La fecha de nacimiento es obligatoria";
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "Ingresa una fecha válida";
+        // Formato AAAA-MM-DD: se puede comparar como texto
+        if (value < MIN_BIRTH_DATE) return "La fecha debe ser desde el año 1950";
+        if (value > todayKey()) return "La fecha no puede ser futura";
         return null;
       case "gender":
         if (!value) return "Selecciona una opción";
@@ -137,8 +178,8 @@ export default function Register() {
       await register({
         email: formData.email,
         password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
         phone: formData.phone,
         birthDate: formData.birthDate,
         gender: formData.gender,
@@ -304,62 +345,22 @@ export default function Register() {
                 <label htmlFor="password" className="auth-label">
                   Contraseña
                 </label>
-                <div className="auth-input-wrapper">
-                  <input
-                    id="password"
-                    name="password"
-                    type={inputType}
-                    placeholder="Mínimo 8 caracteres"
-                    value={formData.password}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    disabled={loading}
-                    className="auth-input"
-                    aria-invalid={fieldErrors.password ? "true" : "false"}
-                    aria-describedby={
-                      fieldErrors.password ? "password-error" : undefined
-                    }
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    className="auth-password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={
-                      showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
-                    }
-                    aria-pressed={showPassword}
-                    disabled={loading}
-                  >
-                    {showPassword ? (
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        aria-hidden="true"
-                      >
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </svg>
-                    ) : (
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        aria-hidden="true"
-                      >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type={inputType}
+                  placeholder="Mínimo 8 caracteres"
+                  value={formData.password}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  disabled={loading}
+                  className="auth-input"
+                  aria-invalid={fieldErrors.password ? "true" : "false"}
+                  aria-describedby={
+                    fieldErrors.password ? "password-error" : undefined
+                  }
+                  autoComplete="new-password"
+                />
                 {fieldErrors.password && (
                   <p
                     id="password-error"
@@ -375,28 +376,26 @@ export default function Register() {
                 <label htmlFor="confirmPassword" className="auth-label">
                   Confirmar contraseña
                 </label>
-                <div className="auth-input-wrapper">
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={inputType}
-                    placeholder="Repite tu contraseña"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    disabled={loading}
-                    className="auth-input"
-                    aria-invalid={
-                      fieldErrors.confirmPassword ? "true" : "false"
-                    }
-                    aria-describedby={
-                      fieldErrors.confirmPassword
-                        ? "confirmPassword-error"
-                        : undefined
-                    }
-                    autoComplete="new-password"
-                  />
-                </div>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={inputType}
+                  placeholder="Repite tu contraseña"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  disabled={loading}
+                  className="auth-input"
+                  aria-invalid={
+                    fieldErrors.confirmPassword ? "true" : "false"
+                  }
+                  aria-describedby={
+                    fieldErrors.confirmPassword
+                      ? "confirmPassword-error"
+                      : undefined
+                  }
+                  autoComplete="new-password"
+                />
                 {fieldErrors.confirmPassword && (
                   <p
                     id="confirmPassword-error"
@@ -408,6 +407,28 @@ export default function Register() {
                 )}
               </div>
             </div>
+
+            <button
+              type="button"
+              className="auth-show-passwords"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-pressed={showPassword}
+              aria-controls="password confirmPassword"
+              disabled={loading}
+            >
+              {showPassword ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+              {showPassword ? "Ocultar contraseñas" : "Mostrar contraseñas"}
+            </button>
 
             <div className="auth-form-row">
               <div className="auth-form-group">
@@ -448,6 +469,8 @@ export default function Register() {
                   id="birthDate"
                   name="birthDate"
                   type="date"
+                  min={MIN_BIRTH_DATE}
+                  max={todayKey()}
                   value={formData.birthDate}
                   onChange={handleChange}
                   onBlur={handleBlur}
