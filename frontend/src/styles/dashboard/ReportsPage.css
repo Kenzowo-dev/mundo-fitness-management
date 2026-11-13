@@ -134,3 +134,9 @@
 
 .report-card h3 { letter-spacing: -.02em; }
 .report-data-details { overflow-x: auto; }
+
+.reports-export-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
