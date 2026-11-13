@@ -231,9 +231,9 @@ describe('Integration: Client Service with PostgreSQL and Redis', () => {
     await request(clientApp)
       .patch(`/api/clients/${client.id}`)
       .set(bearer())
-      .send({ phone: '+51999999999' })
+      .send({ phone: '999999999' })
       .expect(200)
-      .expect(({ body }) => expect(body.phone).toBe('+51999999999'));
+      .expect(({ body }) => expect(body.phone).toBe('999999999'));
     await request(clientApp)
       .get(`/api/clients?search=${client.dni}`)
       .set(bearer())
