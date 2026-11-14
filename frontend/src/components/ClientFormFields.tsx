@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Client } from '../types/api.js'
 import FormField from './FormField'
+import { MIN_BIRTH_DATE, sanitizeAddress, sanitizePersonName, todayDateKey } from '../utils/fieldValidation'
 
 type ClientFormField =
   | 'dni'
@@ -41,7 +42,8 @@ const NAME_FIELDS: ReadonlySet<ClientFormField> = new Set(['firstName', 'lastNam
 /**
  * Filtra lo que se escribe o pega en los campos restringidos:
  * - DNI y teléfonos: solo dígitos, recortados a su longitud máxima.
- * - Nombres y apellidos: solo letras (con tildes y ñ), espacios, apóstrofo y guion.
+ * - Nombres, apellidos y contacto de emergencia: solo letras (con tildes y ñ) y espacios.
+ * - Dirección: letras, números, espacios y . , # - / °
  */
 function sanitizeFieldValue(field: ClientFormField, value: string): string {
   const maxDigits = DIGIT_FIELDS[field]
@@ -49,7 +51,10 @@ function sanitizeFieldValue(field: ClientFormField, value: string): string {
     return value.replace(/\D/g, '').slice(0, maxDigits)
   }
   if (NAME_FIELDS.has(field)) {
-    return value.replace(/[^\p{L}\p{M} '’-]/gu, '')
+    return sanitizePersonName(value)
+  }
+  if (field === 'address') {
+    return sanitizeAddress(value)
   }
   if (field === 'email') {
     return value.replace(/\s/g, '')
@@ -74,6 +79,7 @@ export default function ClientFormFields({
         maxLength?: number
         inputMode?: 'numeric' | 'text' | 'tel'
         pattern?: string
+        min?: string
         max?: string
       },
     ) => (
@@ -90,6 +96,7 @@ export default function ClientFormFields({
       maxLength={restrictions?.maxLength}
       inputMode={restrictions?.inputMode}
       pattern={restrictions?.pattern}
+      min={restrictions?.min}
       max={restrictions?.max}
       autoComplete={name === 'firstName' ? 'given-name'
         : name === 'lastName' ? 'family-name'
@@ -145,11 +152,12 @@ export default function ClientFormFields({
         <summary>Datos adicionales <span>(opcionales)</span></summary>
         <div className="client-form-grid">
           {field('birthDate', 'Fecha de nacimiento', 'date', undefined, {
-            max: new Date().toLocaleDateString('en-CA'),
+            min: MIN_BIRTH_DATE,
+            max: todayDateKey(),
           })}
           {field('gender', 'Género', 'select')}
-          {field('address', 'Dirección', 'text', 'Av. Las Camelias 450')}
-          {field('emergencyContactName', 'Contacto de emergencia', 'text', 'Nombre y apellido')}
+          {field('address', 'Dirección', 'text', 'Av. Las Camelias 450', { maxLength: 200 })}
+          {field('emergencyContactName', 'Contacto de emergencia', 'text', 'Nombre y apellido', { maxLength: 100 })}
           {field('emergencyContactPhone', 'Teléfono de emergencia', 'tel', 'Ej: 987654321', {
             maxLength: 9,
             inputMode: 'numeric',

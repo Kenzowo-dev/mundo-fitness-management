@@ -105,8 +105,10 @@ describe("MemberProfilePage", () => {
       exact: true,
     });
 
+    expect(phoneField).toHaveValue("987654321");
+
     fireEvent.change(phoneField, {
-      target: { value: "+51999999999" },
+      target: { value: "999 999 999" },
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Guardar datos" }));
@@ -115,7 +117,8 @@ describe("MemberProfilePage", () => {
       expect(updateProfile).toHaveBeenCalledWith(
         42,
         expect.objectContaining({
-          phone: "+51999999999",
+          phone: "999999999",
+          emergencyContactPhone: "911111111",
         }),
       );
     });
@@ -127,5 +130,45 @@ describe("MemberProfilePage", () => {
     expect(
       screen.queryByRole("textbox", { name: "Documento" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("filters signs out of the contact fields and validates them before saving", async () => {
+    const updateProfile = vi.spyOn(api, "updateOwnClientProfile").mockResolvedValue(memberClient);
+
+    renderProfile();
+    fireEvent.click(await screen.findByRole("button", { name: "Actualizar datos" }));
+
+    const phoneField = screen.getByLabelText("Teléfono", { exact: true });
+    const addressField = screen.getByLabelText("Dirección");
+    const emergencyName = screen.getByLabelText("Nombre de contacto de emergencia");
+    const emergencyPhone = screen.getByLabelText("Teléfono de contacto de emergencia");
+
+    fireEvent.change(phoneField, { target: { value: "9a8b7-654" } });
+    fireEvent.change(addressField, { target: { value: "Av. Perú 450, Dpto. 3-B $%&!" } });
+    fireEvent.change(emergencyName, { target: { value: "María2 López!" } });
+    fireEvent.change(emergencyPhone, { target: { value: "12345678901" } });
+
+    expect(phoneField).toHaveValue("987654");
+    expect(addressField).toHaveValue("Av. Perú 450, Dpto. 3-B ");
+    expect(emergencyName).toHaveValue("María López");
+    expect(emergencyPhone).toHaveValue("123456789");
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar datos" }));
+
+    expect(await screen.findAllByText("El teléfono debe tener 9 dígitos y comenzar con 9.")).toHaveLength(2);
+    expect(updateProfile).not.toHaveBeenCalled();
+
+    fireEvent.change(phoneField, { target: { value: "987654321" } });
+    fireEvent.change(emergencyPhone, { target: { value: "912345678" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar datos" }));
+
+    await waitFor(() =>
+      expect(updateProfile).toHaveBeenCalledWith(42, {
+        phone: "987654321",
+        address: "Av. Perú 450, Dpto. 3-B",
+        emergencyContactName: "María López",
+        emergencyContactPhone: "912345678",
+      }),
+    );
   });
 });

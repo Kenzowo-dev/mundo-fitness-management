@@ -58,6 +58,22 @@ const registerSchema = z.object({
   gender: z.string().max(20).optional(),
 });
 
+/** Celular opcional: 9 dígitos que empiezan con 9, o vacío para borrarlo. */
+const optionalPhoneSchema = z
+  .union([
+    z.string().trim().regex(/^9\d{8}$/, 'El teléfono debe tener 9 dígitos y comenzar con 9'),
+    z.literal(''),
+  ])
+  .optional();
+
+/** Fecha de nacimiento opcional: desde 1950 y no futura. */
+const optionalBirthDateSchema = z
+  .string()
+  .date()
+  .refine((value) => value >= MIN_BIRTH_DATE, 'La fecha de nacimiento debe ser desde el año 1950')
+  .refine((value) => value <= new Date().toISOString().slice(0, 10), 'La fecha de nacimiento no puede ser futura')
+  .optional();
+
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
@@ -82,18 +98,18 @@ const resetPasswordSchema = z.object({
 });
 
 const updateSelfSchema = z.object({
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
+  firstName: personNameSchema.optional(),
+  lastName: personNameSchema.optional(),
+  phone: optionalPhoneSchema,
+  birthDate: optionalBirthDateSchema,
   gender: z.string().max(20).optional(),
 });
 
 const updateUserSchema = z.object({
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
+  firstName: personNameSchema.optional(),
+  lastName: personNameSchema.optional(),
+  phone: optionalPhoneSchema,
+  birthDate: optionalBirthDateSchema,
   gender: z.string().max(20).optional(),
   role: z.enum(['member', 'receptionist', 'admin']).optional(),
   isActive: z.boolean().optional(),

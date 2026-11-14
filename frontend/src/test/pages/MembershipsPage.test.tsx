@@ -373,6 +373,18 @@ describe('MembershipsPage - Integration Tests', () => {
       expect(option).toHaveTextContent('Membresía vigente')
     })
 
+    it('only lets letters, numbers and spaces in the socio search', async () => {
+      renderMembershipsPage()
+      await openCheckInModal()
+      const search = screen.getByRole('combobox', { name: /socio/i, hidden: true })
+
+      fireEvent.change(search, { target: { value: 'juan /' } })
+      expect(search).toHaveValue('juan ')
+
+      fireEvent.change(search, { target: { value: '71.23-4$%' } })
+      expect(search).toHaveValue('71234')
+    })
+
     it('lists clients as soon as the search box is focused, without typing', async () => {
       renderMembershipsPage()
       await openCheckInModal()
@@ -503,6 +515,18 @@ describe('MembershipsPage - Integration Tests', () => {
       fireEvent.change(planBox, { target: { value: 'basico' } })
       expect(screen.getByRole('option', { name: /Plan Básico/, hidden: true })).toBeInTheDocument()
       expect(screen.queryByRole('option', { name: /Plan Premium/, hidden: true })).not.toBeInTheDocument()
+    })
+
+    it('only lets letters and spaces in the plan search', async () => {
+      renderMembershipsPage()
+      await openAssignModal()
+      const search = screen.getByRole('combobox', { name: /Seleccione el plan/i, hidden: true })
+
+      fireEvent.change(search, { target: { value: '-...-----++++++' } })
+      expect(search).toHaveValue('')
+
+      fireEvent.change(search, { target: { value: 'Premium+ 2.0' } })
+      expect(search).toHaveValue('Premium ')
     })
 
     it('asks for a client and a plan when submitting without them', async () => {

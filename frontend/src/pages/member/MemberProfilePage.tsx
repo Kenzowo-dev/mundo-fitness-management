@@ -15,11 +15,42 @@ import MemberAvatarProfile from "../../components/member/MemberAvatarProfile";
 import MemberGoals from "../../components/member/MemberGoals";
 import MemberProgressCharts from "../../components/member/MemberProgressCharts";
 import "../../styles/member/MemberProfileTheme.css";
+import {
+  ADDRESS_MESSAGE,
+  PERSON_NAME_MESSAGE,
+  PHONE_MESSAGE,
+  VALID_ADDRESS,
+  VALID_PERSON_NAME,
+  VALID_PHONE,
+  normalizePhone,
+  sanitizeAddress,
+  sanitizePersonName,
+  sanitizePhone,
+} from "../../utils/fieldValidation";
 
 type ContactDetails = Pick<
   Client,
   "phone" | "address" | "emergencyContactName" | "emergencyContactPhone"
 >;
+
+type ContactErrors = Partial<Record<keyof ContactDetails, string>>;
+
+function validateContactDetails(form: ContactDetails): ContactErrors {
+  const errors: ContactErrors = {};
+  const phone = form.phone?.trim() ?? "";
+  const address = form.address?.trim() ?? "";
+  const emergencyContactName = form.emergencyContactName?.trim() ?? "";
+  const emergencyContactPhone = form.emergencyContactPhone?.trim() ?? "";
+  if (phone && !VALID_PHONE.test(phone)) errors.phone = PHONE_MESSAGE;
+  if (address && !VALID_ADDRESS.test(address)) errors.address = `${ADDRESS_MESSAGE}.`;
+  if (emergencyContactName && !VALID_PERSON_NAME.test(emergencyContactName)) {
+    errors.emergencyContactName = PERSON_NAME_MESSAGE;
+  }
+  if (emergencyContactPhone && !VALID_PHONE.test(emergencyContactPhone)) {
+    errors.emergencyContactPhone = PHONE_MESSAGE;
+  }
+  return errors;
+}
 
 function ProfileSection({ children }: { children: React.ReactNode }) {
   return (
@@ -49,6 +80,21 @@ const location = useLocation();
 
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [contactErrors, setContactErrors] = useState<ContactErrors>({});
+
+  const updateContactField = (
+    field: keyof ContactDetails,
+    value: string,
+    sanitize: (value: string) => string,
+  ) => {
+    setProfileForm((current) => ({ ...current, [field]: sanitize(value) }));
+    setContactErrors((current) => {
+      if (!(field in current)) return current;
+      const rest = { ...current };
+      delete rest[field];
+      return rest;
+    });
+  };
 
   const clientQuery = useQuery<Client>({
     queryKey: ["member-portal", "client", user?.id],
@@ -78,14 +124,15 @@ const location = useLocation();
     if (!clientQuery.data) return;
 
     setProfileForm({
-      phone: clientQuery.data.phone ?? "",
+      phone: normalizePhone(clientQuery.data.phone),
       address: clientQuery.data.address ?? "",
       emergencyContactName: clientQuery.data.emergencyContactName ?? "",
-      emergencyContactPhone: clientQuery.data.emergencyContactPhone ?? "",
+      emergencyContactPhone: normalizePhone(clientQuery.data.emergencyContactPhone),
     });
 
     setProfileMessage(null);
     setProfileError(null);
+    setContactErrors({});
     setIsEditingProfile(true);
   };
 
@@ -94,8 +141,17 @@ const location = useLocation();
     setProfileError(null);
     setProfileMessage(null);
 
+    const errors = validateContactDetails(profileForm);
+    setContactErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     try {
-      await updateProfileMutation.mutateAsync(profileForm);
+      await updateProfileMutation.mutateAsync({
+        phone: profileForm.phone?.trim() ?? "",
+        address: profileForm.address?.trim() ?? "",
+        emergencyContactName: profileForm.emergencyContactName?.trim() ?? "",
+        emergencyContactPhone: profileForm.emergencyContactPhone?.trim() ?? "",
+      });
       setIsEditingProfile(false);
       setProfileMessage("Tus datos de contacto se actualizaron.");
     } catch {
@@ -181,11 +237,12 @@ const location = useLocation();
                 name="phone"
                 label="Teléfono"
                 type="tel"
-                maxLength={20}
+                maxLength={9}
+                inputMode="numeric"
+                placeholder="987654321"
                 value={profileForm.phone ?? ""}
-                onChange={(phone) =>
-                  setProfileForm((current) => ({ ...current, phone }))
-                }
+                onChange={(phone) => updateContactField("phone", phone, sanitizePhone)}
+                error={contactErrors.phone}
                 autoComplete="tel"
               />
 
@@ -193,10 +250,10 @@ const location = useLocation();
                 id="member-address"
                 name="address"
                 label="Dirección"
+                maxLength={200}
                 value={profileForm.address ?? ""}
-                onChange={(address) =>
-                  setProfileForm((current) => ({ ...current, address }))
-                }
+                onChange={(address) => updateContactField("address", address, sanitizeAddress)}
+                error={contactErrors.address}
                 autoComplete="street-address"
               />
 
@@ -207,11 +264,9 @@ const location = useLocation();
                 maxLength={100}
                 value={profileForm.emergencyContactName ?? ""}
                 onChange={(emergencyContactName) =>
-                  setProfileForm((current) => ({
-                    ...current,
-                    emergencyContactName,
-                  }))
+                  updateContactField("emergencyContactName", emergencyContactName, sanitizePersonName)
                 }
+                error={contactErrors.emergencyContactName}
               />
 
               <FormField
@@ -219,14 +274,14 @@ const location = useLocation();
                 name="emergencyContactPhone"
                 label="Teléfono de contacto de emergencia"
                 type="tel"
-                maxLength={20}
+                maxLength={9}
+                inputMode="numeric"
+                placeholder="987654321"
                 value={profileForm.emergencyContactPhone ?? ""}
                 onChange={(emergencyContactPhone) =>
-                  setProfileForm((current) => ({
-                    ...current,
-                    emergencyContactPhone,
-                  }))
+                  updateContactField("emergencyContactPhone", emergencyContactPhone, sanitizePhone)
                 }
+                error={contactErrors.emergencyContactPhone}
               />
 
               <div className="member-profile-actions">

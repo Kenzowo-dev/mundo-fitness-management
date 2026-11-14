@@ -4,7 +4,11 @@ import type { CreateMembershipPlanInput, MembershipPlan } from '../types/api';
 import Modal from './Modal';
 import Alert from './Alert';
 import Button from './Button';
+import { PLAN_NAME_MESSAGE, VALID_PLAN_NAME, numberInputGuards, sanitizePlanName } from '../utils/fieldValidation';
 import './PlanFormModal.css';
+
+const integerGuards = numberInputGuards(false);
+const decimalGuards = numberInputGuards(true);
 
 interface PlanFormModalProps {
   plan?: MembershipPlan;
@@ -48,6 +52,11 @@ export default function PlanFormModal({ plan, isSaving, error, onClose, onSave }
 
   if (cleanName.length > 100) {
     alert('El nombre del plan no puede superar los 100 caracteres.');
+    return;
+  }
+
+  if (!VALID_PLAN_NAME.test(cleanName)) {
+    alert(`${PLAN_NAME_MESSAGE}.`);
     return;
   }
 
@@ -105,12 +114,12 @@ export default function PlanFormModal({ plan, isSaving, error, onClose, onSave }
       <form className="plan-form" onSubmit={submit}>
         {error && <Alert type="error" message={error} />}
         <div className="plan-form-grid">
-          <label>Nombre del plan *<input required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} /></label>
-          <label>Duración en días *<input required type="number" min="1" max="3660" step="1" value={durationDays} onChange={(event) => setDurationDays(event.target.value)} /></label>
-          <label>Precio *<input required type="number" min="0.01" max="99999999.99" step="0.01" value={price} onChange={(event) => setPrice(event.target.value)} /></label>
+          <label>Nombre del plan *<input required maxLength={100} value={name} onChange={(event) => setName(sanitizePlanName(event.target.value))} /></label>
+          <label>Duración en días *<input required type="number" min="1" max="3660" step="1" {...integerGuards} value={durationDays} onChange={(event) => setDurationDays(event.target.value)} /></label>
+          <label>Precio *<input required type="number" min="0.01" max="99999999.99" step="0.01" {...decimalGuards} value={price} onChange={(event) => setPrice(event.target.value)} /></label>
           <label>Moneda *<select required value={currency} onChange={(event) => setCurrency(event.target.value === 'USD' ? 'USD' : 'PEN')}><option value="PEN">Soles peruanos (PEN)</option><option value="USD">Dólares estadounidenses (USD)</option></select></label>
-          <label>Máximo de visitas por semana<input type="number" min="1" max="21" step="1" placeholder="Sin límite" value={maxVisitsPerWeek} onChange={(event) => setMaxVisitsPerWeek(event.target.value)} /></label>
-          <label>Orden de visualización<input type="number" min="0" max="999999" step="1" value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} /></label>
+          <label>Máximo de visitas por semana<input type="number" min="1" max="21" step="1" {...integerGuards} placeholder="Sin límite" value={maxVisitsPerWeek} onChange={(event) => setMaxVisitsPerWeek(event.target.value)} /></label>
+          <label>Orden de visualización<input type="number" min="0" max="999999" step="1" {...integerGuards} value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} /></label>
           <label className="plan-form-wide">Descripción<textarea maxLength={500} rows={3} value={description} onChange={(event) => setDescription(event.target.value)} /></label>
           <label className="plan-form-wide">Beneficios (uno por línea)<textarea maxLength={2000} rows={4} value={features} onChange={(event) => setFeatures(event.target.value)} /></label>
           <label className="plan-form-checkbox"><input type="checkbox" checked={includesClasses} onChange={(event) => setIncludesClasses(event.target.checked)} /> Incluye clases grupales</label>
