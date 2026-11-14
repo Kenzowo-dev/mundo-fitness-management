@@ -303,6 +303,16 @@
    ========================================== */
 
 .member-physical {
+  --physical-bg: #ffffff;
+  --physical-card: #f4f7fa;
+  --physical-card-hover: #e7f2fa;
+  --physical-border: #d4e0e9;
+  --physical-accent: #087eaf;
+  --physical-text: #202024;
+  --physical-muted: #525b66;
+}
+
+:root[data-theme="dark"] .member-physical {
   --physical-bg: #101c2c;
   --physical-card: #1b3048;
   --physical-card-hover: #23415d;
@@ -320,7 +330,7 @@
   background: linear-gradient(
     145deg,
     var(--physical-card),
-    #203953
+    var(--physical-card-hover)
   );
   border-color: var(--physical-border);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
@@ -344,7 +354,7 @@
   background: linear-gradient(
     145deg,
     var(--physical-bg),
-    #172b43
+    var(--physical-card)
   );
   border-color: var(--physical-border);
 }

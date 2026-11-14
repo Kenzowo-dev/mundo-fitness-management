@@ -178,3 +178,14 @@
 .btn-icon,.btn-close,.btn-sm { min-height:44px; min-width:44px; }
 .btn-outline:hover:not(:disabled) { color:var(--text-on-accent); }
 .btn-danger { background:var(--accent-primary); color:var(--text-on-accent); }
+
+/* Mundo Fitness - Boton de compra del portal del socio */
+.member-checkout-button,
+.member-checkout-button .btn-content {
+  color: #ffffff;
+}
+
+.member-checkout-button:not(:disabled):hover,
+.member-checkout-button:not(:disabled):hover .btn-content {
+  color: #ffffff;
+}

@@ -20,7 +20,7 @@ const menuItems = [
     icon: "membership",
   },
   {
-    label: "Pagos y compras",
+    label: "Pagos",
     path: "/portal/pagos",
     icon: "payments",
   },
@@ -120,7 +120,7 @@ export default function MemberSidebar({
         </nav>
 
         <div className="member-sidebar-footer">
-          <span>MUUNDO FITNESS</span>
+          <span>MUNDO FITNESS</span>
           <small>Tu bienestar, nuestra motivación.</small>
         </div>
       </aside>

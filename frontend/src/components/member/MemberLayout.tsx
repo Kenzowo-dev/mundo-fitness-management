@@ -11,7 +11,7 @@ import "@/styles/member/MemberLayout.css";
 const pageTitles: Record<string, string> = {
   "/portal": "Inicio",
   "/portal/membresia": "Mi membresía",
-  "/portal/pagos": "Pagos y compras",
+  "/portal/pagos": "Pagos",
   "/portal/comprobantes": "Mis comprobantes",
   "/portal/recomendador": "Recomendador fitness",
   "/portal/notificaciones": "Notificaciones",

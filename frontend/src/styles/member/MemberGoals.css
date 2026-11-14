@@ -14,9 +14,9 @@
   flex-direction: column;
   gap: 5px;
   padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--bg-elevated-2);
 }
 
 .member-goals-summary strong {
@@ -26,16 +26,16 @@
 
 .member-goals-summary span {
   font-size: 0.85rem;
-  color: #a1a1aa;
+  color: var(--text-secondary);
 }
 
 .member-goals-form,
 .member-goal-item {
   padding: 20px;
   margin-top: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--bg-elevated-2);
 }
 
 .member-goals-form h3,
@@ -55,10 +55,10 @@
 .member-goals-form textarea {
   width: 100%;
   padding: 11px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-strong);
   border-radius: 9px;
-  background: #18181b;
-  color: #fafafa;
+  background: var(--bg-elevated-1);
+  color: var(--text-primary);
   font: inherit;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .member-goal-item p {
-  color: #a1a1aa;
+  color: var(--text-secondary);
 }
 
 .member-goal-heading {
@@ -112,7 +112,7 @@
 
 .member-goal-status--cancelled {
   background: rgba(161, 161, 170, 0.12);
-  color: #a1a1aa;
+  color: var(--text-secondary);
 }
 
 .member-goal-values {
@@ -129,7 +129,7 @@
 .member-goals-empty {
   padding: 25px;
   text-align: center;
-  color: #a1a1aa;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 640px) {

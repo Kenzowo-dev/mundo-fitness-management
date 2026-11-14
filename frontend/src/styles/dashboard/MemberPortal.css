@@ -255,3 +255,26 @@
 #progress {
   scroll-margin-top: 90px;
 }
+/* MUNDO FITNESS - Mejoras de contraste del dashboard claro */
+:root:not([data-theme="dark"]) .member-dashboard-stat {
+  background: #f8f9fb;
+  border-color: #dfe3e8;
+}
+
+:root:not([data-theme="dark"]) .member-dashboard-stat span {
+  color: #52525b;
+}
+
+:root:not([data-theme="dark"]) .member-dashboard-stat strong {
+  color: #202024;
+}
+
+:root:not([data-theme="dark"]) .member-dashboard-stat-link small,
+:root:not([data-theme="dark"]) .member-dashboard-section-link {
+  color: #b91c1c;
+}
+
+:root:not([data-theme="dark"]) .member-dashboard-stat-link:hover {
+  background: #fff1f2;
+  border-color: #be123c;
+}

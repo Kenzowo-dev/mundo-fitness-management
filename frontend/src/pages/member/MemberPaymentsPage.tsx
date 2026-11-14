@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../../api/client";
@@ -201,7 +200,7 @@ export default function MemberPaymentsPage() {
       <header className="member-portal-header">
         <div>
           <p className="member-eyebrow">MUNDO FITNESS · PORTAL DEL SOCIO</p>
-          <h1>Pagos y compras</h1>
+          <h1>Pagos</h1>
           <p>
             Explora nuestros planes, gestiona tus compras y consulta tus pagos.
           </p>
@@ -421,6 +420,7 @@ export default function MemberPaymentsPage() {
 
                     {/* Permite comprar únicamente si el cliente no tiene membresía activa. */}
                     <Button
+                      className="member-checkout-button"
                       disabled={!canPurchase || checkoutMutation.isPending}
                       onClick={() => void handlePurchase(plan.id)}
                     >
