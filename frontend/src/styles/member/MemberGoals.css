@@ -138,3 +138,51 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Contraste de tarjetas de objetivos en modo claro */
+:root:not([data-theme="dark"]) .member-goals-summary > div {
+  background: #f8f9fb;
+  border: 1px solid #dfe3e8;
+  color: #202024;
+}
+
+:root:not([data-theme="dark"]) .member-goals-summary strong {
+  color: #c91e32;
+}
+
+:root:not([data-theme="dark"]) .member-goals-summary span {
+  color: #525866;
+}
+
+/* Correccion final de objetivos fitness en modo claro */
+:root:not([data-theme="dark"]) .member-goals-form,
+:root:not([data-theme="dark"]) .member-goal-item {
+  background: #f8f9fb;
+  border: 1px solid #dfe3e8;
+  color: #202024;
+}
+
+:root:not([data-theme="dark"]) .member-goal-item h3 {
+  color: #202024;
+}
+
+:root:not([data-theme="dark"]) .member-goal-item p,
+:root:not([data-theme="dark"]) .member-goal-values,
+:root:not([data-theme="dark"]) .member-goal-date {
+  color: #525866;
+}
+
+:root:not([data-theme="dark"]) .member-goal-status {
+  background: #fff0db;
+  color: #9a4d00;
+}
+
+:root:not([data-theme="dark"]) .member-goal-status--achieved {
+  background: #e6f4ec;
+  color: #176b42;
+}
+
+:root:not([data-theme="dark"]) .member-goal-status--cancelled {
+  background: #eceef1;
+  color: #525866;
+}
