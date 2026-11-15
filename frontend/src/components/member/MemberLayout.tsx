@@ -12,7 +12,6 @@ const pageTitles: Record<string, string> = {
   "/portal": "Inicio",
   "/portal/membresia": "Mi membresía",
   "/portal/pagos": "Pagos",
-  "/portal/comprobantes": "Mis comprobantes",
   "/portal/recomendador": "Recomendador fitness",
   "/portal/notificaciones": "Notificaciones",
   "/portal/perfil": "Mi perfil",
