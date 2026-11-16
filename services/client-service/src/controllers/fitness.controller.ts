@@ -14,6 +14,7 @@ import {
   getFitnessProfile,
   saveFitnessProfile,
   createFitnessPlan,
+  requireActiveFitnessMembership,
   getFitnessPlans,
   getFitnessPlanById,
   completeFitnessWorkout,
@@ -168,6 +169,7 @@ export async function createFitnessPlanController(
 ) {
   try {
     const clientId = await getAuthenticatedClientId(req);
+    await requireActiveFitnessMembership(clientId);
     const plan = await createFitnessPlan(clientId);
     res.status(201).json(plan);
   } catch (error) {
@@ -230,6 +232,7 @@ export async function completeFitnessWorkoutController(
     const sessionId = parseId(req.params.id);
     const data = validateBody(workoutLogSchema, req.body);
     const clientId = await getAuthenticatedClientId(req);
+    await requireActiveFitnessMembership(clientId);
 
     const log = await completeFitnessWorkout(
       clientId,

@@ -1,3 +1,4 @@
+import { AuthorizationError } from "@gym/shared/errors/index.js";
 import type {
   FitnessWorkoutLog,
   FitnessWorkoutLogInput,
@@ -477,4 +478,34 @@ export async function getFitnessWorkoutHistory(
   );
 
   return result.rows.map(mapFitnessWorkoutLog);
+}
+
+
+/**
+ * Comprueba que el cliente tenga una membresia vigente.
+ * Requiere estado activo y fechas que incluyan el dia actual.
+ */
+export async function requireActiveFitnessMembership(
+  clientId: number,
+): Promise<void> {
+  const result = await query<{ has_membership: boolean }>(
+    `
+    SELECT EXISTS (
+      SELECT 1
+      FROM client_memberships
+      WHERE client_id = $1
+        AND status = 'active'
+        AND start_date <= CURRENT_DATE
+        AND end_date >= CURRENT_DATE
+    ) AS has_membership
+    `,
+    [clientId],
+  );
+
+  if (!result.rows[0]?.has_membership) {
+    throw new AuthorizationError(
+      "Necesitas una membresia vigente para utilizar el recomendador fitness",
+      "ACTIVE_MEMBERSHIP_REQUIRED",
+    );
+  }
 }
