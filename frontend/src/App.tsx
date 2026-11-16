@@ -35,6 +35,9 @@ const MemberPaymentsPage = lazy(
 const MemberProfilePage = lazy(
   () => import("./pages/member/MemberProfilePage.tsx"),
 );
+const MemberFitnessPage = lazy(
+  () => import("./pages/member/MemberFitnessPage.tsx"),
+);
 const MemberLayout = lazy(() => import("./components/member/MemberLayout.tsx"));
 import "./App.css";
 import { useEffect } from "react";
@@ -229,7 +232,7 @@ function App() {
           <Route path="pagos" element={<MemberPaymentsPage />} />
           <Route
             path="recomendador"
-            element={<MemberPlaceholder title="Recomendador fitness" />}
+            element={<MemberFitnessPage />}
           />
           <Route
             path="notificaciones"

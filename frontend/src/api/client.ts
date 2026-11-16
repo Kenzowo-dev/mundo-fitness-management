@@ -1,3 +1,11 @@
+import type {
+  FitnessProfile,
+  FitnessProfileInput,
+  FitnessPlan,
+  FitnessPlanWithSessions,
+  FitnessWorkoutLog,
+  FitnessWorkoutLogInput,
+} from "../types/fitness";
 // Importa los tipos necesarios para las respuestas y peticiones de la API
 import type {
   TokenPair,
@@ -966,6 +974,88 @@ class ApiClient {
       data: Payment[];
       pagination: PaginatedResponse<Payment>["pagination"];
     }>(`/api/payments/client/${clientId}`);
+  }
+
+  // ==================== Recomendador fitness del socio ====================
+
+  /**
+   * Consulta el perfil fitness del socio autenticado.
+   * Devuelve null cuando todavía no existe un perfil.
+   */
+  async getOwnFitnessProfile(): Promise<FitnessProfile | null> {
+    return this.request<FitnessProfile | null>(
+      "/api/clients/me/fitness/profile",
+    );
+  }
+
+  /**
+   * Crea o actualiza las preferencias de entrenamiento del socio.
+   */
+  async saveOwnFitnessProfile(
+    data: FitnessProfileInput,
+  ): Promise<FitnessProfile> {
+    return this.request<FitnessProfile>(
+      "/api/clients/me/fitness/profile",
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      },
+    );
+  }
+
+  /**
+   * Genera y guarda un plan semanal según el perfil fitness.
+   */
+  async createOwnFitnessPlan(): Promise<FitnessPlanWithSessions> {
+    return this.request<FitnessPlanWithSessions>(
+      "/api/clients/me/fitness/plans",
+      { method: "POST" },
+    );
+  }
+
+  /**
+   * Consulta los planes de entrenamiento del socio.
+   */
+  async getOwnFitnessPlans(): Promise<FitnessPlan[]> {
+    return this.request<FitnessPlan[]>(
+      "/api/clients/me/fitness/plans",
+    );
+  }
+
+  /**
+   * Recupera un plan y sus sesiones con ejercicios.
+   */
+  async getOwnFitnessPlanById(
+    planId: number,
+  ): Promise<FitnessPlanWithSessions> {
+    return this.request<FitnessPlanWithSessions>(
+      `/api/clients/me/fitness/plans/${planId}`,
+    );
+  }
+
+  /**
+   * Registra una sesión de entrenamiento completada.
+   */
+  async completeOwnFitnessWorkout(
+    sessionId: number,
+    data: FitnessWorkoutLogInput,
+  ): Promise<FitnessWorkoutLog> {
+    return this.request<FitnessWorkoutLog>(
+      `/api/clients/me/fitness/sessions/${sessionId}/complete`,
+      {
+        method: "POST",
+        body: JSON.stringify(data),
+      },
+    );
+  }
+
+  /**
+   * Consulta el historial de entrenamientos completados.
+   */
+  async getOwnFitnessWorkoutHistory(): Promise<FitnessWorkoutLog[]> {
+    return this.request<FitnessWorkoutLog[]>(
+      "/api/clients/me/fitness/history",
+    );
   }
 }
 

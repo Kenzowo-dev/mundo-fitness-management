@@ -8,6 +8,7 @@ import { requestLoggingMiddleware } from '@gym/shared/logger/index.js';
 import { connectRedis, disconnectRedis } from '@gym/shared/messaging/index.js';
 import { closePool } from '@gym/shared/database/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
+import fitnessRoutes from './routes/fitness.routes.js';
 import clientRoutes from './routes/client.routes.js';
 
 const app = express();
@@ -16,7 +17,7 @@ const SERVICE_NAME = 'client-service';
 
 /**
  * Establece SERVICE_NAME en process.env para que el logger compartido
- * incluya el nombre del servicio en todos los logs automáticamente.
+ * incluya el nombre del servicio en todos los logs automÃ¡ticamente.
  */
 process.env.SERVICE_NAME = SERVICE_NAME;
 
@@ -34,8 +35,8 @@ app.use(express.urlencoded({ extended: true }));
 
 /**
  * Rate limiting global para prevenir abuso y DoS.
- * Configuración centralizada via shared config (windowMs, maxRequests).
- * Retorna 429 con headers estándar (Retry-After, X-RateLimit-*).
+ * ConfiguraciÃ³n centralizada via shared config (windowMs, maxRequests).
+ * Retorna 429 con headers estÃ¡ndar (Retry-After, X-RateLimit-*).
  */
 const limiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
@@ -67,6 +68,7 @@ app.get('/health', async (_req, res) => {
  * GET /:id/goals, POST /:id/goals
  * GET /:id/documents, POST /:id/documents
  */
+app.use('/api/clients/me/fitness', fitnessRoutes);
 app.use('/api/clients', clientRoutes);
 
 /**
@@ -78,15 +80,15 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 /**
- * Importación tardía de query para evitar dependencias circulares
- * durante la inicialización de módulos compartidos.
+ * ImportaciÃ³n tardÃ­a de query para evitar dependencias circulares
+ * durante la inicializaciÃ³n de mÃ³dulos compartidos.
  */
 import { query } from '@gym/shared/database/index.js';
 
 /**
  * Inicia el servidor HTTP y conexiones a dependencias.
  * Secuencia: Redis -> PostgreSQL -> HTTP server.
- * En fallo crítico, loggea error y termina proceso (exit 1).
+ * En fallo crÃ­tico, loggea error y termina proceso (exit 1).
  */
 async function startServer(): Promise<void> {
   try {
@@ -109,7 +111,7 @@ async function startServer(): Promise<void> {
 /**
  * Shutdown graceful para SIGTERM/SIGINT (Docker stop, K8s termination).
  * Cierra conexiones Redis y PostgreSQL antes de salir.
- * Timeout implícito: si tarda mucho, el orquestador hará SIGKILL.
+ * Timeout implÃ­cito: si tarda mucho, el orquestador harÃ¡ SIGKILL.
  */
 async function shutdown(): Promise<void> {
   logger.info('Shutting down...');
