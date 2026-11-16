@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ClientsPage from '@/pages/clients/ClientsPage'
 import * as useApiModule from '@/hooks/useApi'
+import * as authModule from '@/context/useAuth'
 import * as apiModule from '@/api/client'
 
 const mockClients = [
@@ -77,6 +78,17 @@ describe('ClientsPage - Create Client', () => {
   let mockCreateClient: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
+    // Por defecto entra la recepcionista (no ve el rol de la cuenta)
+    vi.spyOn(authModule, 'useAuth').mockReturnValue({
+      user: { id: 2, email: 'recepcion@mundofitness.com', firstName: 'Laura', lastName: 'Recepción', role: 'receptionist', isActive: true, emailVerified: true, createdAt: '', updatedAt: '' },
+      isLoading: false,
+      isAuthenticated: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      updateUser: vi.fn(),
+    } as ReturnType<typeof authModule.useAuth>)
     vi.clearAllMocks()
     localStorage.clear()
 
@@ -177,6 +189,96 @@ describe('ClientsPage - Create Client', () => {
       await waitFor(() => {
         expect(within(getDialog()).getByText('El DNI debe contener exactamente 8 dígitos numéricos.')).toBeInTheDocument()
       })
+    })
+
+    it('filters letters out of DNI and phone, and digits or signs out of names', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      const dni = dialog.getByPlaceholderText('Ej: 71234567')
+      const phone = dialog.getByPlaceholderText('987654321')
+      const firstName = dialog.getByPlaceholderText('Ej: Juan')
+      const lastName = dialog.getByPlaceholderText('Ej: Pérez')
+
+      fireEvent.change(dni, { target: { value: '71a23b4567999' } })
+      fireEvent.change(phone, { target: { value: '9x87-654 3210' } })
+      fireEvent.change(firstName, { target: { value: 'Juan2 José!' } })
+      fireEvent.change(lastName, { target: { value: 'Pérez-Ñúñez 3' } })
+
+      expect(dni).toHaveValue('71234567')
+      expect(phone).toHaveValue('987654321')
+      expect(firstName).toHaveValue('Juan José')
+      expect(lastName).toHaveValue('PérezÑúñez ')
+    })
+
+    it('limits the birth date calendar to 1950 and rejects older dates', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+      const birthDate = dialog.getByLabelText(/Fecha de nacimiento/)
+      expect(birthDate).toHaveAttribute('min', '1950-01-01')
+
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '71234567' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Ana' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Ríos' } })
+      fireEvent.change(birthDate, { target: { value: '1949-12-31' } })
+      fireEvent.click(dialog.getByRole('button', { name: /Crear|Guardar|Registrar/ }))
+
+      expect(await dialog.findByText('La fecha de nacimiento debe ser desde el año 1950.')).toBeInTheDocument()
+    })
+
+    it('keeps only letters in the emergency contact and usual characters in the address', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      const address = dialog.getByPlaceholderText('Av. Las Camelias 450')
+      const emergencyName = dialog.getByPlaceholderText('Nombre y apellido')
+
+      fireEvent.change(address, { target: { value: 'Av. Perú 450, Dpto. 3-B $%&!' } })
+      fireEvent.change(emergencyName, { target: { value: "Rosa2 O'Neill!" } })
+
+      expect(address).toHaveValue('Av. Perú 450, Dpto. 3-B ')
+      expect(emergencyName).toHaveValue('Rosa ONeill')
+    })
+
+    it('requires the @ symbol in the email', async () => {
+      renderPage()
+      await openCreateModal()
+      const dialog = within(getDialog())
+
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '71234567' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'Juan' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'Pérez' } })
+      fireEvent.change(dialog.getByPlaceholderText('socio@correo.com'), { target: { value: 'juancorreo.com' } })
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
+      })
+
+      await waitFor(() => {
+        expect(within(getDialog()).getByText('El correo electrónico debe incluir el símbolo @.')).toBeInTheDocument()
+      })
+    })
+
+    it('hides the summary alert once every flagged field is edited', async () => {
+      renderPage()
+      await openCreateModal()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Registrar socio', hidden: true }))
+      })
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent('Corrige los campos señalados')
+      })
+
+      const dialog = within(getDialog())
+      fireEvent.change(dialog.getByPlaceholderText('Ej: 71234567'), { target: { value: '7' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Juan'), { target: { value: 'J' } })
+      fireEvent.change(dialog.getByPlaceholderText('Ej: Pérez'), { target: { value: 'P' } })
+
+      expect(screen.queryByText('Corrige los campos señalados para poder registrar al socio.')).not.toBeInTheDocument()
     })
 
     it('shows error for missing Nombres', async () => {

@@ -21,11 +21,17 @@ La web tendrá una pausa hasta que termine el primer despliegue. El puerto 80 qu
 
 - Tipo: **Docker Compose**. No selecciones **Stack**.
 - Repositorio: `https://github.com/Kenzowo-dev/mundo-fitness-management.git`
-- Rama: `feature/mundo-fitness-ui-redesign`
+- Rama: `main`
 - Ruta del archivo Compose: `./compose.yaml`
 - Dominio: `gym.kenzowo.dev`, servicio `frontend`, puerto `5173`.
 - Desactiva HTTPS y Let's Encrypt en Dokploy. Cloudflare termina HTTPS.
 - En Cloudflare Tunnel, el servicio de esta ruta debe ser `http://localhost:80`.
+
+## Flujo de despliegue
+
+Dokploy debe desplegar automáticamente los cambios de GitHub en `main`. En el proyecto Compose, configura el repositorio y la rama `main`, activa **Auto Deploy** y confirma que el archivo Compose sea `./compose.yaml`. Dokploy recibirá los eventos de GitHub y ya no se necesita el secreto `DOKPLOY_DEPLOY_WEBHOOK` en GitHub Actions.
+
+GitHub Actions sigue construyendo y publicando las seis imágenes en GHCR con etiquetas `latest` y SHA. Como el auto deploy de Dokploy puede empezar antes de que termine ese job, puede desplegar temporalmente las imágenes `latest` del build anterior. Confirma en GHCR y en los logs de Dokploy que las imágenes nuevas llegaron; si el build de imágenes termina después del despliegue, vuelve a desplegar el Compose desde Dokploy para que descargue los tags actualizados. Dokploy debe tener acceso de lectura a GHCR si los paquetes son privados.
 
 ## Variables de entorno
 

@@ -32,8 +32,16 @@ import {
 } from '@gym/shared/errors/index.js';
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
+/** Nombre de plan: letras, números, espacios y + - . */
+const planNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^[\p{L}\p{M}\d][\p{L}\p{M}\d +.-]*$/u, 'El nombre solo puede tener letras, números, espacios y + - .');
+
 const createPlanSchema = z.object({
-  name: z.string().trim().min(1).max(100),
+  name: planNameSchema,
   description: z.string().trim().max(500).optional(),
   durationDays: z.number().int().min(1).max(3660),
   price: z.number().positive().max(99_999_999.99).multipleOf(0.01),
@@ -47,7 +55,7 @@ const createPlanSchema = z.object({
 });
 
 const updatePlanSchema = z.object({
-  name: z.string().trim().min(1).max(100).optional(),
+  name: planNameSchema.optional(),
   description: z.string().trim().max(500).optional(),
   durationDays: z.number().int().min(1).max(3660).optional(),
   price: z.number().positive().max(99_999_999.99).multipleOf(0.01).optional(),

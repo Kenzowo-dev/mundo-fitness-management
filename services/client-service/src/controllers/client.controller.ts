@@ -30,33 +30,84 @@ import {
   AuthenticationError,
 } from "@gym/shared/errors/index.js";
 
+/** Nombres y apellidos: solo letras (con tildes y ñ) separadas por un espacio. */
+const personNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^[\p{L}\p{M}]+(?: [\p{L}\p{M}]+)*$/u, "Solo se permiten letras y espacios");
+
+const dniSchema = z.string().trim().regex(/^\d{8}$/, "El DNI debe tener exactamente 8 dígitos");
+
+/** Celular opcional: 9 dígitos que empiezan con 9, o vacío para borrarlo. */
+const optionalPhoneSchema = z
+  .union([
+    z.string().trim().regex(/^9\d{8}$/, "El teléfono debe tener 9 dígitos y comenzar con 9"),
+    z.literal(""),
+  ])
+  .optional();
+
+const optionalPersonNameSchema = z.union([personNameSchema, z.literal("")]).optional();
+
+/** Dirección: letras, números, espacios y . , # - / ° */
+const optionalAddressSchema = z
+  .union([
+    z
+      .string()
+      .trim()
+      .max(200)
+      .regex(
+        /^[\p{L}\p{M}\d][\p{L}\p{M}\d .,#/°º-]*$/u,
+        "La dirección solo puede tener letras, números, espacios y . , # - / °",
+      ),
+    z.literal(""),
+  ])
+  .optional();
+
+/** Unidad de un objetivo: letras, % y / (kg, %, km/h). */
+const optionalUnitSchema = z
+  .union([
+    z.string().trim().max(20).regex(/^[\p{L}\p{M}%/]+$/u, "La unidad solo puede tener letras, % y /"),
+    z.literal(""),
+  ])
+  .optional();
+
+/** Fecha de nacimiento opcional: desde 1950 y no futura. */
+const optionalBirthDateSchema = z
+  .string()
+  .date()
+  .refine((value) => value >= "1950-01-01", "La fecha de nacimiento debe ser desde el año 1950")
+  .refine((value) => value <= new Date().toISOString().slice(0, 10), "La fecha de nacimiento no puede ser futura")
+  .optional();
+
 const createClientSchema = z.object({
   userId: z.number().int().positive().optional(),
-  dni: z.string().length(8),
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
+  dni: dniSchema,
+  firstName: personNameSchema,
+  lastName: personNameSchema,
   email: z.string().email().optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
+  phone: optionalPhoneSchema,
+  birthDate: optionalBirthDateSchema,
   gender: z.string().max(20).optional(),
-  address: z.string().optional(),
-  emergencyContactName: z.string().max(100).optional(),
-  emergencyContactPhone: z.string().max(20).optional(),
+  address: optionalAddressSchema,
+  emergencyContactName: optionalPersonNameSchema,
+  emergencyContactPhone: optionalPhoneSchema,
   medicalConditions: z.string().optional(),
   notes: z.string().optional(),
 });
 
 const updateClientSchema = z.object({
-  dni: z.string().length(8).optional(),
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
+  dni: dniSchema.optional(),
+  firstName: personNameSchema.optional(),
+  lastName: personNameSchema.optional(),
   email: z.union([z.string().email(), z.literal("")]).optional(),
-  phone: z.string().max(20).optional(),
-  birthDate: z.string().date().optional(),
+  phone: optionalPhoneSchema,
+  birthDate: optionalBirthDateSchema,
   gender: z.string().max(20).optional(),
-  address: z.string().optional(),
-  emergencyContactName: z.string().max(100).optional(),
-  emergencyContactPhone: z.string().max(20).optional(),
+  address: optionalAddressSchema,
+  emergencyContactName: optionalPersonNameSchema,
+  emergencyContactPhone: optionalPhoneSchema,
   medicalConditions: z.string().optional(),
   notes: z.string().optional(),
   status: z.enum(["active", "inactive", "suspended"]).optional(),
@@ -64,10 +115,10 @@ const updateClientSchema = z.object({
 
 const updateOwnClientSchema = z
   .object({
-    phone: z.string().max(20).optional(),
-    address: z.string().optional(),
-    emergencyContactName: z.string().max(100).optional(),
-    emergencyContactPhone: z.string().max(20).optional(),
+    phone: optionalPhoneSchema,
+    address: optionalAddressSchema,
+    emergencyContactName: optionalPersonNameSchema,
+    emergencyContactPhone: optionalPhoneSchema,
   })
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: "Proporciona al menos un dato de contacto para actualizar.",
@@ -103,9 +154,9 @@ const goalSchema = z.object({
   clientId: z.number().int().positive(),
   goalType: z.string().min(1).max(50),
   description: z.string().optional(),
-  targetValue: z.number().optional(),
-  currentValue: z.number().optional(),
-  unit: z.string().max(20).optional(),
+  targetValue: z.number().min(0).optional(),
+  currentValue: z.number().min(0).optional(),
+  unit: optionalUnitSchema,
   targetDate: z.string().date().optional(),
 });
 
@@ -115,9 +166,9 @@ const ownGoalSchema = goalSchema.omit({
 
 const updateGoalSchema = z.object({
   description: z.string().optional(),
-  targetValue: z.number().optional(),
-  currentValue: z.number().optional(),
-  unit: z.string().max(20).optional(),
+  targetValue: z.number().min(0).optional(),
+  currentValue: z.number().min(0).optional(),
+  unit: optionalUnitSchema,
   targetDate: z.string().date().optional(),
   status: z.enum(["in_progress", "achieved", "cancelled"]).optional(),
 });

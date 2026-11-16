@@ -14,6 +14,9 @@ export interface User {
   updatedAt: string;
 }
 
+/** Roles que el administrador puede asignar desde la ficha del socio. */
+export type AssignableRole = 'member' | 'receptionist';
+
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;

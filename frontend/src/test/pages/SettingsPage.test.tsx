@@ -70,4 +70,43 @@ describe('SettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cambiar contraseña' }))
     expect(await screen.findByText('Contraseña actualizada. Inicia sesión con tu nueva contraseña.')).toBeInTheDocument()
   })
+
+  it('only lets letters in the names and digits in the phone', () => {
+    setup()
+    const firstName = screen.getByLabelText(/^Nombre/)
+    const lastName = screen.getByLabelText(/^Apellido/)
+    const phone = screen.getByLabelText('Teléfono')
+    fireEvent.change(firstName, { target: { value: 'Ana2 María$' } })
+    fireEvent.change(lastName, { target: { value: 'Pérez-López 3' } })
+    fireEvent.change(phone, { target: { value: '+51 987-654-321' } })
+    expect(firstName).toHaveValue('Ana María')
+    expect(lastName).toHaveValue('PérezLópez ')
+    expect(phone).toHaveValue('519876543')
+  })
+
+  it('shows field errors and does not save an invalid phone', async () => {
+    setup()
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '12345' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('El teléfono debe tener 9 dígitos y comenzar con 9.')).toBeInTheDocument()
+    expect(update.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('limits the birth date calendar to 1950 and rejects older dates', async () => {
+    setup()
+    const birthDate = screen.getByLabelText('Fecha de nacimiento')
+    expect(birthDate).toHaveAttribute('min', '1950-01-01')
+    fireEvent.change(birthDate, { target: { value: '1949-12-31' } })
+    // El navegador ya lo marca como inválido; además lo valida el formulario al enviarse.
+    expect((birthDate as HTMLInputElement).validity.rangeUnderflow).toBe(true)
+    fireEvent.submit(screen.getByRole('button', { name: 'Guardar cambios' }).closest('form')!)
+    expect(await screen.findByText('La fecha de nacimiento debe ser desde el año 1950.')).toBeInTheDocument()
+    expect(update.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('shows old phones saved as +51 without the prefix', () => {
+    vi.spyOn(authModule, 'useAuth').mockReturnValue({ user: { ...user, phone: '+51987654321' }, isLoading: false } as ReturnType<typeof authModule.useAuth>)
+    setup()
+    expect(screen.getByLabelText('Teléfono')).toHaveValue('987654321')
+  })
 })

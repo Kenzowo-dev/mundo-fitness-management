@@ -4,6 +4,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ReportsPage from '@/pages/reports/ReportsPage'
 import * as useApiModule from '@/hooks/useApi'
+import * as reportExportModule from '@/pages/reports/reportExport'
 
 const query = (data, overrides = {}) => ({ data, isLoading: false, isError: false, error: null, ...overrides })
 
@@ -76,5 +77,44 @@ describe('ReportsPage', () => {
   it('explains when there are no completed payments in the selected period', () => {
     renderPage({ payments: query([]) })
     expect(screen.getByText('No hay pagos completados para mostrar todavía.')).toBeInTheDocument()
+  })
+
+  it('exports the loaded reports to Excel and PDF', () => {
+    const download = vi.spyOn(reportExportModule, 'downloadFile').mockImplementation(() => {})
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+    expect(download).toHaveBeenCalledWith(
+      expect.any(Uint8Array),
+      expect.stringMatching(/^informes-mundo-fitness-\d{4}-\d{2}-\d{2}\.xlsx$/),
+      reportExportModule.XLSX_MIME_TYPE,
+    )
+    expect(screen.getByText(/Se descargó informes-mundo-fitness-.*\.xlsx/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a PDF' }))
+    const [bytes, fileName, mime] = download.mock.calls[1]
+    expect(fileName).toMatch(/\.pdf$/)
+    expect(mime).toBe('application/pdf')
+    expect(String.fromCharCode(...bytes.slice(0, 5))).toBe('%PDF-')
+  })
+
+  it('disables the export buttons while reports are still loading', () => {
+    renderPage({ payments: query(undefined, { isLoading: true }) })
+    expect(screen.getByRole('button', { name: 'Exportar a Excel' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Exportar a PDF' })).toBeDisabled()
+    expect(screen.getByText('Podrás exportar cuando terminen de cargar los informes.')).toBeInTheDocument()
+  })
+
+  it('exports the sections that loaded and says which one is missing', () => {
+    vi.spyOn(reportExportModule, 'downloadFile').mockImplementation(() => {})
+    renderPage({ clients: query(undefined, { isError: true, error: new Error('Error de clientes'), refetch: vi.fn() }) })
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a PDF' }))
+    expect(screen.getByText(/No se incluyó: Socios/)).toBeInTheDocument()
+  })
+
+  it('shows an error when the file cannot be generated', () => {
+    vi.spyOn(reportExportModule, 'downloadFile').mockImplementation(() => { throw new Error('boom') })
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar a Excel' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo generar el archivo. Inténtalo de nuevo.')
   })
 })

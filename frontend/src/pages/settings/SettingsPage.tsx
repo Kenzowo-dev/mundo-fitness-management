@@ -9,6 +9,18 @@ import FormField from '@/components/FormField'
 import PageHeader from '@/components/PageHeader'
 import Skeleton from '@/components/Skeleton'
 import Tabs, { TabPanel } from '@/components/Tabs'
+import {
+  MIN_BIRTH_DATE,
+  MIN_BIRTH_DATE_MESSAGE,
+  PERSON_NAME_MESSAGE,
+  PHONE_MESSAGE,
+  VALID_PERSON_NAME,
+  VALID_PHONE,
+  normalizePhone,
+  sanitizePersonName,
+  sanitizePhone,
+  todayDateKey,
+} from '@/utils/fieldValidation'
 import '@/styles/dashboard/SettingsPage.css'
 
 type TabId = 'profile' | 'security'
@@ -17,10 +29,35 @@ type Profile = Pick<User, 'firstName' | 'lastName'> & { phone: string; birthDate
 const fromUser = (user: User): Profile => ({
   firstName: user.firstName ?? '',
   lastName: user.lastName ?? '',
-  phone: user.phone ?? '',
+  phone: normalizePhone(user.phone),
   birthDate: user.birthDate?.slice(0, 10) ?? '',
   gender: user.gender ?? '',
 })
+
+type ProfileErrors = Partial<Record<'firstName' | 'lastName' | 'phone' | 'birthDate', string>>
+
+const SANITIZERS: Partial<Record<keyof Profile, (value: string) => string>> = {
+  firstName: sanitizePersonName,
+  lastName: sanitizePersonName,
+  phone: sanitizePhone,
+}
+
+function validateProfile(profile: Profile): ProfileErrors {
+  const errors: ProfileErrors = {}
+  const firstName = profile.firstName.trim()
+  const lastName = profile.lastName.trim()
+  const phone = profile.phone.trim()
+  if (!firstName) errors.firstName = 'Ingresa tu nombre.'
+  else if (!VALID_PERSON_NAME.test(firstName)) errors.firstName = PERSON_NAME_MESSAGE
+  if (!lastName) errors.lastName = 'Ingresa tu apellido.'
+  else if (!VALID_PERSON_NAME.test(lastName)) errors.lastName = PERSON_NAME_MESSAGE
+  if (phone && !VALID_PHONE.test(phone)) errors.phone = PHONE_MESSAGE
+  if (profile.birthDate) {
+    if (profile.birthDate < MIN_BIRTH_DATE) errors.birthDate = MIN_BIRTH_DATE_MESSAGE
+    else if (profile.birthDate > todayDateKey()) errors.birthDate = 'La fecha de nacimiento no puede ser futura.'
+  }
+  return errors
+}
 
 const roleLabel = (role: string) => ({ admin: 'Administrador', receptionist: 'Recepción', member: 'Socio' }[role] ?? role)
 
@@ -33,6 +70,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile>(() => user ? fromUser(user) : { firstName: '', lastName: '', phone: '', birthDate: '', gender: '' })
   const [profileUserId, setProfileUserId] = useState<number | null>(user?.id ?? null)
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [profileErrors, setProfileErrors] = useState<ProfileErrors>({})
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null)
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
 
@@ -42,12 +80,25 @@ export default function SettingsPage() {
   }
 
   const updateProfile = (key: keyof Profile) => (value: string) => {
-    setProfile((current) => ({ ...current, [key]: value }))
+    const sanitize = SANITIZERS[key]
+    setProfile((current) => ({ ...current, [key]: sanitize ? sanitize(value) : value }))
+    setProfileErrors((current) => {
+      if (!(key in current)) return current
+      const rest = { ...current }
+      delete rest[key as keyof ProfileErrors]
+      return rest
+    })
     setProfileMessage(null)
   }
 
   const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const errors = validateProfile(profile)
+    setProfileErrors(errors)
+    if (Object.keys(errors).length > 0) {
+      setProfileMessage(null)
+      return
+    }
     const payload: Partial<User> = {
       firstName: profile.firstName.trim(),
       lastName: profile.lastName.trim(),
@@ -107,10 +158,10 @@ export default function SettingsPage() {
             {profileMessage && <Alert type={profileMessage.type} message={profileMessage.text} dismissible onDismiss={() => setProfileMessage(null)} />}
             <form className="settings-form" onSubmit={handleProfileSubmit}>
               <div className="form-row">
-                <FormField id="firstName" label="Nombre" value={profile.firstName} onChange={updateProfile('firstName')} required autoComplete="given-name" />
-                <FormField id="lastName" label="Apellido" value={profile.lastName} onChange={updateProfile('lastName')} required autoComplete="family-name" />
-                <FormField id="phone" label="Teléfono" type="tel" value={profile.phone} onChange={updateProfile('phone')} autoComplete="tel" />
-                <FormField id="birthDate" label="Fecha de nacimiento" type="date" value={profile.birthDate} onChange={updateProfile('birthDate')} />
+                <FormField id="firstName" label="Nombre" value={profile.firstName} onChange={updateProfile('firstName')} required maxLength={100} error={profileErrors.firstName} autoComplete="given-name" />
+                <FormField id="lastName" label="Apellido" value={profile.lastName} onChange={updateProfile('lastName')} required maxLength={100} error={profileErrors.lastName} autoComplete="family-name" />
+                <FormField id="phone" label="Teléfono" type="tel" value={profile.phone} onChange={updateProfile('phone')} maxLength={9} inputMode="numeric" placeholder="987654321" error={profileErrors.phone} autoComplete="tel" />
+                <FormField id="birthDate" label="Fecha de nacimiento" type="date" value={profile.birthDate} onChange={updateProfile('birthDate')} min={MIN_BIRTH_DATE} max={todayDateKey()} error={profileErrors.birthDate} />
                 <FormField id="gender" label="Género" type="select" value={profile.gender} onChange={updateProfile('gender')} emptyOptionLabel="Sin especificar" options={[{ value: 'masculino', label: 'Masculino' }, { value: 'femenino', label: 'Femenino' }, { value: 'otro', label: 'Otro' }]} />
               </div>
               <div className="settings-actions"><Button type="submit" loading={updateUser.isPending}>Guardar cambios</Button></div>

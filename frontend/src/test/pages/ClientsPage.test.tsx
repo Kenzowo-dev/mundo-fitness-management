@@ -133,6 +133,17 @@ const createMockMutation = (overrides: Record<string, unknown> = {}) => ({
 
 describe('ClientsPage - Integration Tests', () => {
   beforeEach(() => {
+    // Por defecto entra la recepcionista (no ve el rol de la cuenta)
+    vi.spyOn(authModule, 'useAuth').mockReturnValue({
+      user: { id: 2, email: 'recepcion@mundofitness.com', firstName: 'Laura', lastName: 'Recepción', role: 'receptionist', isActive: true, emailVerified: true, createdAt: '', updatedAt: '' },
+      isLoading: false,
+      isAuthenticated: true,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshUser: vi.fn(),
+      updateUser: vi.fn(),
+    } as ReturnType<typeof authModule.useAuth>)
     vi.clearAllMocks()
     localStorage.clear()
 

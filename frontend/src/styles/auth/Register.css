@@ -1,1 +1,37 @@
 @import './auth-base.css';
+
+/* Botón "Mostrar contraseñas": fuera de los campos, muestra u oculta las dos a la vez */
+.auth-show-passwords {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  margin-top: -0.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 600 0.8125rem/1.2 var(--font-sans);
+  cursor: pointer;
+}
+
+.auth-show-passwords:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.auth-show-passwords[aria-pressed="true"] {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.auth-show-passwords:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.auth-show-passwords:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

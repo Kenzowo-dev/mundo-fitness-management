@@ -3,35 +3,24 @@ import Button from '../../components/Button';
 import MorphIcon from '../../components/MorphIcon';
 import Skeleton from '../../components/Skeleton.js';
 import PageHeader from '../../components/PageHeader';
-import { RefreshCw } from 'lucide';
+import { FileSpreadsheet, FileText, RefreshCw } from 'lucide';
+import { useState } from 'react';
 import { useClientReports, useMembershipReports, usePaymentReports } from '../../hooks/useApi';
+import { dayLabel, formatCurrency, monthLabel, statusLabel } from './reportFormat';
+import {
+  PDF_MIME_TYPE,
+  REPORT_PERIOD_NOTE,
+  XLSX_MIME_TYPE,
+  buildReportTables,
+  createReportPdf,
+  createReportWorkbook,
+  downloadFile,
+  reportFileName,
+} from './reportExport';
 import '../../styles/dashboard/ReportsPage.css';
 
 type ChartPoint = { label: string; value: number };
-
-function monthLabel(month: string) {
-  const [year, number] = month.split('-').map(Number);
-  if (!year || !number || number > 12) return '—';
-  return new Intl.DateTimeFormat('es-PE', { month: 'short', year: '2-digit' }).format(new Date(year, number - 1, 1));
-}
-
-function dayLabel(date: string) {
-  const [year, month, day] = date.slice(0, 10).split('-').map(Number);
-  if (!year || !month || !day) return '—';
-  return new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: 'numeric' }).format(new Date(year, month - 1, day));
-}
-
-function statusLabel(status: string) {
-  const labels: Record<string, string> = {
-    active: 'Activos', inactive: 'Inactivos', suspended: 'Suspendidos',
-    cancelled: 'Canceladas', expired: 'Vencidas', frozen: 'Congeladas', scheduled: 'Programadas',
-  };
-  return labels[status] ?? status;
-}
-
-function formatCurrency(value: number, currency: string) {
-  return new Intl.NumberFormat('es-PE', { style: 'currency', currency }).format(value);
-}
+type ExportFormat = 'xlsx' | 'pdf';
 
 function ReportSkeleton({ label, count = 2 }: { label: string; count?: number }) {
   return (
@@ -106,10 +95,61 @@ export default function ReportsPage() {
   const clients = useClientReports();
   const memberships = useMembershipReports();
   const payments = usePaymentReports();
+  const [exportMessage, setExportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const isLoadingAny = clients.isLoading || memberships.isLoading || payments.isLoading;
+  const hasAnyData = Boolean(clients.data || memberships.data || payments.data);
+  const canExport = !isLoadingAny && hasAnyData;
+
+  const handleExport = (format: ExportFormat) => {
+    try {
+      const data = buildReportTables({ clients: clients.data, memberships: memberships.data, payments: payments.data });
+      const bytes = format === 'xlsx' ? createReportWorkbook(data) : createReportPdf(data);
+      const fileName = reportFileName(data.generatedAt, format);
+      downloadFile(bytes, fileName, format === 'xlsx' ? XLSX_MIME_TYPE : PDF_MIME_TYPE);
+      const missing = data.missingSections.length > 0
+        ? ` No se incluyó: ${data.missingSections.join(', ')} (no se pudo cargar).`
+        : '';
+      setExportMessage({ type: 'success', text: `Se descargó ${fileName}.${missing}` });
+    } catch {
+      setExportMessage({ type: 'error', text: 'No se pudo generar el archivo. Inténtalo de nuevo.' });
+    }
+  };
+
   return (
     <div className="reports-page">
-      <PageHeader title="Informes" description="Consulta tendencias de socios, membresías, asistencia e ingresos." />
-      <p className="reports-period-note">Los gráficos muestran los últimos seis meses o los últimos siete días. Los ingresos se presentan por moneda.</p>
+      <PageHeader
+        title="Informes"
+        description="Consulta tendencias de socios, membresías, asistencia e ingresos."
+        actions={[
+          {
+            label: 'Exportar a Excel',
+            variant: 'secondary',
+            icon: <MorphIcon icon={FileSpreadsheet} size={16} aria-hidden="true" />,
+            onClick: () => handleExport('xlsx'),
+            disabled: !canExport,
+          },
+          {
+            label: 'Exportar a PDF',
+            variant: 'secondary',
+            icon: <MorphIcon icon={FileText} size={16} aria-hidden="true" />,
+            onClick: () => handleExport('pdf'),
+            disabled: !canExport,
+          },
+        ]}
+      />
+      {isLoadingAny && <p className="reports-export-hint">Podrás exportar cuando terminen de cargar los informes.</p>}
+      {!isLoadingAny && !hasAnyData && <p className="reports-export-hint">No hay informes cargados para exportar.</p>}
+      {exportMessage && (
+        <Alert
+          type={exportMessage.type}
+          message={exportMessage.text}
+          dismissible
+          onDismiss={() => setExportMessage(null)}
+          dismissLabel="Cerrar mensaje de exportación"
+        />
+      )}
+      <p className="reports-period-note">{REPORT_PERIOD_NOTE}</p>
       <div className="reports-grid">
         <section className="reports-section" aria-labelledby="reports-clients-title" aria-busy={Boolean(clients.isFetching && clients.data)}>
           <h2 id="reports-clients-title">Socios</h2>

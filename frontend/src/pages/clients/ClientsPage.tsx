@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Eye, Pencil, Search, UserRoundPlus } from 'lucide'
 import { MorphIcon } from 'morphicons/react'
-import { useClients, useCreateClient, useUpdateClient } from '../../hooks/useApi'
-import type { Client, CreateClientData } from '../../types/api.js'
+import { useChangeUserRole, useClients, useCreateClient, useUpdateClient, useUserAccount, useUserRoles } from '../../hooks/useApi'
+import type { AssignableRole, Client, CreateClientData } from '../../types/api.js'
 import ClientFormFields, { type ClientFormErrors, type ClientFormValues } from '../../components/ClientFormFields'
+import AccountRoleField from '../../components/AccountRoleField'
+import { useAuth } from '../../context/useAuth'
 import StatusBadge from '../../components/StatusBadge.tsx'
 import Button from '../../components/Button'
 import FormField from '../../components/FormField'
@@ -12,6 +14,7 @@ import Alert from '../../components/Alert'
 import PageHeader from '../../components/PageHeader'
 import Pagination from '../../components/Pagination'
 import TableContainer from '../../components/TableContainer'
+import { ADDRESS_MESSAGE, MIN_BIRTH_DATE, MIN_BIRTH_DATE_MESSAGE, VALID_ADDRESS, VALID_PERSON_NAME, sanitizeClientListSearch } from '../../utils/fieldValidation'
 import '../../styles/dashboard/ClientsPage.css'
 
 const createEmptyClientForm = (): CreateClientData => ({
@@ -55,6 +58,17 @@ function serializeClientUpdate(values: Partial<Client>): Partial<Client> {
   return result as Partial<Client>
 }
 
+/**
+ * Quita el error de un campo eliminando la clave (no dejándola en undefined),
+ * para que el aviso general "Revisa los datos" desaparezca cuando ya no quedan errores.
+ */
+function withoutError(errors: ClientFormErrors, field: keyof ClientFormValues): ClientFormErrors {
+  if (!(field in errors)) return errors
+  const rest = { ...errors }
+  delete rest[field as keyof ClientFormErrors]
+  return rest
+}
+
 function validateClientForm(values: ClientFormValues): ClientFormErrors {
   const errors: ClientFormErrors = {}
 
@@ -67,8 +81,10 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
   const emergencyContactPhone = values.emergencyContactPhone?.trim() ?? ''
   const birthDate = values.birthDate?.trim() ?? ''
 
-  // Validación de nombres y apellidos
-  const validName = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u
+  const address = values.address?.trim() ?? ''
+
+  // Nombres y apellidos: solo letras y espacios (igual que en el registro)
+  const validName = VALID_PERSON_NAME
 
   // DNI: exactamente 8 dígitos
   if (!/^\d{8}$/.test(dni)) {
@@ -79,19 +95,21 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
   if (!firstName) {
     errors.firstName = 'Ingresa los nombres del socio.'
   } else if (!validName.test(firstName)) {
-    errors.firstName = 'Los nombres solo deben contener letras, espacios o guiones.'
+    errors.firstName = 'Los nombres solo deben contener letras y espacios.'
   }
 
   // Apellidos obligatorios
   if (!lastName) {
     errors.lastName = 'Ingresa los apellidos del socio.'
   } else if (!validName.test(lastName)) {
-    errors.lastName = 'Los apellidos solo deben contener letras, espacios o guiones.'
+    errors.lastName = 'Los apellidos solo deben contener letras y espacios.'
   }
 
   // Correo electrónico
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.email = 'Ingresa un correo electrónico válido.'
+  if (email && !email.includes('@')) {
+    errors.email = 'El correo electrónico debe incluir el símbolo @.'
+  } else if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.email = 'Ingresa un correo electrónico válido (ej: socio@correo.com).'
   }
 
   // Teléfono celular peruano: 9 dígitos y comienza con 9
@@ -101,7 +119,12 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
 
   // Contacto de emergencia
   if (emergencyContactName && !validName.test(emergencyContactName)) {
-    errors.emergencyContactName = 'Ingresa un nombre válido para el contacto de emergencia.'
+    errors.emergencyContactName = 'El contacto de emergencia solo debe contener letras y espacios.'
+  }
+
+  // Dirección
+  if (address && !VALID_ADDRESS.test(address)) {
+    errors.address = `${ADDRESS_MESSAGE}.`
   }
 
   // Teléfono de emergencia
@@ -128,6 +151,8 @@ function validateClientForm(values: ClientFormValues): ClientFormErrors {
 
       if (parsedDate > today) {
         errors.birthDate = 'La fecha de nacimiento no puede ser futura.'
+      } else if (birthDate < MIN_BIRTH_DATE) {
+        errors.birthDate = MIN_BIRTH_DATE_MESSAGE
       }
     }
   }
@@ -144,6 +169,12 @@ function formatDate(value?: string) {
 
 function fullName(client: Client) {
   return `${client.firstName} ${client.lastName}`.trim()
+}
+
+const ROLE_BADGE_LABELS: Record<string, string> = {
+  member: 'Socio',
+  receptionist: 'Recepcionista',
+  admin: 'Administrador',
 }
 
 export default function ClientsPage() {
@@ -168,6 +199,20 @@ export default function ClientsPage() {
   })
   const createClientMutation = useCreateClient()
   const updateClientMutation = useUpdateClient()
+
+  // Rol de la cuenta del socio: solo lo ve y lo cambia el administrador
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+  const [editRole, setEditRole] = useState<AssignableRole | ''>('')
+  const editAccountQuery = useUserAccount(editClient?.userId, isAdmin && Boolean(editClient))
+  const changeRoleMutation = useChangeUserRole()
+  const isSavingEdit = updateClientMutation.isPending || changeRoleMutation.isPending
+  // En la tabla, el admin ve si la cuenta de cada socio es de Socio o de Recepcionista
+  const accountRolesQuery = useUserRoles(
+    (data?.data ?? []).flatMap((client) => (typeof client.userId === 'number' ? [client.userId] : [])),
+    isAdmin,
+  )
+  const accountRoles = accountRolesQuery.data ?? {}
 
   const clients = data?.data ?? []
   const total = data?.pagination.total ?? 0
@@ -244,6 +289,7 @@ export default function ClientsPage() {
     })
     setEditErrors({})
     setEditError(null)
+    setEditRole('')
   }
 
   const handleEditSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -264,30 +310,45 @@ export default function ClientsPage() {
         id: editClient.id,
         data: serializeClientUpdate(editForm),
       })
-      setEditClient(null)
-      setEditForm({})
-      setEditErrors({})
     } catch (error) {
       setEditError(error instanceof Error ? error.message : 'No se pudieron guardar los cambios del socio.')
+      return
     }
+
+    const account = editAccountQuery.data
+    if (isAdmin && account && editRole && editRole !== account.role) {
+      try {
+        await changeRoleMutation.mutateAsync({ userId: Number(account.id), role: editRole })
+      } catch (error) {
+        // La ficha ya se guardó; solo falló el rol. El modal sigue abierto para reintentar.
+        setEditError(`Los datos del socio se guardaron, pero no se pudo cambiar el rol: ${error instanceof Error ? error.message : 'error desconocido'}.`)
+        return
+      }
+    }
+
+    setEditClient(null)
+    setEditForm({})
+    setEditErrors({})
+    setEditRole('')
   }
 
   const updateCreateField = (field: keyof ClientFormValues, value: string) => {
     setCreateForm((current) => ({ ...current, [field]: value }))
-    setCreateErrors((current) => ({ ...current, [field]: undefined }))
+    setCreateErrors((current) => withoutError(current, field))
   }
 
   const updateEditField = (field: keyof ClientFormValues, value: string) => {
     setEditForm((current) => ({ ...current, [field]: value }))
-    setEditErrors((current) => ({ ...current, [field]: undefined }))
+    setEditErrors((current) => withoutError(current, field))
   }
 
   const closeEdit = () => {
-    if (updateClientMutation.isPending) return
+    if (isSavingEdit) return
     setEditClient(null)
     setEditForm({})
     setEditErrors({})
     setEditError(null)
+    setEditRole('')
   }
 
   return (
@@ -313,7 +374,8 @@ export default function ClientsPage() {
               name="search"
               placeholder="Nombre, DNI o correo"
               value={searchInput}
-              onChange={setSearchInput}
+              onChange={(value) => setSearchInput(sanitizeClientListSearch(value))}
+              maxLength={100}
               autoComplete="off"
             />
           </div>
@@ -376,7 +438,14 @@ export default function ClientsPage() {
                     {client.firstName?.[0]}{client.lastName?.[0]}
                   </span>
                   <span className="clients-person-copy">
-                    <strong>{fullName(client)}</strong>
+                    <strong>
+                      {fullName(client)}
+                      {isAdmin && typeof client.userId === 'number' && accountRoles[client.userId] && (
+                        <span className={`clients-role-badge is-${accountRoles[client.userId]}`}>
+                          {ROLE_BADGE_LABELS[accountRoles[client.userId]] ?? accountRoles[client.userId]}
+                        </span>
+                      )}
+                    </strong>
                     <span>DNI {client.dni}</span>
                   </span>
                 </div>
@@ -508,8 +577,8 @@ export default function ClientsPage() {
         className="client-form-modal"
         footer={(
           <>
-            <Button type="button" variant="secondary" disabled={updateClientMutation.isPending} onClick={closeEdit}>Cancelar</Button>
-            <Button type="submit" form="edit-client-form" variant="primary" loading={updateClientMutation.isPending}>Guardar cambios</Button>
+            <Button type="button" variant="secondary" disabled={isSavingEdit} onClick={closeEdit}>Cancelar</Button>
+            <Button type="submit" form="edit-client-form" variant="primary" loading={isSavingEdit}>Guardar cambios</Button>
           </>
         )}
       >
@@ -526,6 +595,17 @@ export default function ClientsPage() {
               errors={editErrors}
               onChange={updateEditField}
               includeStatus
+              extraOptionalField={isAdmin ? (
+                <AccountRoleField
+                  hasAccount={typeof editClient.userId === 'number'}
+                  account={editAccountQuery.data}
+                  loading={editAccountQuery.isLoading}
+                  loadError={editAccountQuery.isError}
+                  value={editRole}
+                  onChange={setEditRole}
+                  currentUserId={user?.id}
+                />
+              ) : undefined}
             />
           </form>
         )}

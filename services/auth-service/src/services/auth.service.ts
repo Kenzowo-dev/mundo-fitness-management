@@ -24,6 +24,7 @@ import {
   AuthenticationError,
   ConflictError,
   NotFoundError,
+  AuthorizationError,
 } from '@gym/shared/errors/index.js';
 import jwt from 'jsonwebtoken';
 
@@ -396,6 +397,56 @@ export async function updateUser(userId: number, data: UpdateUserData): Promise<
   return user;
 }
 
+/** Roles que el administrador puede asignar desde la ficha del socio. */
+export const ASSIGNABLE_ROLES = ['member', 'receptionist'] as const;
+export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+
+/**
+ * Cambia el rol de una cuenta entre socio (member) y recepcionista (receptionist).
+ * Reglas de seguridad (además de que la ruta solo la puede usar un admin):
+ * - Un admin no puede cambiar su propio rol (evita quedarse sin acceso).
+ * - No se puede cambiar el rol de otra cuenta de administrador.
+ * - Tras el cambio se cierran las sesiones de esa cuenta, para que el nuevo rol
+ *   se aplique en su próximo inicio de sesión y no siga usando permisos antiguos.
+ */
+export async function changeUserRole(actorId: number, targetUserId: number, role: AssignableRole): Promise<User> {
+  if (actorId === targetUserId) {
+    throw new AuthorizationError('No puedes cambiar el rol de tu propia cuenta.', 'CANNOT_CHANGE_OWN_ROLE');
+  }
+
+  const target = await getUserById(targetUserId);
+  if (!target) throw new NotFoundError('User', targetUserId);
+
+  if (target.role === 'admin') {
+    throw new AuthorizationError('No se puede cambiar el rol de una cuenta de administrador.', 'CANNOT_CHANGE_ADMIN_ROLE');
+  }
+
+  if (target.role === role) return target;
+
+  const updated = await transaction(async (client) => {
+    const result = await client.query<UserRow>(
+      `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2
+       RETURNING id, email, password_hash, first_name, last_name, phone, birth_date, gender, role, is_active, email_verified, last_login_at, created_at, updated_at`,
+      [role, targetUserId]
+    );
+    if (result.rows.length === 0) throw new NotFoundError('User', targetUserId);
+
+    // Mantiene la tabla puente user_roles en sincronía con users.role
+    await client.query('DELETE FROM user_roles WHERE user_id = $1', [targetUserId]);
+    await client.query(
+      'INSERT INTO user_roles (user_id, role_id) SELECT $1, id FROM roles WHERE name = $2',
+      [targetUserId, role]
+    );
+    await client.query('DELETE FROM refresh_tokens WHERE user_id = $1', [targetUserId]);
+
+    return mapRowToUser(result.rows[0]);
+  });
+
+  logger.info({ actorId, targetUserId, from: target.role, to: role }, 'User role changed');
+  await publish(CHANNELS.USER_UPDATED, { userId: updated.id, email: updated.email, role: updated.role });
+  return updated;
+}
+
 export async function deleteUser(userId: number): Promise<void> {
   const result = await query('DELETE FROM users WHERE id = $1', [userId]);
   if (result.rowCount === 0) {
@@ -405,15 +456,23 @@ export async function deleteUser(userId: number): Promise<void> {
   logger.info({ userId }, 'User deleted');
 }
 
-export async function listUsers(page: number, limit: number): Promise<{ users: User[]; total: number }> {
+/**
+ * Lista cuentas paginadas. Con `ids`, devuelve solo esas cuentas
+ * (p. ej. las de los socios visibles en una página, para mostrar su rol).
+ */
+export async function listUsers(page: number, limit: number, ids?: number[]): Promise<{ users: User[]; total: number }> {
   const offset = (page - 1) * limit;
+  const filter = ids && ids.length > 0 ? 'WHERE id = ANY($3::bigint[])' : '';
+  const params: unknown[] = ids && ids.length > 0 ? [limit, offset, ids] : [limit, offset];
   const [usersResult, countResult] = await Promise.all([
     query<UserRow>(
       `SELECT id, email, password_hash, first_name, last_name, phone, birth_date, gender, role, is_active, email_verified, last_login_at, created_at, updated_at
-       FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-      [limit, offset]
+       FROM users ${filter} ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+      params
     ),
-    query<CountRow>('SELECT COUNT(*) FROM users'),
+    ids && ids.length > 0
+      ? query<CountRow>('SELECT COUNT(*) FROM users WHERE id = ANY($1::bigint[])', [ids])
+      : query<CountRow>('SELECT COUNT(*) FROM users'),
   ]);
 
   return {

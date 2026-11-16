@@ -22,6 +22,8 @@ import {
   resetPasswordValidation,
   updateSelfValidation,
   updateUserValidation,
+  changeUserRoleController,
+  changeRoleValidation,
 } from '../controllers/auth.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
 
@@ -43,6 +45,7 @@ router.patch('/me', authenticate, updateSelfValidation, updateCurrentUserControl
 router.get('/users', authenticate, authorize('admin'), listUsersController);
 router.get('/users/:id', authenticate, authorize('admin'), getUserController);
 router.patch('/users/:id', authenticate, authorize('admin'), updateUserValidation, updateUserController);
+router.patch('/users/:id/role', authenticate, authorize('admin'), changeRoleValidation, changeUserRoleController);
 router.delete('/users/:id', authenticate, authorize('admin'), deleteUserController);
 
 router.get('/roles', authenticate, authorize('admin'), getRolesController);
