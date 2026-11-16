@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
+import type { Client, ClientMembership } from "../../types/api";
 import FitnessPreferencesForm from "./FitnessPreferencesForm";
 import type { FitnessProfileInput } from "../../types/fitness";
 import type {
@@ -39,6 +42,7 @@ const goalLabels = {
  */
 export default function MemberFitnessPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const defaultProfile: FitnessProfileInput = {
     fitnessLevel: "beginner",
@@ -108,6 +112,45 @@ export default function MemberFitnessPage() {
       });
     },
   });
+
+  const clientQuery = useQuery<Client>({
+    queryKey: ["member-portal", "client", user?.id],
+    queryFn: () => api.getClientByUserId(user!.id),
+    enabled: !!user?.id,
+    retry: false,
+  });
+
+  const clientId = clientQuery.data?.id;
+
+  const membershipsQuery = useQuery<ClientMembership[]>({
+    queryKey: ["member-portal", "memberships", clientId],
+    queryFn: () => api.getClientMemberships(clientId!),
+    enabled: !!clientId,
+    retry: false,
+  });
+
+  const now = new Date();
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("-");
+
+  const membershipLoading =
+    clientQuery.isPending || membershipsQuery.isPending;
+
+  const membershipError =
+    clientQuery.isError || membershipsQuery.isError;
+
+  const hasActiveMembership =
+    !membershipLoading &&
+    !membershipError &&
+    (membershipsQuery.data?.some(
+      (membership) =>
+        membership.status === "active" &&
+        membership.startDate.slice(0, 10) <= today &&
+        membership.endDate.slice(0, 10) >= today,
+    ) ?? false);
 
   const profile = profileQuery.data;
   const plan = planQuery.data;
@@ -226,7 +269,7 @@ export default function MemberFitnessPage() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={generatePlanMutation.isPending}
+              disabled={generatePlanMutation.isPending || !hasActiveMembership}
               onClick={() => {
                 void generatePlanMutation.mutateAsync().catch(() => {});
               }}
@@ -236,10 +279,54 @@ export default function MemberFitnessPage() {
                 : "Generar mi rutina"}
             </button>
 
+            {membershipLoading && (
+              <p>Comprobando tu membresía...</p>
+            )}
+
+            {membershipError && (
+              <>
+                <Alert
+                  type="error"
+                  message="No pudimos comprobar tu membresía. Inténtalo nuevamente."
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    if (clientQuery.isError) {
+                      void clientQuery.refetch();
+                    } else {
+                      void membershipsQuery.refetch();
+                    }
+                  }}
+                >
+                  Reintentar
+                </button>
+              </>
+            )}
+
+            {!membershipLoading && !membershipError && !hasActiveMembership && (
+              <>
+                <Alert
+                  type="error"
+                  message="Necesitas una membresía vigente para generar rutinas. Tus preferencias y planes anteriores seguirán disponibles."
+                />
+                <Link
+                  to="/portal/pagos"
+                  className="member-dashboard-section-link"
+                >
+                  Ver planes disponibles
+                </Link>
+              </>
+            )}
             {generatePlanMutation.isError && (
               <Alert
                 type="error"
-                message="No pudimos generar tu rutina. Revisa tus preferencias e int?ntalo nuevamente."
+                message={
+                  generatePlanMutation.error instanceof Error
+                    ? generatePlanMutation.error.message
+                    : "No pudimos generar tu rutina. Inténtalo nuevamente."
+                }
               />
             )}
           </section>

@@ -105,7 +105,9 @@ class ApiClient {
       .catch(() => null)) as ApiError | null;
     const code = payload?.error?.code;
     const message =
-      response.status === 422
+      code === "ACTIVE_MEMBERSHIP_REQUIRED"
+        ? "Necesitas una membresía vigente para generar rutinas y registrar entrenamientos. Consulta o renueva tu membresía."
+        : response.status === 422
         ? API_ERROR_MESSAGES[422]
         : (code && API_ERROR_MESSAGES_BY_CODE[code]) ||
           API_ERROR_MESSAGES[response.status] ||
