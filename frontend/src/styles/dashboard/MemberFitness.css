@@ -28,3 +28,208 @@
   height: 1rem;
   accent-color: var(--accent-primary);
 }
+
+/* FITNESS CONTROLES VISUALES V2 */
+
+.fitness-days-group {
+  gap: 1rem;
+  background: var(--card-bg, #fff);
+}
+
+.fitness-days-selector {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.35rem;
+}
+
+.fitness-day-button {
+  min-width: 0;
+  min-height: 46px;
+  padding: 0.5rem;
+  border: 1px solid #d9dce3;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.fitness-day-button:hover {
+  border-color: #dc2626;
+  background: #fff5f5;
+  transform: translateY(-1px);
+}
+
+.fitness-day-button.is-selected {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.18);
+}
+
+.fitness-day-button:focus-visible {
+  outline: 3px solid rgba(220, 38, 38, 0.35);
+  outline-offset: 3px;
+}
+
+.fitness-control-help {
+  margin: 0;
+  color: var(--text-secondary, #666);
+  font-size: 0.85rem;
+}
+
+.fitness-duration-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--border-color, #d1d5db);
+  border-radius: 0.75rem;
+  background: var(--card-bg, #fff);
+}
+
+.fitness-duration-group > label {
+  font-weight: 600;
+}
+
+.fitness-duration-value {
+  align-self: flex-start;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.65rem;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.fitness-duration-group input[type="range"] {
+  width: 100%;
+  height: 8px;
+  margin: 0.4rem 0;
+  accent-color: #dc2626;
+  cursor: pointer;
+}
+
+.fitness-duration-group input[type="range"]:focus-visible {
+  outline: 3px solid rgba(220, 38, 38, 0.3);
+  outline-offset: 5px;
+}
+
+.fitness-duration-limits {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--text-secondary, #666);
+  font-size: 0.8rem;
+}
+
+.fitness-preferences-group {
+  background: var(--card-bg, #fff);
+}
+
+.fitness-preferences-group label {
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.5rem;
+  transition: background 0.2s ease;
+}
+
+.fitness-preferences-group label:hover {
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.fitness-preferences-group input[type="checkbox"] {
+  flex-shrink: 0;
+  accent-color: #dc2626;
+}
+
+@media (max-width: 640px) {
+  .fitness-days-selector {
+    gap: 0.25rem;
+  }
+
+  .fitness-day-button {
+    min-height: 42px;
+    padding: 0.35rem 0;
+    font-size: 0.85rem;
+  }
+
+  .fitness-duration-group,
+  .fitness-preferences-group {
+    padding: 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fitness-day-button,
+  .fitness-preferences-group label {
+    transition: none;
+  }
+
+  .fitness-day-button:hover {
+    transform: none;
+  }
+}
+
+/* FITNESS DARK MODE V1 */
+
+:root[data-theme="dark"] .fitness-preferences-group,
+:root[data-theme="dark"] .fitness-duration-group {
+  background: #242429;
+  border-color: #474750;
+  color: #f6f5f2;
+}
+
+:root[data-theme="dark"] .fitness-preferences-group legend,
+:root[data-theme="dark"] .fitness-preferences-group label,
+:root[data-theme="dark"] .fitness-duration-group > label {
+  color: #f6f5f2;
+}
+
+:root[data-theme="dark"] .fitness-control-help,
+:root[data-theme="dark"] .fitness-duration-limits {
+  color: #b9b9c3;
+}
+
+:root[data-theme="dark"] .fitness-day-button {
+  background: #2d2d34;
+  border-color: #50505b;
+  color: #f6f5f2;
+}
+
+:root[data-theme="dark"] .fitness-day-button:hover {
+  background: #38303a;
+  border-color: #ef4444;
+}
+
+:root[data-theme="dark"] .fitness-day-button.is-selected,
+:root[data-theme="dark"] .fitness-day-button.is-selected:hover {
+  background: #dc2626;
+  border-color: #ef4444;
+  color: #fff;
+}
+
+:root[data-theme="dark"] .fitness-duration-value {
+  background: rgba(220, 38, 38, 0.18);
+  color: #ff9292;
+}
+
+:root[data-theme="dark"] .fitness-duration-group input[type="range"] {
+  accent-color: #ef4444;
+}
+
+:root[data-theme="dark"] .fitness-preferences-group label:hover {
+  background: rgba(239, 68, 68, 0.10);
+}
+
+:root[data-theme="dark"] .fitness-preferences-group input[type="checkbox"] {
+  accent-color: #ef4444;
+}

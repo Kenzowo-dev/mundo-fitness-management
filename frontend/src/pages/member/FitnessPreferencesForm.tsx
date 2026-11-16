@@ -44,8 +44,8 @@ const intensityOptions = [
 const equipmentOptions = [
   { value: "chair", label: "Silla estable" },
   { value: "dumbbells", label: "Mancuernas" },
-  { value: "machines", label: "M?quinas de gimnasio" },
-  { value: "stationary_bike", label: "Bicicleta est?tica" },
+  { value: "machines", label: "Máquinas de gimnasio" },
+  { value: "stationary_bike", label: "Bicicleta estática" },
 ];
 
 const exerciseTypeOptions = [
@@ -59,14 +59,14 @@ const avoidedExerciseOptions = [
   { value: "bodyweight-squat", label: "Sentadilla con peso corporal" },
   { value: "wall-pushup", label: "Flexiones contra la pared" },
   { value: "pushup", label: "Flexiones de brazos" },
-  { value: "glute-bridge", label: "Puente de gl?teos" },
+  { value: "glute-bridge", label: "Puente de glúteos" },
   { value: "bird-dog", label: "Bird dog" },
   { value: "dumbbell-row", label: "Remo con mancuerna" },
   { value: "dumbbell-press", label: "Press de hombros con mancuernas" },
-  { value: "lat-pulldown", label: "Jal?n al pecho" },
+  { value: "lat-pulldown", label: "Jalón al pecho" },
   { value: "leg-press", label: "Prensa de piernas" },
   { value: "walking", label: "Caminata" },
-  { value: "stationary-bike", label: "Bicicleta est?tica" },
+  { value: "stationary-bike", label: "Bicicleta estática" },
 ];
 
 export default function FitnessPreferencesForm({
@@ -117,7 +117,7 @@ export default function FitnessPreferencesForm({
       values.daysPerWeek < 1 ||
       values.daysPerWeek > 7
     ) {
-      setError("Selecciona entre 1 y 7 d?as por semana.");
+      setError("Selecciona entre 1 y 7 días por semana.");
       return;
     }
 
@@ -126,7 +126,7 @@ export default function FitnessPreferencesForm({
       values.sessionMinutes < 15 ||
       values.sessionMinutes > 120
     ) {
-      setError("La duraci?n debe estar entre 15 y 120 minutos.");
+      setError("La duración debe estar entre 15 y 120 minutos.");
       return;
     }
 
@@ -178,34 +178,56 @@ export default function FitnessPreferencesForm({
         required
       />
 
-      <FormField
-        id="fitness-days"
-        label="D?as por semana"
-        type="number"
-        min={1}
-        max={7}
-        step={1}
-        value={String(values.daysPerWeek)}
-        onChange={(value) =>
-          update("daysPerWeek", Number(value))
-        }
-        required
-      />
+      <fieldset className="fitness-preferences-group fitness-days-group">
+        <legend>Días de entrenamiento por semana</legend>
 
-      <FormField
-        id="fitness-duration"
-        label="Minutos por sesi?n"
-        type="number"
-        min={15}
-        max={120}
-        step={1}
-        value={String(values.sessionMinutes)}
-        onChange={(value) =>
-          update("sessionMinutes", Number(value))
-        }
-        required
-      />
+        <div className="fitness-days-selector">
+          {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+            <button
+              key={day}
+              type="button"
+              className={`fitness-day-button ${
+                values.daysPerWeek === day ? "is-selected" : ""
+              }`}
+              aria-pressed={values.daysPerWeek === day}
+              onClick={() => update("daysPerWeek", day)}
+            >
+              {day}
+            </button>
+          ))}
+        </div>
 
+        <p className="fitness-control-help">
+          {values.daysPerWeek} días por semana
+        </p>
+      </fieldset>
+
+      <div className="fitness-duration-group">
+        <label htmlFor="fitness-duration">
+          Duración por sesión
+        </label>
+
+        <div className="fitness-duration-value">
+          {values.sessionMinutes} minutos
+        </div>
+
+        <input
+          id="fitness-duration"
+          type="range"
+          min={15}
+          max={120}
+          step={5}
+          value={values.sessionMinutes}
+          onChange={(event) =>
+            update("sessionMinutes", Number(event.target.value))
+          }
+        />
+
+        <div className="fitness-duration-limits">
+          <span>15 min</span>
+          <span>120 min</span>
+        </div>
+      </div>
       <FormField
         id="fitness-intensity"
         label="Intensidad preferida"
@@ -281,7 +303,7 @@ export default function FitnessPreferencesForm({
         onChange={(value) =>
           update("mobilityNotes", value || null)
         }
-        helperText="Si registras una limitaci?n, la generaci?n autom?tica requerir? una evaluaci?n previa."
+        helperText="Si registras una limitación, la generación automática requerir? una evaluación previa."
       />
 
       {error && (
