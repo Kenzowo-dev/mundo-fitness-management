@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from "express";
 import { z } from "zod";
+import { FITNESS_EXERCISES } from "../services/fitness.catalog.js";
 
 import {
   AuthenticationError,
@@ -21,6 +22,18 @@ import {
   getFitnessWorkoutHistory,
 } from "../services/fitness.service.js";
 
+export function getFitnessCatalogController(
+  _req: AuthenticatedRequest,
+  res: Response,
+): void {
+  res.json(
+    FITNESS_EXERCISES.map(({ id, name, category }) => ({
+      id,
+      name,
+      category,
+    })),
+  );
+}
 const fitnessProfileSchema = z.strictObject({
   fitnessLevel: z.enum(["beginner", "intermediate", "advanced"]),
   trainingLocation: z.enum(["home", "gym", "both"]),

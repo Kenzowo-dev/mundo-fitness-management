@@ -3,6 +3,7 @@ import { Router } from "express";
 import { authenticate, authorize } from "../middleware/auth.middleware.js";
 
 import {
+  getFitnessCatalogController,
   getFitnessProfileController,
   saveFitnessProfileController,
   createFitnessPlanController,
@@ -16,6 +17,7 @@ const router: Router = Router();
 
 router.use(authenticate, authorize("member"));
 
+router.get("/catalog", getFitnessCatalogController);
 router.get("/profile", getFitnessProfileController);
 router.put("/profile", saveFitnessProfileController);
 

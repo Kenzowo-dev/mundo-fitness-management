@@ -42,6 +42,11 @@ export interface FitnessProfile extends FitnessProfileInput {
   updatedAt: string;
 }
 
+export interface FitnessCatalogItem {
+  id: string;
+  name: string;
+  category: "strength" | "cardio" | "mobility";
+}
 /** Ejercicio principal de una sesión de entrenamiento. */
 export interface FitnessExercise {
   exerciseId: string;

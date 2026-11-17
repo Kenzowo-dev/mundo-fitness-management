@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../api/client";
 import FormField from "../../components/FormField";
 import Button from "../../components/Button";
 import type {
@@ -54,20 +56,7 @@ const exerciseTypeOptions = [
   { value: "mobility", label: "Movilidad" },
 ] as const;
 
-const avoidedExerciseOptions = [
-  { value: "chair-squat", label: "Sentadilla a una silla" },
-  { value: "bodyweight-squat", label: "Sentadilla con peso corporal" },
-  { value: "wall-pushup", label: "Flexiones contra la pared" },
-  { value: "pushup", label: "Flexiones de brazos" },
-  { value: "glute-bridge", label: "Puente de glúteos" },
-  { value: "bird-dog", label: "Bird dog" },
-  { value: "dumbbell-row", label: "Remo con mancuerna" },
-  { value: "dumbbell-press", label: "Press de hombros con mancuernas" },
-  { value: "lat-pulldown", label: "Jalón al pecho" },
-  { value: "leg-press", label: "Prensa de piernas" },
-  { value: "walking", label: "Caminata" },
-  { value: "stationary-bike", label: "Bicicleta estática" },
-];
+
 
 export default function FitnessPreferencesForm({
   initialValues,
@@ -78,6 +67,26 @@ export default function FitnessPreferencesForm({
     initialValues,
   );
   const [error, setError] = useState<string | null>(null);
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [exerciseCategory, setExerciseCategory] = useState<
+    "all" | "strength" | "cardio" | "mobility"
+  >("all");
+
+  const catalogQuery = useQuery({
+    queryKey: ["fitness", "catalog"],
+    queryFn: () => api.getOwnFitnessCatalog(),
+    staleTime: 60 * 60 * 1000,
+  });
+
+  const visibleExercises = [...(catalogQuery.data ?? [])]
+    .filter((exercise) =>
+      (exerciseCategory === "all" ||
+        exercise.category === exerciseCategory) &&
+      exercise.name
+        .toLocaleLowerCase("es")
+        .includes(exerciseSearch.trim().toLocaleLowerCase("es")),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   const update = <K extends keyof FitnessProfileInput>(
     field: K,
@@ -302,20 +311,75 @@ export default function FitnessPreferencesForm({
 
       <fieldset className="fitness-preferences-group fitness-option-cards fitness-avoided-options">
         <legend>Ejercicios que deseas evitar</legend>
-        {avoidedExerciseOptions.map((option) => (
-          <label key={option.value}>
-            <input
-              type="checkbox"
-              checked={(values.avoidedExerciseIds ?? []).includes(
-                option.value,
-              )}
-              onChange={() =>
-                toggleArrayValue("avoidedExerciseIds", option.value)
-              }
-            />
-            {" "}{option.label}
-          </label>
-        ))}
+
+        <div className="fitness-catalog-toolbar">
+          <input
+            type="search"
+            aria-label="Buscar ejercicios por nombre"
+            placeholder="Buscar ejercicio..."
+            value={exerciseSearch}
+            onChange={(event) => setExerciseSearch(event.target.value)}
+          />
+
+          <select
+            aria-label="Filtrar ejercicios por categoría"
+            value={exerciseCategory}
+            onChange={(event) =>
+              setExerciseCategory(event.target.value as
+                "all" | "strength" | "cardio" | "mobility")
+            }
+          >
+            <option value="all">Todas las categorías</option>
+            <option value="strength">Fuerza</option>
+            <option value="cardio">Cardio</option>
+            <option value="mobility">Movilidad</option>
+          </select>
+        </div>
+
+        <p className="fitness-catalog-count" aria-live="polite">
+          {visibleExercises.length} de {catalogQuery.data?.length ?? 0}
+          {" "}ejercicios ·{" "}
+          {(values.avoidedExerciseIds ?? []).length} excluidos
+        </p>
+
+        {catalogQuery.isPending && (
+          <p role="status">Cargando catálogo de ejercicios...</p>
+        )}
+
+        {catalogQuery.isError && (
+          <div className="fitness-catalog-error">
+            <p>No pudimos cargar el catálogo de ejercicios.</p>
+            <button
+              type="button"
+              onClick={() => void catalogQuery.refetch()}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
+        {catalogQuery.isSuccess && (
+          <div className="fitness-catalog-list">
+            {visibleExercises.map((option) => (
+              <label key={option.id}>
+                <input
+                  type="checkbox"
+                  checked={(values.avoidedExerciseIds ?? []).includes(
+                    option.id,
+                  )}
+                  onChange={() =>
+                    toggleArrayValue("avoidedExerciseIds", option.id)
+                  }
+                />
+                {option.name}
+              </label>
+            ))}
+
+            {visibleExercises.length === 0 && (
+              <p>No se encontraron ejercicios con ese filtro.</p>
+            )}
+          </div>
+        )}
       </fieldset>
 
       <FormField

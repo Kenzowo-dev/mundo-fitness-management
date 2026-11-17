@@ -598,3 +598,67 @@
   outline: 3px solid var(--border-focus);
   outline-offset: 3px;
 }
+
+/* FITNESS CATALOG SEARCH V1 */
+
+.fitness-avoided-options .fitness-catalog-toolbar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.fitness-catalog-toolbar input,
+.fitness-catalog-toolbar select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.75rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.fitness-catalog-toolbar :is(input, select):focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.fitness-avoided-options .fitness-catalog-count {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.fitness-avoided-options .fitness-catalog-list {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 0.5rem;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.fitness-avoided-options .fitness-catalog-error {
+  grid-column: 1 / -1;
+  color: var(--text-primary);
+}
+
+@media (max-width: 900px) {
+  .fitness-avoided-options .fitness-catalog-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .fitness-avoided-options .fitness-catalog-toolbar,
+  .fitness-avoided-options .fitness-catalog-list {
+    grid-template-columns: 1fr;
+  }
+}

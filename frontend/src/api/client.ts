@@ -1,6 +1,7 @@
 import type {
   FitnessProfile,
   FitnessProfileInput,
+  FitnessCatalogItem,
   FitnessPlan,
   FitnessPlanWithSessions,
   FitnessWorkoutLog,
@@ -1010,6 +1011,11 @@ class ApiClient {
    * Consulta el perfil fitness del socio autenticado.
    * Devuelve null cuando todavía no existe un perfil.
    */
+  async getOwnFitnessCatalog(): Promise<FitnessCatalogItem[]> {
+    return this.request<FitnessCatalogItem[]>(
+      "/api/clients/me/fitness/catalog",
+    );
+  }
   async getOwnFitnessProfile(): Promise<FitnessProfile | null> {
     return this.request<FitnessProfile | null>(
       "/api/clients/me/fitness/profile",
