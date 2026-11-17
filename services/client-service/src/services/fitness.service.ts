@@ -252,6 +252,34 @@ export async function createFitnessPlan(
   const generated = generateFitnessPlan(profileInput);
 
   return transaction(async (client) => {
+    // Serializar la generación de planes para un mismo cliente.
+    // El bloqueo termina al confirmar o revertir la transacción.
+    const ownershipResult = await client.query(
+      `
+      SELECT id
+      FROM clients
+      WHERE id = $1
+      FOR UPDATE
+      `,
+      [clientId],
+    );
+
+    if (ownershipResult.rowCount !== 1) {
+      throw new NotFoundError("Client", clientId);
+    }
+
+    // Conservar los planes anteriores como historial.
+    await client.query(
+      `
+      UPDATE fitness_plans
+      SET status = 'archived',
+          updated_at = NOW()
+      WHERE client_id = $1
+        AND status = 'active'
+      `,
+      [clientId],
+    );
+
     const planResult = await client.query<FitnessPlanRow>(
       `
       INSERT INTO fitness_plans (
