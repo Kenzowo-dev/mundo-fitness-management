@@ -242,7 +242,7 @@ export default function FitnessPreferencesForm({
         }
       />
 
-      <fieldset className="fitness-preferences-group">
+      <fieldset className="fitness-preferences-group fitness-option-cards fitness-equipment-options">
         <legend>Equipamiento disponible</legend>
         {equipmentOptions.map((option) => (
           <label key={option.value}>
@@ -258,7 +258,7 @@ export default function FitnessPreferencesForm({
         ))}
       </fieldset>
 
-      <fieldset className="fitness-preferences-group">
+      <fieldset className="fitness-preferences-group fitness-option-cards fitness-exercise-type-options">
         <legend>Tipos de ejercicios preferidos</legend>
         {exerciseTypeOptions.map((option) => (
           <label key={option.value}>
@@ -276,7 +276,7 @@ export default function FitnessPreferencesForm({
         ))}
       </fieldset>
 
-      <fieldset className="fitness-preferences-group">
+      <fieldset className="fitness-preferences-group fitness-option-cards fitness-avoided-options">
         <legend>Ejercicios que deseas evitar</legend>
         {avoidedExerciseOptions.map((option) => (
           <label key={option.value}>

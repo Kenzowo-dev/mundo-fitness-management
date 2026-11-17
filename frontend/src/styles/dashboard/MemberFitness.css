@@ -233,3 +233,99 @@
 :root[data-theme="dark"] .fitness-preferences-group input[type="checkbox"] {
   accent-color: #ef4444;
 }
+
+/* FITNESS OPTION CARDS V3 */
+
+.member-profile-form .fitness-option-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 0.55rem;
+  padding: 1.15rem;
+  min-width: 0;
+  background: var(--bg-elevated-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+.member-profile-form .fitness-option-cards legend {
+  color: var(--text-primary);
+  padding: 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.member-profile-form .fitness-option-cards label {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 0.75rem;
+  background: var(--bg-app);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.7rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.member-profile-form .fitness-option-cards label:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.member-profile-form .fitness-option-cards label:has(input:checked) {
+  background: var(--accent-soft);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow: inset 3px 0 0 var(--accent-primary);
+}
+
+.member-profile-form .fitness-option-cards label:focus-within {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.member-profile-form .fitness-option-cards input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--accent-primary);
+}
+
+.member-profile-form .fitness-avoided-options {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.member-profile-form .fitness-avoided-options legend {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .member-profile-form .fitness-avoided-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .member-profile-form .fitness-avoided-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .member-profile-form .fitness-option-cards label {
+    transition: none;
+  }
+}
