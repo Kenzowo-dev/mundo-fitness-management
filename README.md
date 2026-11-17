@@ -1072,13 +1072,14 @@ No borres la base ni los volúmenes para intentar corregir un error de arranque.
 | Docker no conecta con el motor o daemon | Abre Docker Desktop y espera a que su motor funcione. |
 | Docker muestra `unhealthy` o `Exited` | Consulta los registros con el comando que aparece debajo de esta tabla. |
 | Falla la descarga o la construcción | Revisa el mensaje de red, certificados o dependencias. No continúes hasta que termine sin errores; una imagen anterior puede seguir activa. |
+
 | Aparece `port is already allocated`, `EADDRINUSE` o puerto ocupado | Detén la instancia anterior. Si usas bases en Docker, detén PostgreSQL y Memurai de Windows; si usas bases en Windows, detén los contenedores anteriores. |
 | `PORT` no se reconoce | Sigue los bloques por pestaña de [Inicia el código local en PowerShell](#inicia-el-código-local-en-powershell). |
-| PostgreSQL devuelve `ECONNREFUSED` | Comprueba que PostgreSQL esté encendido en Servicios o que su contenedor esté saludable, según tu ruta. |
+| PostgreSQL devuelve `ECONNREFUSED` | Comprueba que PostgreSQL esté en ejecución en Servicios o que su contenedor esté saludable, según tu ruta. |
 | PostgreSQL rechaza la contraseña | Revisa `POSTGRES_PASSWORD` en `.env.local` y las credenciales reales de la base. Editar `.env.docker` no cambia una contraseña de un volumen existente. |
 | Falta el usuario o la base de PostgreSQL | En la ruta sin Docker, completa su paso 3. `db:init` no crea la base ni el usuario. |
 | Redis devuelve `ECONNREFUSED` | Comprueba el servicio Memurai o el contenedor Redis, según tu ruta. Memurai Developer necesita reiniciarse tras diez días de funcionamiento continuo. |
-| No se reconoce `memurai-cli` | Abre una terminal nueva o utiliza la ruta completa del ejecutable indicada en la instalación de Memurai. |
+| No se reconoce `memurai-cli` | Abre una terminal nueva o utiliza la ruta completa del ejecutable indicada en la instalación. |
 | Falta `@gym/shared/dist` | Desde la raíz ejecuta `pnpm.cmd --filter=@gym/shared build` en Windows o `pnpm --filter=@gym/shared build` en macOS. |
 | El gateway devuelve `degraded` | Revisa los cuatro servicios y sus puertos. Comprueba las variables `*_SERVICE_URL` en `.env.local`. |
 | La página aparece pero no conecta a la API | Comprueba el gateway en `3000`, la página en `5173`, `CORS_ORIGIN` y cualquier archivo `frontend/.env.local` que hayas creado. |
@@ -1235,21 +1236,21 @@ curl -X POST http://localhost:3000/api/auth/refresh \
 
 # Cierra sesión
 curl -X POST http://localhost:3000/api/auth/logout \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene perfil del usuario autenticado
 curl -X GET http://localhost:3000/api/auth/me \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Actualiza perfil propio
 curl -X PATCH http://localhost:3000/api/auth/me \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"firstName": "John Updated"}'
 
 # Cambia contraseña
 curl -X POST http://localhost:3000/api/auth/change-password \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"currentPassword": "old123", "newPassword": "newSecure456"}'
 
@@ -1269,25 +1270,25 @@ curl -X POST http://localhost:3000/api/auth/reset-password \
 ```bash
 # Lista usuarios (paginación: ?page=1&limit=10)
 curl -X GET "http://localhost:3000/api/auth/users?page=1&limit=10" \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene usuario por ID
 curl -X GET http://localhost:3000/api/auth/users/<user_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Actualiza usuario (admin)
 curl -X PATCH http://localhost:3000/api/auth/users/<user_id> \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"role": "receptionist", "isActive": true}'
 
 # Elimina usuario (admin)
 curl -X DELETE http://localhost:3000/api/auth/users/<user_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene roles disponibles
 curl -X GET http://localhost:3000/api/auth/roles \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Gestión de clientes
@@ -1295,7 +1296,7 @@ curl -X GET http://localhost:3000/api/auth/roles \
 ```bash
 # Crea un cliente (admin o recepción)
 curl -X POST http://localhost:3000/api/clients \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "firstName": "Jane",
@@ -1309,25 +1310,25 @@ curl -X POST http://localhost:3000/api/clients \
 
 # Lista clientes con paginación y filtros
 curl -X GET "http://localhost:3000/api/clients?page=1&limit=10&search=jane" \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Busca cliente por DNI
 curl -X GET http://localhost:3000/api/clients/dni/12345678 \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene cliente por ID
 curl -X GET http://localhost:3000/api/clients/<client_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Actualiza cliente
 curl -X PATCH http://localhost:3000/api/clients/<client_id> \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"phone": "+1987654321", "emergencyContact": "John Doe"}'
 
 # Elimina cliente (admin)
 curl -X DELETE http://localhost:3000/api/clients/<client_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Mediciones corporales
@@ -1335,7 +1336,7 @@ curl -X DELETE http://localhost:3000/api/clients/<client_id> \
 ```bash
 # Agrega medición a cliente
 curl -X POST http://localhost:3000/api/clients/<client_id>/measurements \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "weight": 70.5,
@@ -1349,11 +1350,11 @@ curl -X POST http://localhost:3000/api/clients/<client_id>/measurements \
 
 # Lista mediciones de un cliente
 curl -X GET http://localhost:3000/api/clients/<client_id>/measurements \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene última medición
 curl -X GET http://localhost:3000/api/clients/<client_id>/measurements/latest \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Objetivos (Goals)
@@ -1361,7 +1362,7 @@ curl -X GET http://localhost:3000/api/clients/<client_id>/measurements/latest \
 ```bash
 # Crea objetivo para cliente
 curl -X POST http://localhost:3000/api/clients/<client_id>/goals \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "type": "weight_loss",
@@ -1372,17 +1373,17 @@ curl -X POST http://localhost:3000/api/clients/<client_id>/goals \
 
 # Lista objetivos de cliente
 curl -X GET http://localhost:3000/api/clients/<client_id>/goals \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Actualiza objetivo
 curl -X PATCH http://localhost:3000/api/clients/goals/<goal_id> \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"currentValue": 68}'
 
 # Elimina objetivo
 curl -X DELETE http://localhost:3000/api/clients/goals/<goal_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Objetivos propios del socio
@@ -1410,7 +1411,7 @@ Estas operaciones requieren autenticación y verifican la pertenencia del objeti
 ```bash
 # Sube documento
 curl -X POST http://localhost:3000/api/clients/<client_id>/documents \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "type": "medical_certificate",
@@ -1421,11 +1422,11 @@ curl -X POST http://localhost:3000/api/clients/<client_id>/documents \
 
 # Lista documentos
 curl -X GET http://localhost:3000/api/clients/<client_id>/documents \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Elimina documento
 curl -X DELETE http://localhost:3000/api/clients/documents/<document_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Planes de membresía
@@ -1433,15 +1434,15 @@ curl -X DELETE http://localhost:3000/api/clients/documents/<document_id> \
 ```bash
 # Lista planes de membresía
 curl -X GET http://localhost:3000/api/memberships/plans \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene plan por ID
 curl -X GET http://localhost:3000/api/memberships/plans/<plan_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Crea plan (admin)
 curl -X POST http://localhost:3000/api/memberships/plans \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Premium Mensual",
@@ -1453,13 +1454,13 @@ curl -X POST http://localhost:3000/api/memberships/plans \
 
 # Actualiza plan (admin)
 curl -X PATCH http://localhost:3000/api/memberships/plans/<plan_id> \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"price": 109.99}'
 
 # Elimina plan (admin)
 curl -X DELETE http://localhost:3000/api/memberships/plans/<plan_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Membresías (suscripciones de clientes)
@@ -1467,11 +1468,11 @@ curl -X DELETE http://localhost:3000/api/memberships/plans/<plan_id> \
 ```bash
 # Obtiene membresías de un cliente
 curl -X GET http://localhost:3000/api/memberships/client/<client_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Crea membresía para cliente (admin, recepcionist)
 curl -X POST http://localhost:3000/api/memberships \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "<client_id>",
@@ -1481,25 +1482,25 @@ curl -X POST http://localhost:3000/api/memberships \
 
 # Obtiene membresía por ID
 curl -X GET http://localhost:3000/api/memberships/<membership_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Actualiza membresía
 curl -X PATCH http://localhost:3000/api/memberships/<membership_id> \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"status": "active"}'
 
 # Cancela membresía
 curl -X POST http://localhost:3000/api/memberships/<membership_id>/cancel \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Renueva membresía
 curl -X POST http://localhost:3000/api/memberships/<membership_id>/renew \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Membresías por expirar (admin, recepcionist)
 curl -X GET http://localhost:3000/api/memberships/expiring \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Registro de visitas (Check-in / Check-out)
@@ -1507,7 +1508,7 @@ curl -X GET http://localhost:3000/api/memberships/expiring \
 ```bash
 # Check-in de cliente
 curl -X POST http://localhost:3000/api/memberships/visits/check-in \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "<client_id>",
@@ -1516,11 +1517,11 @@ curl -X POST http://localhost:3000/api/memberships/visits/check-in \
 
 # Check-out de visita
 curl -X POST http://localhost:3000/api/memberships/visits/<visit_id>/check-out \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Historial de visitas de cliente
 curl -X GET http://localhost:3000/api/memberships/visits/client/<client_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Congelamientos de membresía
@@ -1528,7 +1529,7 @@ curl -X GET http://localhost:3000/api/memberships/visits/client/<client_id> \
 ```bash
 # Crea congelamiento
 curl -X POST http://localhost:3000/api/memberships/freezes \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "membershipId": "<membership_id>",
@@ -1539,7 +1540,7 @@ curl -X POST http://localhost:3000/api/memberships/freezes \
 
 # Obtiene congelamientos de una membresía
 curl -X GET http://localhost:3000/api/memberships/freezes/<membership_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Procesamiento de pagos
@@ -1547,7 +1548,7 @@ curl -X GET http://localhost:3000/api/memberships/freezes/<membership_id> \
 ```bash
 # Registra pago (admin, recepcionist)
 curl -X POST http://localhost:3000/api/payments \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "<client_id>",
@@ -1560,25 +1561,25 @@ curl -X POST http://localhost:3000/api/payments \
 
 # Lista pagos con filtros
 curl -X GET "http://localhost:3000/api/payments?page=1&limit=10&clientId=<client_id>" \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Busca pago por transactionId
 curl -X GET http://localhost:3000/api/payments/transaction/txn_abc123 \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene pago por ID
 curl -X GET http://localhost:3000/api/payments/<payment_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Actualiza pago
 curl -X PATCH http://localhost:3000/api/payments/<payment_id> \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"status": "completed"}'
 
 # Resumen de pagos de cliente
 curl -X GET http://localhost:3000/api/payments/summary/<client_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Facturas
@@ -1586,7 +1587,7 @@ curl -X GET http://localhost:3000/api/payments/summary/<client_id> \
 ```bash
 # Crea factura
 curl -X POST http://localhost:3000/api/payments/invoices \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "<client_id>",
@@ -1598,25 +1599,25 @@ curl -X POST http://localhost:3000/api/payments/invoices \
 
 # Lista facturas
 curl -X GET "http://localhost:3000/api/payments/invoices?page=1&limit=10" \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Busca factura por número
 curl -X GET http://localhost:3000/api/payments/invoices/number/INV-2024-001 \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Obtiene factura por ID
 curl -X GET http://localhost:3000/api/payments/invoices/<invoice_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Marca factura como pagada
 curl -X POST http://localhost:3000/api/payments/invoices/<invoice_id>/pay \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{"paymentId": "<payment_id>"}'
 
 # Cancela factura
 curl -X POST http://localhost:3000/api/payments/invoices/<invoice_id>/cancel \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Métodos de pago
@@ -1624,7 +1625,7 @@ curl -X POST http://localhost:3000/api/payments/invoices/<invoice_id>/cancel \
 ```bash
 # Agrega método de pago
 curl -X POST http://localhost:3000/api/payments/methods \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "clientId": "<client_id>",
@@ -1636,15 +1637,15 @@ curl -X POST http://localhost:3000/api/payments/methods \
 
 # Lista métodos de pago de cliente
 curl -X GET http://localhost:3000/api/payments/methods/<client_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Establece método por defecto
 curl -X POST http://localhost:3000/api/payments/methods/<client_id>/<method_id>/default \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 
 # Desactiva método de pago
 curl -X DELETE http://localhost:3000/api/payments/methods/<client_id>/<method_id> \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ### Reembolsos
@@ -1652,7 +1653,7 @@ curl -X DELETE http://localhost:3000/api/payments/methods/<client_id>/<method_id
 ```bash
 # Crea reembolso (admin, recepcionist)
 curl -X POST http://localhost:3000/api/payments/refunds \
-  -H "Authorization: Bearer <access_token>" \
+  -H "Authorization: Bearer <access_token>' \
   -H "Content-Type: application/json" \
   -d '{
     "paymentId": "<payment_id>",
@@ -1662,7 +1663,7 @@ curl -X POST http://localhost:3000/api/payments/refunds \
 
 # Procesa reembolso (admin)
 curl -X POST http://localhost:3000/api/payments/refunds/<refund_id>/process \
-  -H "Authorization: Bearer <access_token>"
+  -H "Authorization: Bearer <access_token>'
 ```
 
 ## Documentación de la API
@@ -1739,7 +1740,7 @@ Endpoints públicos (no requieren autenticación):
 | Servicio | Ruta base | Endpoints principales |
 |---------|-----------|---------------|
 | Autenticación | `/api/auth` | `POST /register`, `POST /login`, `POST /refresh`, `POST /logout`, `POST /forgot-password`, `POST /reset-password`, `POST /change-password`, `GET /me`, `PATCH /me`, `GET /users`, `GET /users/:id`, `PATCH /users/:id`, `DELETE /users/:id`, `GET /roles` |
-| Clientes | `/api/clients` | `POST /`, `GET /`, `GET /dni/:dni`, `GET /user/:userId`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:clientId/measurements`, `GET /:clientId/measurements`, `GET /:clientId/measurements/latest`, `POST /:clientId/goals`, `GET /:clientId/goals`, `PATCH /goals/:id`, `DELETE /goals/:id`, `POST /:clientId/documents`, `GET /:clientId/documents`, `DELETE /documents/:id` |, `POST /me/goals`, `GET /me/goals`, `PATCH /me/goals/:id`, `DELETE /me/goals/:id`
+| Clientes | `/api/clients` | `POST /`, `GET /`, `GET /dni/:dni`, `GET /user/:userId`, `GET /:id`, `PATCH /:id`, `DELETE /:id`, `POST /:clientId/measurements`, `GET /:clientId/measurements`, `GET /:clientId/measurements/latest`, `POST /:clientId/goals`, `GET /:clientId/goals`, `PATCH /goals/:id`, `DELETE /goals/:id`, `POST /:clientId/documents`, `GET /:clientId/documents`, `DELETE /documents/:id`, `POST /me/goals`, `GET /me/goals`, `PATCH /me/goals/:id`, `DELETE /me/goals/:id` |
 | Membresías | `/api/memberships` | `GET /plans`, `GET /plans/:id`, `POST /plans`, `PATCH /plans/:id`, `DELETE /plans/:id`, `GET /expiring`, `GET /client/:clientId`, `POST /`, `GET /:id`, `PATCH /:id`, `POST /:id/cancel`, `POST /:id/renew`, `POST /visits/check-in`, `POST /visits/:visitId/check-out`, `GET /visits/client/:clientId`, `POST /freezes`, `GET /freezes/:membershipId` |
 | Pagos | `/api/payments` | `POST /`, `GET /`, `GET /transaction/:transactionId`, `GET /summary/:clientId`, `GET /:id`, `PATCH /:id`, `POST /invoices`, `GET /invoices`, `GET /invoices/number/:invoiceNumber`, `GET /invoices/:id`, `POST /invoices/:id/pay`, `POST /invoices/:id/cancel`, `POST /methods`, `GET /methods/:clientId`, `POST /methods/:clientId/:methodId/default`, `DELETE /methods/:clientId/:methodId`, `POST /refunds`, `POST /refunds/:refundId/process` |
 
@@ -1774,7 +1775,7 @@ GYM_Proyect/
 │   ├── auth-service/          # Puerto 3001 - Autenticación
 │   ├── client-service/        # Puerto 3002 - Gestión de clientes
 │   ├── membership-service/    # Puerto 3003 - Membresías
-│   ├── payment-service/       # Puerto 3004 - Pagos
+│   └── payment-service/       # Puerto 3004 - Pagos
 ├── compose.yaml          # Orquestación de contenedores (Docker Compose v2)
 ├── package.json               # Configuración raíz del espacio de trabajo
 ├── pnpm-workspace.yaml        # Definición del espacio de trabajo de pnpm
@@ -1795,9 +1796,6 @@ pnpm build
 
 # Ejecuta las pruebas
 pnpm test
-
-# Compila todos los paquetes
-pnpm build
 
 # Ejecuta solo las pruebas unitarias
 pnpm test:unit
@@ -1862,8 +1860,9 @@ Los puertos están enlazados a loopback y las variables de ejemplo son de desarr
 
 GitHub Actions ejecuta, en cada push y pull request: validación de nombres de rama, lint, comprobación de tipos, pruebas unitarias, pruebas de integración (Testcontainers con PostgreSQL y Redis), compilación de paquetes y verificación de que todos los Dockerfiles y los archivos de Docker Compose compilan correctamente.
 
-El despliegue en producción se gestiona con el auto deploy de Dokploy conectado al repositorio GitHub, rama `main`, y Compose `./compose.yaml`. GitHub Actions construye y publica las seis imágenes en GHCR; el secreto `DOKPLOY_DEPLOY_WEBHOOK` no se usa. Dokploy puede iniciar el despliegue antes de que termine la publicación de imágenes y tomar los tags `latest` anteriores; revisa los logs de ambos sistemas y vuelve a desplegar desde Dokploy si las imágenes se publicaron después. Consulta:
+El despliegue en producción se gestiona con el auto deploy de Dokploy conectado al repositorio GitHub, rama `main`, y Compose `./compose.yaml`. GitHub Actions construye y publica las seis imágenes en GHCR; el secreto `DOKPLOY_DEPLOY_WEBHOOK` no se usa. Dokploy puede iniciar el despliegue antes de que termine la publicación de imágenes y tomar los tags `latest` anteriores; revisa los logs de ambos sistemas y vuelve a desplegar desde Dokploy si las imágenes se publicaron después. Dokploy debe tener acceso de lectura a GHCR si los paquetes son privados.
 
+Consulta:
 - `DEPLOY_DOKPLOY.md` — despliegue con Dokploy y Traefik (método activo).
 - `DEPLOY_HOME_SERVER.md` — despliegue inicial con Docker Compose y Nginx Proxy Manager (método anterior, en el servidor casero).
 
@@ -1979,42 +1978,6 @@ git push -u origin docs/convenciones-git
 - Playwright ejecuta los recorridos E2E del producto real en `tests/e2e`; requiere que todos los servicios Docker locales estén saludables. Levanta/actualiza el stack con `pnpm docker:dev`, instala Chromium una vez con `pnpm test:e2e:install` y ejecuta `pnpm test:e2e`.
 - La suite E2E cubre registro, inicio/cierre de sesión y renovación solicitada por web; alta, edición y búsqueda de clientes; planes, asignación de membresía y check-in; registro e historial de pagos; panel e informes. No utiliza servidores simulados.
 
-## Solución de problemas
-
-### Problemas comunes
-
-**Conflictos de puertos**: asegúrate de que los puertos 3000-3004, 5173, 5432 y 6379 estén disponibles
-
-**Error de conexión a la base de datos**:
-```bash
-# Comprueba que PostgreSQL esté en ejecución
-pg_isready -h localhost -p 5432
-
-# Node local usa .env.local; Compose usa .env.docker
-```
-
-**Error de conexión a Redis**:
-```bash
-# Comprueba que Redis esté en ejecución
-redis-cli ping
-
-# Node local usa localhost; Compose configura el host redis
-```
-
-**Errores de resolución de módulos**: ejecuta `pnpm install` desde la raíz para asegurarte de que todas las dependencias del espacio de trabajo estén enlazadas
-
-**Errores de TypeScript tras cambiar dependencias**: ejecuta `pnpm build` para recompilar todos los paquetes
-
-### Registros
-
-```bash
-# Consulta los registros de todos los servicios (al usar docker compose)
-docker compose --env-file .env.docker -f compose.yaml logs -f
-
-# Registros de un servicio individual (desarrollo)
-pnpm --filter=api-gateway dev 2>&1 | tail -f
-```
-
 ## Licencia
 
 Este proyecto está bajo la Licencia MIT; consulta el archivo [LICENSE](LICENSE) para obtener más detalles.
@@ -2069,4 +2032,3 @@ Las credenciales deben mantenerse privadas y fuera de Git.
 ### Pruebas
 
 Ejecutar: pnpm --filter payment-service test
-
