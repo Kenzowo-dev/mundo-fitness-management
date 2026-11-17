@@ -354,55 +354,157 @@ export default function MemberFitnessPage() {
       )}
 
       {plan && (
-        <section className="member-card">
+        <section className="member-card fitness-workout-plan">
           <header className="member-section-header">
-            <h2>{plan.name}</h2>
+            <div>
+              <h2>{plan.name}</h2>
+              <p>
+                Tu programa contiene {plan.sessions.length} sesiones
+                de entrenamiento.
+              </p>
+            </div>
           </header>
 
-          <p>
-            Tu plan contiene {plan.sessions.length} sesiones.
-          </p>
+          <div className="fitness-workout-sessions">
+            {plan.sessions.map((session) => (
+              <article
+                key={session.id}
+                className="fitness-workout-session"
+              >
+                <header className="fitness-workout-session-header">
+                  <span className="fitness-workout-day">
+                    Día {session.dayNumber}
+                  </span>
+                  <div>
+                    <h3>{session.title}</h3>
+                    <p>
+                      {session.estimatedMinutes} minutos estimados
+                      {" · "}
+                      {session.exercises.length} ejercicios
+                    </p>
+                  </div>
+                </header>
 
-          {plan.sessions.map((session) => (
-            <article key={session.id}>
-              <h3>{session.title}</h3>
-              <p>
-                Día {session.dayNumber} ·{" "}
-                {session.estimatedMinutes} minutos
-              </p>
+                <div className="fitness-workout-phase">
+                  <h4>01 · Calentamiento</h4>
+                  <p>
+                    Prepara tu cuerpo antes del entrenamiento.
+                  </p>
 
-              <h4>Calentamiento</h4>
-              <ul>
-                {session.warmup.map((activity, index) => (
-                  <li key={`${activity.name}-${index}`}>
-                    {activity.name}
-                  </li>
-                ))}
-              </ul>
+                  {session.warmup.map((activity, index) => (
+                    <details
+                      key={`${activity.name}-${index}`}
+                      className="fitness-workout-detail"
+                    >
+                      <summary>
+                        <span>{activity.name}</span>
+                        <span className="fitness-workout-meta">
+                          {Math.ceil(activity.durationSeconds / 60)} min
+                        </span>
+                      </summary>
 
-              <h4>Ejercicios</h4>
-              <ul>
-                {session.exercises.map((exercise) => (
-                  <li key={exercise.exerciseId}>
-                    {exercise.name} — {exercise.sets} series,
-                    {" "}{exercise.reps} repeticiones
-                  </li>
-                ))}
-              </ul>
+                      <div className="fitness-workout-detail-body">
+                        <p>{activity.description}</p>
+                        {activity.instructions.length > 0 && (
+                          <ol>
+                            {activity.instructions.map((instruction, step) => (
+                              <li key={step}>{instruction}</li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    </details>
+                  ))}
+                </div>
 
-              <h4>Enfriamiento</h4>
-              <ul>
-                {session.cooldown.map((activity, index) => (
-                  <li key={`${activity.name}-${index}`}>
-                    {activity.name}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
+                <div className="fitness-workout-phase">
+                  <h4>02 · Ejercicios principales</h4>
+                  <p>
+                    Consulta la técnica y los descansos de cada ejercicio.
+                  </p>
+
+                  {session.exercises.map((exercise, index) => (
+                    <details
+                      key={`${exercise.exerciseId}-${index}`}
+                      className="fitness-workout-detail"
+                    >
+                      <summary>
+                        <span>{exercise.name}</span>
+                        <span className="fitness-workout-meta">
+                          {exercise.sets} series
+                        </span>
+                      </summary>
+
+                      <div className="fitness-workout-detail-body">
+                        <p>{exercise.description}</p>
+
+                        <div className="fitness-workout-stats">
+                          <span>{exercise.sets} series</span>
+                          <span>{exercise.reps} repeticiones</span>
+                          <span>
+                            {exercise.restSeconds} s descanso
+                          </span>
+                          {exercise.durationSeconds !== undefined && (
+                            <span>
+                              {Math.ceil(exercise.durationSeconds / 60)}
+                              {" "}min de actividad
+                            </span>
+                          )}
+                        </div>
+
+                        {exercise.instructions.length > 0 && (
+                          <div>
+                            <h5>Cómo realizarlo</h5>
+                            <ol>
+                              {exercise.instructions.map(
+                                (instruction, step) => (
+                                  <li key={step}>{instruction}</li>
+                                ),
+                              )}
+                            </ol>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+
+                <div className="fitness-workout-phase">
+                  <h4>03 · Enfriamiento</h4>
+                  <p>
+                    Finaliza tu sesión de forma gradual.
+                  </p>
+
+                  {session.cooldown.map((activity, index) => (
+                    <details
+                      key={`${activity.name}-${index}`}
+                      className="fitness-workout-detail"
+                    >
+                      <summary>
+                        <span>{activity.name}</span>
+                        <span className="fitness-workout-meta">
+                          {Math.ceil(activity.durationSeconds / 60)} min
+                        </span>
+                      </summary>
+
+                      <div className="fitness-workout-detail-body">
+                        <p>{activity.description}</p>
+                        {activity.instructions.length > 0 && (
+                          <ol>
+                            {activity.instructions.map((instruction, step) => (
+                              <li key={step}>{instruction}</li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
       )}
-
       {!plansQuery.isLoading &&
         !plansQuery.isError &&
         !activePlan && (
