@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { Link } from "react-router-dom";
@@ -15,6 +16,32 @@ import Skeleton from "../../components/Skeleton";
 import "@/styles/dashboard/MemberPortal.css";
 import "@/styles/dashboard/MemberFitness.css";
 
+function fitnessPreferencesChanged(
+  current: FitnessProfileInput,
+  previous: FitnessProfileInput,
+): boolean {
+  const comparable = (values: FitnessProfileInput) => ({
+    fitnessLevel: values.fitnessLevel,
+    trainingLocation: values.trainingLocation,
+    equipment: [...values.equipment].sort(),
+    daysPerWeek: values.daysPerWeek,
+    sessionMinutes: values.sessionMinutes,
+    preferredGoal: values.preferredGoal,
+    mobilityNotes: values.mobilityNotes?.trim() ?? "",
+    preferredExerciseTypes: [
+      ...(values.preferredExerciseTypes ?? []),
+    ].sort(),
+    avoidedExerciseIds: [
+      ...(values.avoidedExerciseIds ?? []),
+    ].sort(),
+    preferredIntensity: values.preferredIntensity ?? "moderate",
+  });
+
+  return (
+    JSON.stringify(comparable(current)) !==
+    JSON.stringify(comparable(previous))
+  );
+}
 const levelLabels = {
   beginner: "Principiante",
   intermediate: "Intermedio",
@@ -42,6 +69,7 @@ const goalLabels = {
  */
 export default function MemberFitnessPage() {
   const queryClient = useQueryClient();
+  const [fitnessNoticeAccepted, setFitnessNoticeAccepted] = useState(false);
   const { user } = useAuth();
 
   const defaultProfile: FitnessProfileInput = {
@@ -155,6 +183,14 @@ export default function MemberFitnessPage() {
   const profile = profileQuery.data;
   const plan = planQuery.data;
 
+  const preferencesChanged = Boolean(
+    profile &&
+    activePlan &&
+    fitnessPreferencesChanged(profile, activePlan.profileSnapshot),
+  );
+
+  const mobilityReviewRequired = Boolean(profile?.mobilityNotes?.trim());
+
   return (
     <div className="member-portal">
       <header className="member-portal-header">
@@ -255,28 +291,73 @@ export default function MemberFitnessPage() {
       {profile &&
         !plansQuery.isLoading &&
         !plansQuery.isError &&
-        !activePlan && (
+        (!activePlan || preferencesChanged) && (
           <section className="member-card">
             <header className="member-section-header">
-              <h2>Generar mi rutina personalizada</h2>
+              <h2>{activePlan ? "Actualizar mi rutina" : "Generar mi rutina personalizada"}</h2>
             </header>
 
             <p>
-              Crearemos un plan semanal según tus objetivos,
-              experiencia, equipamiento y preferencias.
+              {activePlan
+                ? "Tus preferencias cambiaron. Puedes generar una nueva rutina y conservar la anterior en el historial."
+                : "Crearemos un plan semanal según tus objetivos, experiencia, equipamiento y preferencias."}
             </p>
+            <div className="fitness-safety-notice">
+              <h3>Aviso de uso responsable</h3>
+              <p>
+                Este recomendador ofrece sugerencias generales basadas en tus
+                preferencias. No sustituye la evaluación de un profesional
+                de salud o un entrenador cualificado.
+              </p>
+              <p>
+                Si tienes lesiones, enfermedades o restricciones físicas,
+                consulta con un profesional antes de entrenar.
+                Detén la actividad si experimentas dolor, mareos o malestar.
+              </p>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={fitnessNoticeAccepted}
+                  onChange={(event) =>
+                    setFitnessNoticeAccepted(event.target.checked)
+                  }
+                />
+                He leído y comprendido estas recomendaciones.
+              </label>
+            </div>
+
+            {mobilityReviewRequired && (
+              <Alert
+                type="error"
+                message="Has indicado limitaciones de movilidad. Necesitas una evaluación antes de generar una rutina automática."
+              />
+            )}
 
             <button
               type="button"
               className="btn btn-primary"
-              disabled={generatePlanMutation.isPending || !hasActiveMembership}
+              disabled={
+                generatePlanMutation.isPending ||
+                !hasActiveMembership ||
+                !fitnessNoticeAccepted ||
+                mobilityReviewRequired
+              }
               onClick={() => {
+                if (
+                  activePlan &&
+                  !window.confirm(
+                    "Se archivará tu rutina actual y se generará una nueva. Tus entrenamientos registrados se conservarán. ¿Deseas continuar?",
+                  )
+                ) {
+                  return;
+                }
+
                 void generatePlanMutation.mutateAsync().catch(() => {});
               }}
             >
               {generatePlanMutation.isPending
-                ? "Generando rutina..."
-                : "Generar mi rutina"}
+                ? (activePlan ? "Actualizando rutina..." : "Generando rutina...")
+                : (activePlan ? "Actualizar mi rutina" : "Generar mi rutina")}
             </button>
 
             {membershipLoading && (
