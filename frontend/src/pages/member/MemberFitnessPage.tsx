@@ -70,6 +70,13 @@ const goalLabels = {
 export default function MemberFitnessPage() {
   const queryClient = useQueryClient();
   const [fitnessNoticeAccepted, setFitnessNoticeAccepted] = useState(false);
+  const [activeArea, setActiveArea] = useState<
+    "fitness" | "nutrition"
+  >("fitness");
+
+  const [fitnessView, setFitnessView] = useState<
+    "routine" | "preferences" | "history"
+  >("routine");
   const { user } = useAuth();
 
   const defaultProfile: FitnessProfileInput = {
@@ -206,13 +213,72 @@ export default function MemberFitnessPage() {
         </div>
       </header>
 
-      {(profileQuery.isLoading || plansQuery.isLoading) && (
+      <nav
+        className="fitness-main-tabs"
+        aria-label="Secciones del recomendador"
+      >
+        <button
+          type="button"
+          className={`fitness-nav-button${activeArea === "fitness" ? " is-active" : ""}`}
+          aria-pressed={activeArea === "fitness"}
+          onClick={() => {
+            setActiveArea("fitness");
+            setFitnessView("routine");
+          }}
+        >
+          Rutinas
+        </button>
+
+        <button
+          type="button"
+          className={`fitness-nav-button${activeArea === "nutrition" ? " is-active" : ""}`}
+          aria-pressed={activeArea === "nutrition"}
+          onClick={() => setActiveArea("nutrition")}
+        >
+          Comidas
+        </button>
+      </nav>
+
+      {activeArea === "fitness" && (
+        <nav
+          className="fitness-sub-tabs"
+          aria-label="Apartados de entrenamiento"
+        >
+          <button
+            type="button"
+            className={`fitness-nav-button${fitnessView === "routine" ? " is-active" : ""}`}
+            aria-pressed={fitnessView === "routine"}
+            onClick={() => setFitnessView("routine")}
+          >
+            Mi rutina
+          </button>
+
+          <button
+            type="button"
+            className={`fitness-nav-button${fitnessView === "preferences" ? " is-active" : ""}`}
+            aria-pressed={fitnessView === "preferences"}
+            onClick={() => setFitnessView("preferences")}
+          >
+            Preferencias
+          </button>
+
+          <button
+            type="button"
+            className={`fitness-nav-button${fitnessView === "history" ? " is-active" : ""}`}
+            aria-pressed={fitnessView === "history"}
+            onClick={() => setFitnessView("history")}
+          >
+            Mi progreso
+          </button>
+        </nav>
+      )}
+      {activeArea === "fitness" && (profileQuery.isLoading || plansQuery.isLoading) && (
         <section className="member-card">
           <Skeleton height="100px" />
         </section>
       )}
 
-      {(profileQuery.isError || plansQuery.isError) && (
+      {activeArea === "fitness" && (profileQuery.isError || plansQuery.isError) && (
         <section className="member-card">
           <Alert
             type="error"
@@ -230,7 +296,7 @@ export default function MemberFitnessPage() {
         </section>
       )}
 
-      {!profileQuery.isLoading && !profileQuery.isError && (
+      {activeArea === "fitness" && fitnessView === "preferences" && !profileQuery.isLoading && !profileQuery.isError && (
         <section className="member-card">
           <header className="member-section-header">
             <h2>Configura tu entrenamiento</h2>
@@ -259,7 +325,7 @@ export default function MemberFitnessPage() {
         </section>
       )}
 
-      {profile && (
+      {activeArea === "fitness" && fitnessView === "preferences" && profile && (
         <section className="member-card">
           <header className="member-section-header">
             <h2>Mi perfil fitness</h2>
@@ -288,7 +354,7 @@ export default function MemberFitnessPage() {
         </section>
       )}
 
-      {profile &&
+      {activeArea === "fitness" && fitnessView === "routine" && profile &&
         !plansQuery.isLoading &&
         !plansQuery.isError &&
         (!activePlan || preferencesChanged) && (
@@ -413,13 +479,13 @@ export default function MemberFitnessPage() {
           </section>
         )}
 
-      {planQuery.isLoading && (
+      {activeArea === "fitness" && fitnessView === "routine" && planQuery.isLoading && (
         <section className="member-card">
           <Skeleton height="120px" />
         </section>
       )}
 
-      {planQuery.isError && (
+      {activeArea === "fitness" && fitnessView === "routine" && planQuery.isError && (
         <section className="member-card">
           <Alert
             type="error"
@@ -434,7 +500,7 @@ export default function MemberFitnessPage() {
         </section>
       )}
 
-      {plan && (
+      {activeArea === "fitness" && fitnessView === "routine" && plan && (
         <section className="member-card fitness-workout-plan">
           <header className="member-section-header">
             <div>
@@ -447,24 +513,34 @@ export default function MemberFitnessPage() {
           </header>
 
           <div className="fitness-workout-sessions">
-            {plan.sessions.map((session) => (
-              <article
+            {[...plan.sessions].sort((a, b) => a.dayNumber - b.dayNumber).map((session) => (
+              <details
                 key={session.id}
                 className="fitness-workout-session"
               >
-                <header className="fitness-workout-session-header">
+                <summary className="fitness-workout-session-header">
                   <span className="fitness-workout-day">
                     Día {session.dayNumber}
                   </span>
-                  <div>
-                    <h3>{session.title}</h3>
-                    <p>
+
+                  <span className="fitness-workout-session-title">
+                    <strong>{session.title}</strong>
+                    <span>
                       {session.estimatedMinutes} minutos estimados
                       {" · "}
                       {session.exercises.length} ejercicios
-                    </p>
-                  </div>
-                </header>
+                    </span>
+                  </span>
+
+                  <span
+                    className="fitness-workout-session-arrow"
+                    aria-hidden="true"
+                  >
+                    ⌄
+                  </span>
+                </summary>
+
+                <div className="fitness-workout-session-content">
 
                 <div className="fitness-workout-phase">
                   <h4>01 · Calentamiento</h4>
@@ -581,12 +657,13 @@ export default function MemberFitnessPage() {
                     </details>
                   ))}
                 </div>
-              </article>
+                </div>
+              </details>
             ))}
           </div>
         </section>
       )}
-      {!plansQuery.isLoading &&
+      {activeArea === "fitness" && fitnessView === "routine" && !plansQuery.isLoading &&
         !plansQuery.isError &&
         !activePlan && (
           <section className="member-card">
@@ -596,6 +673,38 @@ export default function MemberFitnessPage() {
             </p>
           </section>
         )}
+      {activeArea === "fitness" && fitnessView === "history" && (
+        <section className="member-card">
+          <header className="member-section-header">
+            <h2>Mi progreso</h2>
+          </header>
+          <p>
+            Aquí podrás consultar los entrenamientos completados,
+            el tiempo dedicado y tu historial.
+          </p>
+          <p>
+            El registro y los indicadores se incorporarán
+            en el siguiente paso.
+          </p>
+        </section>
+      )}
+
+      {activeArea === "nutrition" && (
+        <section className="member-card">
+          <header className="member-section-header">
+            <h2>Mi alimentación</h2>
+          </header>
+          <p>
+            Aquí construiremos tu recomendador de comidas,
+            con un formulario de preferencias alimentarias
+            separado del entrenamiento.
+          </p>
+          <p>
+            Próximamente: menú semanal, comidas recomendadas,
+            restricciones y seguimiento.
+          </p>
+        </section>
+      )}
     </div>
   );
 }
