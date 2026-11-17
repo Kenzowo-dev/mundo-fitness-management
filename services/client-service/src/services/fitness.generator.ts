@@ -248,86 +248,149 @@ function selectExercises(
   available: CatalogExercise[],
   profile: FitnessProfileInput,
   sessionIndex: number,
+  previousSessions: GeneratedWorkoutSession[],
 ): FitnessExercise[] {
-  const strength = available.filter(
-    (exercise) => exercise.category === "strength",
-  );
+  const usageCounts = new Map<string, number>();
 
-  const cardio = available.filter(
-    (exercise) => exercise.category === "cardio",
-  );
+  for (const session of previousSessions) {
+    for (const exercise of session.exercises) {
+      usageCounts.set(
+        exercise.exerciseId,
+        (usageCounts.get(exercise.exerciseId) ?? 0) + 1,
+      );
+    }
+  }
 
-  const mobility = available.filter(
-    (exercise) => exercise.category === "mobility",
-  );
+  // Considerar grupos trabajados en días cercanos.
+  // Es una preferencia de selección, no una garantía clínica de recuperación.
+  const currentDay = WEEK_DAYS[sessionIndex] ?? sessionIndex + 1;
+  const nearbyMuscles = new Set<string>();
 
-  // Rotar los ejercicios de fuerza para variar las sesiones.
-  const offset = sessionIndex % Math.max(1, strength.length);
+  for (const session of previousSessions) {
+    if (Math.abs(session.dayNumber - currentDay) > 1) {
+      continue;
+    }
 
-  const rotatedStrength = [
-    ...strength.slice(offset),
-    ...strength.slice(0, offset),
-  ];
+    for (const exercise of session.exercises) {
+      for (const muscle of exercise.muscleGroups) {
+        nearbyMuscles.add(muscle);
+      }
+    }
+  }
 
-  // Priorizar las categor?as elegidas sin excluir las dem?s.
-  const categories = {
-    strength: rotatedStrength,
-    mobility,
-    cardio,
+  const prioritize = (
+    exercises: CatalogExercise[],
+  ): CatalogExercise[] => {
+    if (exercises.length === 0) return [];
+
+    const offset = sessionIndex % exercises.length;
+
+    const rotated = [
+      ...exercises.slice(offset),
+      ...exercises.slice(0, offset),
+    ];
+
+    const score = (exercise: CatalogExercise): number => {
+      const repeated = usageCounts.get(exercise.id) ?? 0;
+
+      const nearbyOverlap = exercise.muscleGroups.filter(
+        (muscle) => nearbyMuscles.has(muscle),
+      ).length;
+
+      return repeated * 3 + nearbyOverlap;
+    };
+
+    return rotated.sort(
+      (a, b) => score(a) - score(b),
+    );
   };
 
-  const defaultOrder = [
-    "strength",
-    "mobility",
-    "cardio",
-  ] as const;
+  type Category = CatalogExercise["category"];
+
+  const categories: Record<Category, CatalogExercise[]> = {
+    strength: prioritize(
+      available.filter((exercise) => exercise.category === "strength"),
+    ),
+    cardio: prioritize(
+      available.filter((exercise) => exercise.category === "cardio"),
+    ),
+    mobility: prioritize(
+      available.filter((exercise) => exercise.category === "mobility"),
+    ),
+  };
+
+  const cardioGoals = ["weight", "body_fat", "endurance"];
+
+  const defaultOrder: Category[] = cardioGoals.includes(
+    profile.preferredGoal,
+  )
+    ? ["cardio", "strength", "mobility"]
+    : ["strength", "cardio", "mobility"];
 
   const preferences = profile.preferredExerciseTypes ?? [];
 
-  const categoryOrder = [
-    ...preferences,
-    ...defaultOrder.filter(
-      (category) => !preferences.includes(category),
-    ),
+  const categoryOrder: Category[] = [
+    ...new Set<Category>([
+      ...preferences,
+      ...defaultOrder,
+    ]),
   ];
 
-  const ordered = categoryOrder.flatMap(
-    (category) => categories[category],
-  );
-
   const selected: FitnessExercise[] = [];
+  const selectedIds = new Set<string>();
   const usedMuscles = new Set<string>();
 
   const warmup = getWarmup();
   const cooldown = getCooldown();
 
-  for (const exercise of ordered) {
-    if (selected.some((item) => item.exerciseId === exercise.id)) {
-      continue;
-    }
+  // Reservar aproximadamente diez minutos para calentamiento
+  // y enfriamiento. Mantener sesiones manejables.
+  const maxExercises = Math.max(
+    1,
+    Math.min(
+      6,
+      Math.floor((profile.sessionMinutes - 10) / 7),
+    ),
+  );
 
-    const overlaps = exercise.muscleGroups.some(
-      (muscle) => usedMuscles.has(muscle),
-    );
+  let addedInRound = true;
 
-    if (overlaps && selected.length > 0) {
-      continue;
-    }
+  // Distribuir la selección entre categorías.
+  while (addedInRound && selected.length < maxExercises) {
+    addedInRound = false;
 
-    const candidate = toFitnessExercise(exercise, profile);
-    const proposed = [...selected, candidate];
+    for (const category of categoryOrder) {
+      if (selected.length >= maxExercises) break;
 
-    if (
-      estimateSessionMinutes(warmup, proposed, cooldown) >
-      profile.sessionMinutes
-    ) {
-      continue;
-    }
+      for (const exercise of categories[category]) {
+        if (selectedIds.has(exercise.id)) continue;
 
-    selected.push(candidate);
+        const overlaps = exercise.muscleGroups.some(
+          (muscle) => usedMuscles.has(muscle),
+        );
 
-    for (const muscle of exercise.muscleGroups) {
-      usedMuscles.add(muscle);
+        if (overlaps && selected.length > 0) continue;
+
+        const candidate = toFitnessExercise(exercise, profile);
+        const proposed = [...selected, candidate];
+
+        if (
+          estimateSessionMinutes(warmup, proposed, cooldown) >
+          profile.sessionMinutes
+        ) {
+          continue;
+        }
+
+        selected.push(candidate);
+        selectedIds.add(exercise.id);
+
+        for (const muscle of exercise.muscleGroups) {
+          usedMuscles.add(muscle);
+        }
+
+        addedInRound = true;
+        break;
+      }
     }
   }
 
@@ -339,7 +402,6 @@ function selectExercises(
 
   return selected;
 }
-
 export function generateFitnessPlan(
   profile: FitnessProfileInput,
 ): GeneratedFitnessPlan {
@@ -371,7 +433,7 @@ export function generateFitnessPlan(
   const sessions: GeneratedWorkoutSession[] = [];
 
   for (let index = 0; index < profile.daysPerWeek; index++) {
-    const exercises = selectExercises(available, profile, index);
+    const exercises = selectExercises(available, profile, index, sessions);
     const warmup = getWarmup();
     const cooldown = getCooldown();
 
