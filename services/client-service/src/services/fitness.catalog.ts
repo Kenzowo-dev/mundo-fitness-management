@@ -1,4 +1,6 @@
-﻿import type {
+import { FITNESS_ADDITIONAL_EXERCISES } from "./fitness.catalog.extended.js";
+
+import type {
   FitnessLevel,
   TrainingLocation,
 } from "../models/fitness.model.js";
@@ -239,6 +241,7 @@ export const FITNESS_EXERCISES: CatalogExercise[] = [
     ],
     alternatives: ["walking"],
   },
+  ...FITNESS_ADDITIONAL_EXERCISES,
 ];
 
 export function getExerciseById(
