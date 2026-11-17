@@ -139,9 +139,17 @@ export default function FitnessPreferencesForm({
 
   return (
     <form
-      className="member-profile-form"
+      className="member-profile-form fitness-preferences-form"
       onSubmit={(event) => void handleSubmit(event)}
     >
+      <header className="fitness-section-heading">
+        <span className="fitness-section-number">01</span>
+        <div>
+          <h3>Define tu objetivo</h3>
+          <p>Cuéntanos qué quieres conseguir y cómo prefieres entrenar.</p>
+        </div>
+      </header>
+
       <FormField
         id="fitness-goal"
         label="Objetivo principal"
@@ -177,6 +185,14 @@ export default function FitnessPreferencesForm({
         }
         required
       />
+
+      <header className="fitness-section-heading">
+        <span className="fitness-section-number">02</span>
+        <div>
+          <h3>Organiza tu entrenamiento</h3>
+          <p>Elige tu frecuencia semanal, duración e intensidad.</p>
+        </div>
+      </header>
 
       <fieldset className="fitness-preferences-group fitness-days-group">
         <legend>Días de entrenamiento por semana</legend>
@@ -241,6 +257,14 @@ export default function FitnessPreferencesForm({
           )
         }
       />
+
+      <header className="fitness-section-heading">
+        <span className="fitness-section-number">03</span>
+        <div>
+          <h3>Personaliza tu rutina</h3>
+          <p>Selecciona tu equipamiento y los ejercicios que prefieres realizar o evitar.</p>
+        </div>
+      </header>
 
       <fieldset className="fitness-preferences-group fitness-option-cards fitness-equipment-options">
         <legend>Equipamiento disponible</legend>
