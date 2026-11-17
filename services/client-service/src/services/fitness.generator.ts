@@ -96,7 +96,7 @@ function isExerciseAvailable(
 }
 
 function getSets(profile: FitnessProfileInput): number {
-  // Limitar el volumen de entrenamiento seg?n la experiencia.
+  // Limitar el volumen de entrenamiento según la experiencia.
   const intensity = profile.preferredIntensity ?? "moderate";
 
   const setsByLevel = {

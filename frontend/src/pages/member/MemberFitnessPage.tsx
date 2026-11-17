@@ -262,7 +262,7 @@ export default function MemberFitnessPage() {
             </header>
 
             <p>
-              Crearemos un plan semanal seg?n tus objetivos,
+              Crearemos un plan semanal según tus objetivos,
               experiencia, equipamiento y preferencias.
             </p>
 
