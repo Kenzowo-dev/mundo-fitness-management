@@ -1,4 +1,4 @@
-﻿-- Recomendador Fitness - Mundo Fitness Management
+-- Recomendador Fitness - Mundo Fitness Management
 -- Migracion 007
 
 CREATE TABLE IF NOT EXISTS fitness_profiles (
