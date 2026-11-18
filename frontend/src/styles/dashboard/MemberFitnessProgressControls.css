@@ -1,0 +1,90 @@
+.fitness-progress-panel,
+.fitness-progress-registration,
+.fitness-progress-session-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  min-width: 0;
+}
+
+.fitness-progress-session-field {
+  gap: 0.5rem;
+}
+
+.fitness-week ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.fitness-week li {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.fitness-week-status {
+  justify-self: start;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.875rem;
+}
+
+.fitness-week-status[data-completed="true"] {
+  background: var(--state-success-soft);
+  color: var(--state-success);
+}
+
+.fitness-progress-panel select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 0.65rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+/* Evita opciones blancas con texto blanco en modo oscuro. */
+.fitness-progress-panel select option,
+.fitness-progress-panel select optgroup {
+  background-color: Canvas;
+  color: CanvasText;
+}
+
+.fitness-progress-panel select:focus-visible,
+.fitness-progress-panel input:focus-visible,
+.fitness-progress-panel textarea:focus-visible {
+  outline: 2px solid #db4b5c;
+  outline-offset: 2px;
+}
+
+.fitness-progress-panel input[type="number"],
+.fitness-progress-panel input[type="date"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.fitness-progress-panel .fitness-duration-warning {
+  margin: 0.35rem 0 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #dc8b32;
+  border-radius: 0.65rem;
+  color: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

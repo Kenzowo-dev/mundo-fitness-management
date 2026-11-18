@@ -16,6 +16,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 # Copy frontend source
 COPY frontend ./frontend
+COPY shared/types/nutrition.d.ts ./shared/types/nutrition.d.ts
 
 # Build the frontend
 WORKDIR /app/frontend

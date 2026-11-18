@@ -35,11 +35,14 @@ const MemberPaymentsPage = lazy(
 const MemberProfilePage = lazy(
   () => import("./pages/member/MemberProfilePage.tsx"),
 );
+const MemberFitnessPage = lazy(
+  () => import("./pages/member/MemberFitnessPage.tsx"),
+);
 const MemberLayout = lazy(() => import("./components/member/MemberLayout.tsx"));
 import "./App.css";
 import { useEffect } from "react";
 
-// Título de documento por ruta (WCAG 2.4.2 — Título de página).
+// Título de documento por ruta (WCAG 2.4.2 – Título de página).
 const pageTitles: Record<string, string> = {
   "/": "Mundo Fitness · Inicio",
   "/login": "Mundo Fitness · Iniciar sesión",
@@ -48,7 +51,7 @@ const pageTitles: Record<string, string> = {
   "/sin-acceso": "Mundo Fitness · Acceso no disponible",
   "/dashboard": "Mundo Fitness · Dashboard",
   "/clientes": "Mundo Fitness · Socios",
-  "/membresias": "Mundo Fitness · Membresías",
+  "/membresias": "Mundo Fitness · Membresias",
   "/pagos": "Mundo Fitness · Pagos",
   "/informes": "Mundo Fitness · Informes",
   "/configuracion": "Mundo Fitness · Configuración",
@@ -228,12 +231,8 @@ function App() {
 
           <Route path="pagos" element={<MemberPaymentsPage />} />
           <Route
-            path="comprobantes"
-            element={<MemberPlaceholder title="Mis comprobantes" />}
-          />
-          <Route
             path="recomendador"
-            element={<MemberPlaceholder title="Recomendador fitness" />}
+            element={<MemberFitnessPage />}
           />
           <Route
             path="notificaciones"

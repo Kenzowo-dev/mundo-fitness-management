@@ -25,11 +25,6 @@ const menuItems = [
     icon: "payments",
   },
   {
-    label: "Mis comprobantes",
-    path: "/portal/comprobantes",
-    icon: "receipt",
-  },
-  {
     label: "Recomendador fitness",
     path: "/portal/recomendador",
     icon: "fitness",
@@ -56,7 +51,6 @@ function MenuIcon({ name }: { name: string }) {
     home: <><path d="m3 10 9-7 9 7" /><path d="M5 9v11h14V9" /><path d="M9 20v-6h6v6" /></>,
     membership: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></>,
     payments: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h3" /></>,
-    receipt: <><path d="M5 3h14v18l-3-2-4 2-4-2-3 2z" /><path d="M9 8h6M9 12h6M9 16h3" /></>,
     fitness: <><path d="M6 5v14M18 5v14M3 9v6M21 9v6M6 12h12" /></>,
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
     user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
