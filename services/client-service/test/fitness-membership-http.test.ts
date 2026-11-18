@@ -123,4 +123,51 @@ describe("Fitness membership HTTP authorization", () => {
       { durationMinutes: 30 },
     );
   });
+
+  it.each(["2026-02-30", "2026-2-01", "0000-01-01"])(
+    "rechaza la fecha inválida %s antes de guardar",
+    async (performedOn) => {
+      const response = await request(app)
+        .post("/fitness/sessions/10/complete")
+        .send({ performedOn });
+
+      expect(response.status).toBe(400);
+      expect(mocks.completeWorkout).not.toHaveBeenCalled();
+    },
+  );
+
+  it("admite fechas retroactivas dentro de la ventana de Lima", async () => {
+    const yesterday = new Date(Date.now() - 86_400_000);
+    const performedOn = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "America/Lima",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(yesterday);
+    mocks.completeWorkout.mockResolvedValue({ performedOn });
+
+    const response = await request(app)
+      .post("/fitness/sessions/10/complete")
+      .send({ performedOn });
+
+    expect(response.status).toBe(201);
+    expect(mocks.completeWorkout).toHaveBeenCalledWith(7, 10, { performedOn });
+  });
+
+  it.each([-14, 1])("rechaza fechas fuera de la ventana de Lima (%s días)", async (offset) => {
+    const date = new Date(Date.now() + offset * 86_400_000);
+    const performedOn = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "America/Lima",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+
+    const response = await request(app)
+      .post("/fitness/sessions/10/complete")
+      .send({ performedOn });
+
+    expect(response.status).toBe(400);
+    expect(mocks.completeWorkout).not.toHaveBeenCalled();
+  });
 });

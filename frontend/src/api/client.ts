@@ -56,6 +56,8 @@ const API_ERROR_MESSAGES: Record<number, string> = {
 };
 
 const API_ERROR_MESSAGES_BY_CODE: Record<string, string> = {
+  TOKEN_INVALID: 'Tu sesión ha expirado. Inicia sesión nuevamente',
+  TOKEN_MISSING: 'Tu sesión ha expirado. Inicia sesión nuevamente',
   INVALID_CREDENTIALS: 'El correo electrónico o la contraseña no son correctos.',
   EMAIL_EXISTS: 'Ya existe una cuenta con ese correo electrónico.',
   EMAIL_ALREADY_REGISTERED: 'Ya existe una cuenta con ese correo electrónico.',
@@ -77,6 +79,12 @@ const CONNECTION_ERROR_MESSAGE = 'No se pudo conectar con Mundo Fitness. Comprue
  * autenticadas a todos los microservicios a través del API Gateway.
  */
 class ApiClient {
+  /** Envía solicitudes al módulo privado de alimentación con la autenticación y renovación del portal. */
+  nutrition<T>(path = "", method = "GET", data?: unknown): Promise<T> {
+    return this.request<T>("/api/clients/me/nutrition" + path, {
+      method, body: data === undefined ? undefined : JSON.stringify(data),
+    });
+  }
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private refreshPromise: Promise<boolean> | null = null;
@@ -100,11 +108,15 @@ class ApiClient {
     }
   }
 
-  private async throwApiError(response: Response): Promise<never> {
+  /** Traduce el fallo HTTP y conserva la explicación de exclusiones o campos inválidos del módulo de comidas. */
+  private async throwApiError(response: Response, endpoint = ""): Promise<never> {
     const payload = (await response
       .json()
       .catch(() => null)) as ApiError | null;
     const code = payload?.error?.code;
+    if (code === "VALIDATION_ERROR" && endpoint.startsWith("/api/clients/me/nutrition") && payload?.error.message) {
+      throw new Error(payload.error.message);
+    }
     const message =
       code === "ACTIVE_MEMBERSHIP_REQUIRED"
         ? "Necesitas una membresía vigente para generar rutinas y registrar entrenamientos. Consulta o renueva tu membresía."
@@ -151,6 +163,37 @@ class ApiClient {
   }
 
   /**
+   * Envía una operación de la sesión actual. Ante un 401 renueva el par de tokens
+   * y repite únicamente lecturas, una sola vez. Las escrituras requieren otra acción del usuario.
+   * @param method Método HTTP de la operación original.
+   * @param send Envía la petición con el token vigente en ese momento.
+   * @returns La respuesta original o la respuesta a la segunda lectura.
+   */
+  private async sendAuthenticated(method: string, send: () => Promise<Response>): Promise<Response> {
+    const version = this.sessionVersion;
+    const response = await send();
+    if (response.status !== 401 || !this.accessToken) return response;
+    if (version !== this.sessionVersion) {
+      throw new Error("La sesión ha cambiado. Vuelve a intentar la operación.");
+    }
+    if (!this.refreshToken) {
+      this.clearTokens();
+      throw new Error(API_ERROR_MESSAGES_BY_CODE.TOKEN_INVALID);
+    }
+    if (!await this.refreshAccessToken()) throw new Error(API_ERROR_MESSAGES_BY_CODE.TOKEN_INVALID);
+    if (!["GET", "HEAD"].includes(method.toUpperCase())) {
+      throw new Error("Tu sesión se renovó. Vuelve a confirmar la operación para completarla.");
+    }
+    const renewedVersion = this.sessionVersion;
+    const retry = await send();
+    if (retry.status === 401 && renewedVersion === this.sessionVersion) {
+      this.clearTokens();
+      throw new Error(API_ERROR_MESSAGES_BY_CODE.TOKEN_INVALID);
+    }
+    return retry;
+  }
+
+  /**
    * Realiza una petición HTTP a la API con los headers y opciones proporcionados.
    * Incluye automáticamente el token de acceso en el header Authorization.
    * Si recibe un 401 y existe un token de refresco, intenta renovar el token de acceso.
@@ -162,31 +205,14 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {},
   ): Promise<T> {
-    const headers: HeadersInit = {
-      "Content-Type": "application/json",
-      ...options.headers,
-    };
-
-    if (this.accessToken) {
-      (headers as Record<string, string>)["Authorization"] =
-        `Bearer ${this.accessToken}`;
-    }
-
-    const response = await this.fetchResponse(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
+    const response = await this.sendAuthenticated(options.method ?? "GET", () => {
+      const headers: Record<string, string> = { "Content-Type": "application/json", ...options.headers as Record<string,string> };
+      if (this.accessToken) headers.Authorization = `Bearer ${this.accessToken}`;
+      return this.fetchResponse(`${API_BASE_URL}${endpoint}`, { ...options, headers });
     });
 
-    // Si el token expiró y existe un token de refresco, intentar renovar
-    if (response.status === 401 && this.refreshToken) {
-      const refreshed = await this.refreshAccessToken();
-      if (refreshed) {
-        return this.request<T>(endpoint, options);
-      }
-    }
-
     if (!response.ok) {
-      await this.throwApiError(response);
+      await this.throwApiError(response, endpoint);
     }
 
     // Respuesta sin contenido (ej. DELETE exitoso)
@@ -197,6 +223,7 @@ class ApiClient {
     return response.json();
   }
 
+  /** Envía la lectura o edición del avatar; solo las lecturas admiten repetición tras renovar la sesión. */
   private async requestAvatar(
     method: "GET" | "POST" | "DELETE",
     file?: File,
@@ -225,15 +252,7 @@ class ApiClient {
       });
     };
 
-    let response = await send();
-
-    if (response.status === 401 && this.refreshToken) {
-      const refreshed = await this.refreshAccessToken();
-
-      if (refreshed) {
-        response = await send();
-      }
-    }
+    const response = await this.sendAuthenticated(method, send);
 
     if (!response.ok) {
       await this.throwApiError(response);

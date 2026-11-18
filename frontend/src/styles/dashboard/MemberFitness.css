@@ -67,7 +67,8 @@
   transform: translateY(-1px);
 }
 
-.fitness-day-button.is-selected {
+.fitness-day-button.is-selected,
+.fitness-day-button.is-selected:hover {
   border-color: #dc2626;
   background: #dc2626;
   color: #fff;
@@ -83,6 +84,12 @@
   margin: 0;
   color: var(--text-secondary, #666);
   font-size: 0.85rem;
+}
+
+.fitness-weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr));
+  gap: 0.5rem;
 }
 
 .fitness-duration-group {

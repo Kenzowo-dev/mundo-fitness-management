@@ -1,0 +1,165 @@
+/* FITNESS WORKOUT TRACKING V1 */
+
+.fitness-workout-log {
+  display: grid;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 1.25rem;
+}
+
+.fitness-workout-log h4,
+.fitness-progress-history h3 {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.fitness-workout-log > p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.fitness-workout-log form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.fitness-workout-log form label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 0;
+}
+
+.fitness-workout-log-notes,
+.fitness-workout-log form > button,
+.fitness-workout-log form > p {
+  grid-column: 1 / -1;
+}
+
+.fitness-workout-log :is(input, select, textarea) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.7rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.fitness-workout-log select option {
+  background: Canvas;
+  color: CanvasText;
+}
+
+.fitness-workout-log :is(input, select, textarea):focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.fitness-workout-log-error {
+  color: var(--state-error-text, #dc2626);
+}
+
+.fitness-workout-log-status {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.fitness-progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+.fitness-progress-stats > div {
+  display: grid;
+  gap: 0.4rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-hover);
+}
+
+.fitness-progress-stats strong {
+  color: var(--text-primary);
+  font-size: 1.6rem;
+}
+
+.fitness-progress-stats span,
+.fitness-progress-entry span {
+  color: var(--text-secondary);
+}
+
+.fitness-progress-history {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fitness-progress-entry {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.fitness-progress-entry > div:first-child {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.fitness-progress-entry strong,
+.fitness-progress-entry p {
+  color: var(--text-primary);
+}
+
+.fitness-progress-entry p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fitness-progress-entry-data {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media (max-width: 700px) {
+  .fitness-workout-log form,
+  .fitness-progress-stats {
+    grid-template-columns: 1fr;
+  }
+}
+/* Accesos rápidos para la fecha real del entrenamiento */
+.fitness-workout-date-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.65rem 0;
+}
+
+.fitness-workout-date-shortcuts button {
+  min-height: 38px;
+  padding: 0.45rem 1rem;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 0.65rem;
+  cursor: pointer;
+}
+
+.fitness-workout-date-shortcuts button:hover:not(:disabled) {
+  background: rgba(145, 145, 145, 0.15);
+}
+
+.fitness-workout-date-shortcuts button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,4 +1,4 @@
-import { AuthorizationError } from "@gym/shared/errors/index.js";
+import { AuthorizationError, ConflictError } from "@gym/shared/errors/index.js";
 import type {
   FitnessWorkoutLog,
   FitnessWorkoutLogInput,
@@ -22,6 +22,7 @@ interface FitnessProfileRow {
   training_location: FitnessProfile["trainingLocation"];
   equipment: string[];
   days_per_week: number;
+  training_days?: number[] | null;
   session_minutes: number;
   preferred_goal: FitnessProfile["preferredGoal"];
   mobility_notes: string | null;
@@ -43,6 +44,7 @@ function mapFitnessProfile(row: FitnessProfileRow): FitnessProfile {
     trainingLocation: row.training_location,
     equipment: row.equipment,
     daysPerWeek: row.days_per_week,
+    trainingDays: row.training_days ?? undefined,
     sessionMinutes: row.session_minutes,
     preferredGoal: row.preferred_goal,
     mobilityNotes: row.mobility_notes,
@@ -92,6 +94,10 @@ export async function saveFitnessProfile(
   clientId: number,
   data: FitnessProfileInput,
 ): Promise<FitnessProfile> {
+  const trainingDays = data.trainingDays === undefined
+    ? null
+    : resolveFitnessTrainingDays(data);
+
   const result = await query<FitnessProfileRow>(
     `
     INSERT INTO fitness_profiles (
@@ -108,7 +114,8 @@ export async function saveFitnessProfile(
       preferred_intensity,
       dietary_preferences,
       disliked_ingredients,
-      food_allergies
+      food_allergies,
+      training_days
     )
     VALUES (
       $1, $2, $3, $4::jsonb, $5, $6, $7, $8,
@@ -117,7 +124,8 @@ export async function saveFitnessProfile(
       COALESCE($11, 'moderate'),
       COALESCE($12::jsonb, '[]'::jsonb),
       COALESCE($13::jsonb, '[]'::jsonb),
-      COALESCE($14::jsonb, '[]'::jsonb)
+      COALESCE($14::jsonb, '[]'::jsonb),
+      $15::integer[]
     )
     ON CONFLICT (client_id)
     DO UPDATE SET
@@ -125,6 +133,11 @@ export async function saveFitnessProfile(
       training_location = EXCLUDED.training_location,
       equipment = EXCLUDED.equipment,
       days_per_week = EXCLUDED.days_per_week,
+      training_days = CASE
+        WHEN $15::integer[] IS NOT NULL THEN EXCLUDED.training_days
+        WHEN EXCLUDED.days_per_week = fitness_profiles.days_per_week
+          THEN fitness_profiles.training_days
+      END,
       session_minutes = EXCLUDED.session_minutes,
       preferred_goal = EXCLUDED.preferred_goal,
       mobility_notes = EXCLUDED.mobility_notes,
@@ -152,6 +165,7 @@ export async function saveFitnessProfile(
       data.dietaryPreferences === undefined ? null : JSON.stringify(data.dietaryPreferences),
       data.dislikedIngredients === undefined ? null : JSON.stringify(data.dislikedIngredients),
       data.foodAllergies === undefined ? null : JSON.stringify(data.foodAllergies),
+      trainingDays,
     ],
   );
 
@@ -159,7 +173,7 @@ export async function saveFitnessProfile(
 }
 
 import { NotFoundError, ValidationError } from "@gym/shared/errors/index.js";
-import { generateFitnessPlan } from "./fitness.generator.js";
+import { generateFitnessPlan, resolveFitnessTrainingDays } from "./fitness.generator.js";
 
 interface FitnessPlanRow {
   id: string;
@@ -238,6 +252,7 @@ export async function createFitnessPlan(
     trainingLocation: profile.trainingLocation,
     equipment: profile.equipment,
     daysPerWeek: profile.daysPerWeek,
+    trainingDays: profile.trainingDays,
     sessionMinutes: profile.sessionMinutes,
     preferredGoal: profile.preferredGoal,
     mobilityNotes: profile.mobilityNotes,
@@ -406,6 +421,8 @@ export async function getFitnessPlanById(
 interface FitnessWorkoutLogRow {
   id: string;
   session_id: string;
+  session_title?: string;
+  performed_on_text: string | null;
   client_id: string;
   completed_at: Date;
   duration_minutes: number | null;
@@ -419,8 +436,10 @@ function mapFitnessWorkoutLog(
   return {
     id: Number(row.id),
     sessionId: Number(row.session_id),
+    sessionTitle: row.session_title,
     clientId: Number(row.client_id),
     completedAt: row.completed_at,
+    performedOn: row.performed_on_text ?? undefined,
     durationMinutes: row.duration_minutes ?? undefined,
     perceivedEffort: row.perceived_effort ?? undefined,
     notes: row.notes ?? undefined,
@@ -447,20 +466,25 @@ export async function completeFitnessWorkout(
       client_id,
       duration_minutes,
       perceived_effort,
-      notes
+      notes,
+      performed_on
     )
     SELECT
       s.id,
       p.client_id,
       $3,
       $4,
-      $5
+      $5,
+      COALESCE($6::date, (NOW() AT TIME ZONE 'America/Lima')::date)
     FROM fitness_workout_sessions s
     INNER JOIN fitness_plans p ON p.id = s.plan_id
     WHERE s.id = $1
       AND p.client_id = $2
       AND p.status = 'active'
-    RETURNING *
+    ON CONFLICT (session_id, performed_on)
+      WHERE performed_on IS NOT NULL
+    DO NOTHING
+    RETURNING *, performed_on::text AS performed_on_text
     `,
     [
       sessionId,
@@ -468,10 +492,40 @@ export async function completeFitnessWorkout(
       data.durationMinutes ?? null,
       data.perceivedEffort ?? null,
       data.notes ?? null,
+      data.performedOn ?? null,
     ],
   );
 
   if (!result.rows[0]) {
+    const duplicate = await query<{ already_registered: boolean }>(
+      `
+      SELECT EXISTS (
+        SELECT 1
+        FROM fitness_workout_logs l
+        INNER JOIN fitness_workout_sessions s
+          ON s.id = l.session_id
+        INNER JOIN fitness_plans p
+          ON p.id = s.plan_id
+        WHERE l.session_id = $1
+          AND l.client_id = $2
+          AND p.client_id = $2
+          AND p.status = 'active'
+          AND l.performed_on = COALESCE(
+            $3::date,
+            (NOW() AT TIME ZONE 'America/Lima')::date
+          )
+      ) AS already_registered
+      `,
+      [sessionId, clientId, data.performedOn ?? null],
+    );
+
+    if (duplicate.rows[0]?.already_registered) {
+      throw new ConflictError(
+        "Ya registraste este entrenamiento en esa fecha.",
+        "FITNESS_WORKOUT_ALREADY_REGISTERED",
+      );
+    }
+
     throw new NotFoundError(
       "Active fitness workout session",
       sessionId,
@@ -492,7 +546,7 @@ export async function getFitnessWorkoutHistory(
 ): Promise<FitnessWorkoutLog[]> {
   const result = await query<FitnessWorkoutLogRow>(
     `
-    SELECT l.*
+    SELECT l.*, s.title AS session_title, l.performed_on::text AS performed_on_text
     FROM fitness_workout_logs l
     INNER JOIN fitness_workout_sessions s
       ON s.id = l.session_id

@@ -9,6 +9,7 @@ import { connectRedis, disconnectRedis } from '@gym/shared/messaging/index.js';
 import { closePool } from '@gym/shared/database/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 import fitnessRoutes from './routes/fitness.routes.js';
+import nutritionRoutes from './routes/nutrition.routes.js';
 import clientRoutes from './routes/client.routes.js';
 
 const app = express();
@@ -69,6 +70,7 @@ app.get('/health', async (_req, res) => {
  * GET /:id/documents, POST /:id/documents
  */
 app.use('/api/clients/me/fitness', fitnessRoutes);
+app.use('/api/clients/me/nutrition', nutritionRoutes);
 app.use('/api/clients', clientRoutes);
 
 /**

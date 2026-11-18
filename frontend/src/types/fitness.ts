@@ -23,6 +23,7 @@ export interface FitnessProfileInput {
   trainingLocation: TrainingLocation;
   equipment: string[];
   daysPerWeek: number;
+  trainingDays?: number[];
   sessionMinutes: number;
   preferredGoal: FitnessGoal;
   mobilityNotes?: string | null;
@@ -100,6 +101,7 @@ export interface FitnessPlanWithSessions extends FitnessPlan {
 
 /** Datos enviados al registrar un entrenamiento completado. */
 export interface FitnessWorkoutLogInput {
+  performedOn?: string;
   durationMinutes?: number;
   perceivedEffort?: number;
   notes?: string;
@@ -109,6 +111,7 @@ export interface FitnessWorkoutLogInput {
 export interface FitnessWorkoutLog extends FitnessWorkoutLogInput {
   id: number;
   sessionId: number;
+  sessionTitle?: string;
   clientId: number;
   completedAt: string;
 }

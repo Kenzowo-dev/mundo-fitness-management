@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { defaultFitnessTrainingDays, FITNESS_WEEKDAYS } from "./fitnessSchedule";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import FormField from "../../components/FormField";
@@ -64,7 +65,10 @@ export default function FitnessPreferencesForm({
   saving = false,
 }: FitnessPreferencesFormProps) {
   const [values, setValues] = useState<FitnessProfileInput>(
-    initialValues,
+    () => ({
+      ...initialValues,
+      trainingDays: initialValues.trainingDays ?? defaultFitnessTrainingDays(initialValues.daysPerWeek),
+    }),
   );
   const [error, setError] = useState<string | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
@@ -130,6 +134,11 @@ export default function FitnessPreferencesForm({
       return;
     }
 
+    if (values.trainingDays?.length !== values.daysPerWeek) {
+      setError(`Selecciona exactamente ${values.daysPerWeek} días de entrenamiento.`);
+      return;
+    }
+
     if (
       !Number.isInteger(values.sessionMinutes) ||
       values.sessionMinutes < 15 ||
@@ -141,8 +150,8 @@ export default function FitnessPreferencesForm({
 
     try {
       await onSave(values);
-    } catch {
-      setError("No se pudieron guardar las preferencias.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "No se pudieron guardar las preferencias.");
     }
   };
 
@@ -223,8 +232,34 @@ export default function FitnessPreferencesForm({
         </div>
 
         <p className="fitness-control-help">
-          {values.daysPerWeek} días por semana
+          {(values.trainingDays ?? []).length} de {values.daysPerWeek} días seleccionados
         </p>
+      </fieldset>
+
+      <fieldset className="fitness-preferences-group">
+        <legend>¿Qué días vas a entrenar?</legend>
+        <div className="fitness-weekday-picker">
+          {FITNESS_WEEKDAYS.map((name, index) => {
+            const day = index + 1;
+            const selected = (values.trainingDays ?? []).includes(day);
+            return (
+              <button
+                key={day}
+                type="button"
+                className={`fitness-day-button ${selected ? "is-selected" : ""}`}
+                aria-pressed={selected}
+                onClick={() => {
+                  const days = values.trainingDays ?? [];
+                  update("trainingDays", selected
+                    ? days.filter((value) => value !== day)
+                    : [...days, day].sort((a, b) => a - b));
+                }}
+              >
+                {name}
+              </button>
+            );
+          })}
+        </div>
       </fieldset>
 
       <div className="fitness-duration-group">

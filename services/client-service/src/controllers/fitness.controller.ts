@@ -39,6 +39,7 @@ const fitnessProfileSchema = z.strictObject({
   trainingLocation: z.enum(["home", "gym", "both"]),
   equipment: z.array(z.string().trim().min(1).max(50)).max(30),
   daysPerWeek: z.number().int().min(1).max(7),
+  trainingDays: z.array(z.number().int().min(1).max(7)).max(7).optional(),
   sessionMinutes: z.number().int().min(15).max(120),
   preferredGoal: z.enum([
     "weight",
@@ -78,7 +79,8 @@ const fitnessProfileSchema = z.strictObject({
 });
 
 const workoutLogSchema = z.strictObject({
-  durationMinutes: z.number().int().min(1).max(300).optional(),
+  performedOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa una fecha válida (AAAA-MM-DD).").optional(),
+  durationMinutes: z.number().int().min(1).max(180).optional(),
   perceivedEffort: z.number().int().min(1).max(10).optional(),
   notes: z.string().trim().max(2000).optional(),
 });
@@ -110,7 +112,8 @@ function parseId(value: unknown): number {
   return validateBody(positiveIdSchema, value);
 }
 
-async function getAuthenticatedClientId(
+/** Resuelve el cliente desde el usuario del token y rechaza cuentas sin perfil de cliente. */
+export async function getAuthenticatedClientId(
   req: AuthenticatedRequest,
 ): Promise<number> {
   const userId = Number(req.user?.sub);
@@ -236,6 +239,44 @@ export async function getFitnessPlanByIdController(
  * Valida la sesión, duración, esfuerzo percibido
  * y observaciones antes de guardar el registro.
  */
+function validateWorkoutPerformedOn(value?: string): void {
+  if (!value) return;
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== value || value.startsWith("0000-")
+  ) {
+    throw new ValidationError("La fecha del entrenamiento no es válida.");
+  }
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Lima",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const getPart = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  const today = [
+    getPart("year"),
+    getPart("month"),
+    getPart("day"),
+  ].join("-");
+
+  const daysAgo = (
+    Date.parse(`${today}T00:00:00Z`) - parsed.getTime()
+  ) / 86_400_000;
+
+  if (daysAgo < 0 || daysAgo > 13) {
+    throw new ValidationError(
+      "Solo puedes registrar entrenamientos de hoy o de los últimos 13 días.",
+    );
+  }
+}
 export async function completeFitnessWorkoutController(
   req: AuthenticatedRequest,
   res: Response,
@@ -244,6 +285,7 @@ export async function completeFitnessWorkoutController(
   try {
     const sessionId = parseId(req.params.id);
     const data = validateBody(workoutLogSchema, req.body);
+    validateWorkoutPerformedOn(data.performedOn);
     const clientId = await getAuthenticatedClientId(req);
     await requireActiveFitnessMembership(clientId);
 

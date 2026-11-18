@@ -21,6 +21,13 @@ describe('ApiClient', () => {
   })
 
   describe('request method', () => {
+    it('explica por qué faltan recetas compatibles en el menú del socio', async () => {
+      const message = 'No hay suficientes recetas compatibles para cena.'
+      global.fetch = vi.fn().mockResolvedValue(
+        createMockResponse(false, 400, { error: { message, code: 'VALIDATION_ERROR' } })
+      )
+      await expect(api.nutrition('/menus', 'POST')).rejects.toThrow(message)
+    })
     it('should make successful request', async () => {
       const mockData = { success: true }
       global.fetch = vi.fn().mockResolvedValue(createMockResponse(true, 200, mockData))
@@ -126,6 +133,31 @@ describe('ApiClient', () => {
   })
 
   describe('session lifecycle', () => {
+    it.each([200, 401])('renueva después del 401 sin reenviar el guardado (refresh %i)', async status => {
+      const rejected = createMockResponse(false, 401, { error: { code: 'TOKEN_INVALID' } })
+      global.fetch = vi.fn()
+        .mockResolvedValueOnce(loginResponse())
+        .mockResolvedValueOnce(rejected)
+        .mockResolvedValueOnce(createMockResponse(status === 200, status,
+          status === 200 ? { accessToken: 'access-2', refreshToken: 'refresh-2' } : {}))
+      await api.login('test@example.com', 'test')
+      await expect(api.nutrition('/preferences','PUT',{})).rejects.toThrow(status === 200
+        ? 'Tu sesión se renovó' : 'Tu sesión ha expirado. Inicia sesión nuevamente')
+      expect(global.fetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+        '/api/auth/login','/api/clients/me/nutrition/preferences','/api/auth/refresh',
+      ])
+      expect(api.isAuthenticated()).toBe(status === 200)
+    })
+
+    it('limita la lectura a un solo reintento si también se rechaza el token renovado', async () => {
+      const rejected = createMockResponse(false, 401, {error:{code:'TOKEN_INVALID'}})
+      global.fetch = vi.fn().mockResolvedValueOnce(loginResponse()).mockResolvedValueOnce(rejected)
+        .mockResolvedValueOnce(createMockResponse(true,200,{accessToken:'access-2',refreshToken:'refresh-2'}))
+        .mockResolvedValueOnce(rejected)
+      await api.login('test@example.com', 'test')
+      await expect(api.nutrition()).rejects.toThrow('Tu sesión ha expirado. Inicia sesión nuevamente')
+      expect(global.fetch).toHaveBeenCalledTimes(4)
+    })
     const loginResponse = () => ({
       ok: true,
       status: 200,

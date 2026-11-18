@@ -1,3 +1,4 @@
+import { ValidationError } from "@gym/shared/errors/index.js";
 import type {
   FitnessActivity,
   FitnessExercise,
@@ -24,6 +25,22 @@ export interface GeneratedFitnessPlan {
 }
 
 const WEEK_DAYS = [1, 3, 5, 2, 4, 6, 7];
+
+export function resolveFitnessTrainingDays(
+  { daysPerWeek, trainingDays }: Pick<FitnessProfileInput, "daysPerWeek" | "trainingDays">,
+): number[] {
+  const days = trainingDays ?? WEEK_DAYS.slice(0, daysPerWeek);
+  if (
+    days.length !== daysPerWeek ||
+    new Set(days).size !== days.length ||
+    days.some((day) => !Number.isInteger(day) || day < 1 || day > 7)
+  ) {
+    throw new ValidationError(
+      "Selecciona tantos días distintos como entrenamientos por semana.",
+    );
+  }
+  return [...days].sort((a, b) => a - b);
+}
 
 const VALID_LEVELS = ["beginner", "intermediate", "advanced"];
 const VALID_LOCATIONS = ["home", "gym", "both"];
@@ -248,6 +265,7 @@ function selectExercises(
   available: CatalogExercise[],
   profile: FitnessProfileInput,
   sessionIndex: number,
+  currentDay: number,
   previousSessions: GeneratedWorkoutSession[],
 ): FitnessExercise[] {
   const usageCounts = new Map<string, number>();
@@ -263,7 +281,6 @@ function selectExercises(
 
   // Considerar grupos trabajados en días cercanos.
   // Es una preferencia de selección, no una garantía clínica de recuperación.
-  const currentDay = WEEK_DAYS[sessionIndex] ?? sessionIndex + 1;
   const nearbyMuscles = new Set<string>();
 
   for (const session of previousSessions) {
@@ -432,13 +449,14 @@ export function generateFitnessPlan(
 
   const sessions: GeneratedWorkoutSession[] = [];
 
-  for (let index = 0; index < profile.daysPerWeek; index++) {
-    const exercises = selectExercises(available, profile, index, sessions);
+  const days = resolveFitnessTrainingDays(profile);
+  for (const [index, day] of days.entries()) {
+    const exercises = selectExercises(available, profile, index, day, sessions);
     const warmup = getWarmup();
     const cooldown = getCooldown();
 
     sessions.push({
-      dayNumber: WEEK_DAYS[index],
+      dayNumber: day,
       title: `Entrenamiento ${index + 1}`,
       estimatedMinutes: estimateSessionMinutes(
         warmup,
