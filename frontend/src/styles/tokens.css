@@ -45,6 +45,13 @@
   --radius-lg: 1.25rem;
   --radius-xl: 1.75rem;
   --radius-full: 9999px;
+  /* Target táctil mínimo 44x44px (WCAG 2.5.5) y 48x48px recomendado */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+  /* Unidades de viewport seguras para móviles (evitan el salto de barras de URL) */
+  --vh-safe: 100svh;
+  --lvh-safe: 100lvh;
+  --dvh-safe: 100dvh;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -97,4 +104,79 @@
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.12);
   --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+/* ========================= NORMALIZACIÓN MULTIPLATAFORMA (cross-browser) ========================= */
+
+/* Evita el menú contextual de imágenes y enlaces en iOS/Android */
+img,
+a,
+button {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Text size adjust para iOS (evita el zoom al girar el dispositivo en inputs) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Scrollbar coherente en Chrome/Edge/Safari y Firefox */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg-app);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) var(--bg-app);
+}
+
+/* Soporte seguro de unidades de viewport en móviles (SVH/DVH/LVH) */
+html {
+  height: -webkit-fill-available;
+}
+body {
+  min-height: -webkit-fill-available;
+}
+
+/* Focus visible consistente en todos los navegadores */
+*:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Reducido de movimiento, transparencia y contraste más alto (preferencias del usuario) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg: var(--bg-elevated-1);
+  }
+}
+@media (prefers-contrast: more) {
+  :root {
+    --glass-bg: var(--bg-elevated-1);
+    --border-default: var(--border-strong);
+    --border-subtle: var(--border-strong);
+  }
 }
