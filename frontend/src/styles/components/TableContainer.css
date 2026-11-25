@@ -1,4 +1,6 @@
-/* TableContainer.css — Tabla responsive con loading, empty state, hover */
+/* TableContainer.css — Tabla responsive con loading, empty state, accesibilidad y cross-browser */
+
+/* Contenedor con scroll horizontal suave en todos los navegadores */
 
 .table-container {
   background: var(--bg-elevated-1);
@@ -9,29 +11,52 @@
   width: 100%;
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) var(--bg-elevated-1);
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+.table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+}
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 720px;
+  min-width: 560px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 .data-table th,
 .data-table td {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   text-align: left;
   border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
 }
 
 .data-table th {
   background: var(--bg-elevated-1);
   font-weight: 700;
-  font-size: .8125rem;
-  letter-spacing: .01em;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
   color: var(--text-primary);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .data-table tr:last-child td {
@@ -71,7 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 48px;
+  height: var(--touch-target-min);
   background: linear-gradient(90deg, var(--bg-elevated-2) 25%, var(--bg-hover) 50%, var(--bg-elevated-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
@@ -101,12 +126,33 @@
   padding: var(--space-4);
 }
 
-/* Responsive */
+/* ========================= RESPONSIVE TABLA ========================= */
 
 @media (max-width: 768px) {
   .data-table {
-    min-width: 640px;
+    min-width: 480px;
+    font-size: 0.8125rem;
+  }
+  .data-table th,
+  .data-table td {
+    padding: var(--space-2) var(--space-3);
   }
 }
-.data-table td { font-size: .875rem; line-height: 1.5; font-variant-numeric: tabular-nums; }
-.table-container:focus-visible { outline: 3px solid var(--border-focus); outline-offset: 3px; }
+
+@media (max-width: 480px) {
+  .data-table {
+    min-width: 360px;
+    font-size: 0.8125rem;
+  }
+  .data-table th,
+  .data-table td {
+    padding: var(--space-2);
+  }
+}
+
+/* Focus visible del contenedor (navegación por teclado) */
+
+.table-container:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 3px;
+}

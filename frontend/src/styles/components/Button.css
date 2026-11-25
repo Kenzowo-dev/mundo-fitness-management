@@ -12,8 +12,22 @@
   text-decoration: none;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
-  white-space: nowrap;
+  max-width: 100%;
   position: relative;
+}
+
+/* En pantallas muy pequeñas, permite que el texto del botón se ajuste
+   sin desbordar el contenedor (evita overflow horizontal) */
+.btn-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .btn-content {
+    white-space: normal;
+    text-overflow: unset;
+  }
 }
 
 .btn:focus-visible {
