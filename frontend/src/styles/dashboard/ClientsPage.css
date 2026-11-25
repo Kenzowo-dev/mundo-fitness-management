@@ -60,8 +60,27 @@
 
 .clients-table-container {
   width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) var(--bg-elevated-1);
 }
 
+.clients-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+.clients-table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.clients-table-container::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: var(--radius-full);
+}
+.clients-table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Ancho mínimo base controlado: la tabla hace scroll dentro del contenedor en lugar de romper el layout */
 .clients-table {
   min-width: 560px;
 }
