@@ -63,7 +63,7 @@
 }
 
 .clients-table {
-  min-width: 740px;
+  min-width: 560px;
 }
 
 .clients-table th,
@@ -75,6 +75,28 @@
 .clients-table th:first-child,
 .clients-table td:first-child {
   width: 30%;
+}
+
+/* Tabla de socios responsiva en móvil (evita desbordar el layout) */
+@media (max-width: 768px) {
+  .clients-table {
+    min-width: 480px;
+    font-size: 0.8125rem;
+  }
+  .clients-table th,
+  .clients-table td {
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+@media (max-width: 480px) {
+  .clients-table {
+    min-width: 360px;
+  }
+  .clients-table th,
+  .clients-table td {
+    padding: var(--space-2);
+  }
 }
 
 .clients-person {
